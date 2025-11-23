@@ -1,0 +1,32 @@
+{
+  "collection_methods": {
+    "rapid_api": {
+      "enabled": false,
+      "api_key": "",
+      "endpoint": "https://linkedin-profiles1.p.rapidapi.com",
+      "rate_limit": 100
+    },
+    "manual_entry": {
+      "enabled": true,
+      "data_dir": "/Users/chungty/Projects/vdg-clean/abm-research/data/linkedin_profiles"
+    },
+    "csv_import": {
+      "enabled": true,
+      "csv_path": "/Users/chungty/Projects/vdg-clean/abm-research/data/linkedin_contacts.csv"
+    },
+    "sales_navigator_export": {
+      "enabled": true,
+      "export_dir": "/Users/chungty/Projects/vdg-clean/abm-research/data/sales_navigator"
+    }
+  },
+  "profile_enhancement": {
+    "use_ai_bio_analysis": true,
+    "use_ai_activity_simulation": true,
+    "confidence_scoring": true
+  },
+  "compliance": {
+    "respect_robots_txt": true,
+    "rate_limit_seconds": 2,
+    "user_agent": "Verdigris ABM Research Tool"
+  }
+}

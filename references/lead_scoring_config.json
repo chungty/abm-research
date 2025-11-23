@@ -1,0 +1,138 @@
+{
+  "scoring_formula": {
+    "description": "Contact Score = (ICP Fit × icp_fit_weight) + (Buying Power × buying_power_weight) + (Engagement Potential × engagement_weight)",
+    "component_weights": {
+      "icp_fit_weight": 0.40,
+      "buying_power_weight": 0.30,
+      "engagement_weight": 0.30
+    }
+  },
+  "icp_fit_scoring": {
+    "max_score": 100,
+    "components": {
+      "title_match": {
+        "description": "Score based on how closely title matches target ICP roles",
+        "scoring": {
+          "VP_or_Head_level": 100,
+          "Director_level": 80,
+          "Senior_Manager": 60,
+          "Manager": 40,
+          "Other": 20
+        }
+      },
+      "responsibility_keywords": {
+        "description": "Bonus points for key responsibility indicators in bio/about section",
+        "keywords": {
+          "power_energy": {
+            "terms": ["power", "energy", "electrical", "capacity", "PUE", "kW", "MW"],
+            "points": 20
+          },
+          "reliability_uptime": {
+            "terms": ["reliability", "uptime", "availability", "SLA", "downtime", "MTTR", "MTBF"],
+            "points": 20
+          },
+          "capacity_planning": {
+            "terms": ["capacity planning", "infrastructure planning", "scaling", "growth", "expansion"],
+            "points": 20
+          }
+        },
+        "max_bonus": 60
+      },
+      "role_tenure": {
+        "description": "Adjust score based on time in current role",
+        "scoring": {
+          "less_than_6_months": -10,
+          "6_to_12_months": 0,
+          "1_to_3_years": 10,
+          "more_than_3_years": 5
+        }
+      }
+    }
+  },
+  "buying_power_scoring": {
+    "max_score": 100,
+    "description": "Score based on position in buying committee",
+    "roles": {
+      "economic_buyer": {
+        "description": "VP+ level, budget authority",
+        "score": 100
+      },
+      "technical_evaluator": {
+        "description": "Director level, influences technical decisions",
+        "score": 70
+      },
+      "champion": {
+        "description": "Manager/Senior Manager, daily pain point owner",
+        "score": 50
+      },
+      "influencer": {
+        "description": "Sustainability, compliance, or adjacent roles",
+        "score": 30
+      }
+    }
+  },
+  "engagement_potential_scoring": {
+    "max_score": 100,
+    "components": {
+      "linkedin_activity": {
+        "description": "Posting frequency on LinkedIn",
+        "scoring": {
+          "weekly_plus": 50,
+          "monthly": 30,
+          "quarterly": 10,
+          "inactive": 0
+        }
+      },
+      "content_relevance": {
+        "description": "Topics discussed align with Verdigris value props",
+        "high_relevance_topics": ["power", "energy", "AI infrastructure", "capacity planning", "uptime", "reliability", "cost optimization", "sustainability", "PUE"],
+        "scoring": {
+          "high_relevance": 25,
+          "medium_relevance": 15,
+          "low_relevance": 0
+        }
+      },
+      "network_quality": {
+        "description": "Connected to relevant industry professionals",
+        "indicators": ["data center operators", "infrastructure vendors", "industry groups", "peer companies"],
+        "score": 25
+      }
+    }
+  },
+  "scoring_thresholds": {
+    "high_priority": {
+      "min_score": 70,
+      "description": "Trigger full LinkedIn profile enrichment and engagement intelligence"
+    },
+    "medium_priority": {
+      "min_score": 50,
+      "description": "Include in account plan but limited enrichment"
+    },
+    "low_priority": {
+      "min_score": 0,
+      "description": "Track but deprioritize for outreach"
+    }
+  },
+  "target_titles": [
+    "Vice President of Data Center Operations",
+    "Vice President of Critical Infrastructure",
+    "Vice President of Infrastructure & Operations",
+    "Director of Data Center Operations",
+    "Director of Data Center Facilities",
+    "Director of Critical Infrastructure",
+    "Director of Site Operations",
+    "Senior Manager of Data Center Operations",
+    "Head of Data Center Engineering",
+    "Global Head of Data Center Operations"
+  ],
+  "icp_pain_points": [
+    "Power capacity planning and management",
+    "Uptime and reliability pressure",
+    "Energy efficiency and PUE optimization",
+    "AI workload expansion challenges",
+    "Cost reduction mandates",
+    "Sustainability and ESG reporting requirements",
+    "Predictive maintenance and risk detection",
+    "Remote monitoring and troubleshooting"
+  ]
+}
