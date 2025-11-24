@@ -88,13 +88,46 @@ class AccountIntelligenceEngine:
                 "Enterprise": (5001, float('inf'))
             },
 
-            # Tech stack keywords for infrastructure companies
-            "tech_keywords": {
-                "cloud": ["AWS", "Azure", "GCP", "Google Cloud", "Amazon Web Services"],
-                "containers": ["Docker", "Kubernetes", "K8s", "OpenShift", "EKS", "GKE"],
-                "databases": ["PostgreSQL", "MySQL", "MongoDB", "Redis", "Cassandra"],
-                "monitoring": ["DataDog", "New Relic", "Splunk", "Grafana", "Prometheus"],
-                "infrastructure": ["Terraform", "Ansible", "Chef", "Puppet"]
+            # Physical data center infrastructure keywords (Verdigris focus)
+            "infrastructure_keywords": {
+                # GPU Infrastructure & AI Hardware
+                "gpu_infrastructure": ["NVIDIA", "AMD", "GPU cluster", "H100", "A100", "V100",
+                                     "DGX", "HGX", "Tesla", "RTX", "Quadro", "GPU farm",
+                                     "AI cluster", "ML infrastructure", "CUDA", "ROCm"],
+
+                # Physical Power Infrastructure
+                "power_systems": ["UPS", "Uninterruptible Power Supply", "APC", "Eaton",
+                                "Schneider Electric", "Vertiv", "Liebert", "PDU",
+                                "Power Distribution Unit", "Rack PDU", "power monitoring",
+                                "power management", "power meters", "energy monitoring"],
+
+                # Cooling & Environmental
+                "cooling_systems": ["CRAC", "CRAH", "Computer Room Air", "precision cooling",
+                                  "liquid cooling", "immersion cooling", "Vertiv cooling",
+                                  "Schneider cooling", "Liebert cooling", "data center cooling",
+                                  "thermal management", "environmental monitoring"],
+
+                # DCIM & BMS Software
+                "dcim_software": ["DCIM", "Data Center Infrastructure Management",
+                                "StruxureWare", "Schneider Electric DCIM", "Vertiv Trellis",
+                                "Nlyte", "Sunbird", "CA DCIM", "Device42", "Raritan DCIM",
+                                "BMS", "Building Management System", "facility management"],
+
+                # Network & Server Infrastructure
+                "server_infrastructure": ["Dell PowerEdge", "HPE ProLiant", "Cisco UCS",
+                                        "Supermicro", "rack servers", "blade servers",
+                                        "hyperconverged", "server room", "data center",
+                                        "colocation", "colo", "edge computing"],
+
+                # Storage & Backup Power
+                "storage_power": ["NetApp", "EMC", "Pure Storage", "battery backup",
+                                "flywheel", "generator", "diesel generator", "fuel cells",
+                                "energy storage", "backup power", "critical power"],
+
+                # Data Center Vendors
+                "infrastructure_vendors": ["Schneider Electric", "APC by Schneider", "Vertiv",
+                                         "Eaton", "Liebert", "Rittal", "Chatsworth Products",
+                                         "nVent", "Panduit", "CommScope", "Raritan", "Server Technology"]
             },
 
             # Funding stage keywords
@@ -191,10 +224,10 @@ class AccountIntelligenceEngine:
                     if response.status_code == 200:
                         content = response.text.lower()
 
-                        # Extract tech stack mentions
-                        for category, keywords in self.config["tech_keywords"].items():
-                            found_tech = [kw for kw in keywords if kw.lower() in content]
-                            website_data["tech_stack"].extend(found_tech)
+                        # Extract infrastructure mentions
+                        for category, keywords in self.config["infrastructure_keywords"].items():
+                            found_infrastructure = [kw for kw in keywords if kw.lower() in content]
+                            website_data["tech_stack"].extend(found_infrastructure)
 
                         # Look for recent announcements
                         announcement_patterns = [
@@ -326,10 +359,38 @@ class AccountIntelligenceEngine:
 
         intelligence.recent_funding = "; ".join(funding_items[:2])
 
-        # Tech stack from website analysis
+        # Physical infrastructure analysis from website
         if results.get("website", {}).get("tech_stack"):
-            tech_list = list(set(results["website"]["tech_stack"]))  # Remove duplicates
-            intelligence.current_tech_stack = ", ".join(tech_list[:10])  # Top 10
+            infrastructure_list = list(set(results["website"]["tech_stack"]))  # Remove duplicates
+
+            # Prioritize GPU and power infrastructure for Verdigris sales
+            gpu_infrastructure = [item for item in infrastructure_list
+                                if any(gpu_term in item.lower() for gpu_term in ["nvidia", "amd", "gpu", "h100", "a100", "dgx"])]
+            power_infrastructure = [item for item in infrastructure_list
+                                  if any(power_term in item.lower() for power_term in ["ups", "pdu", "apc", "schneider", "vertiv", "power"])]
+            cooling_infrastructure = [item for item in infrastructure_list
+                                    if any(cooling_term in item.lower() for cooling_term in ["crac", "crah", "cooling", "thermal"])]
+            dcim_software = [item for item in infrastructure_list
+                           if any(dcim_term in item.lower() for dcim_term in ["dcim", "struxure", "trellis", "nlyte"])]
+
+            # Build prioritized infrastructure summary
+            prioritized_infrastructure = []
+            if gpu_infrastructure:
+                prioritized_infrastructure.extend(gpu_infrastructure[:3])  # Top 3 GPU findings
+            if power_infrastructure:
+                prioritized_infrastructure.extend(power_infrastructure[:3])  # Top 3 power findings
+            if cooling_infrastructure:
+                prioritized_infrastructure.extend(cooling_infrastructure[:2])  # Top 2 cooling findings
+            if dcim_software:
+                prioritized_infrastructure.extend(dcim_software[:2])  # Top 2 DCIM findings
+
+            # Add remaining infrastructure if we have space
+            other_infrastructure = [item for item in infrastructure_list
+                                  if item not in prioritized_infrastructure]
+            remaining_slots = max(0, 10 - len(prioritized_infrastructure))
+            prioritized_infrastructure.extend(other_infrastructure[:remaining_slots])
+
+            intelligence.current_tech_stack = ", ".join(prioritized_infrastructure)
 
         # Hiring velocity
         hiring_signals = []
@@ -386,7 +447,7 @@ class AccountIntelligenceEngine:
             "Recent Funding": intelligence.recent_funding,
             "Growth Stage": intelligence.growth_stage,
             "Hiring Velocity": intelligence.hiring_velocity,
-            "Current Tech Stack": intelligence.current_tech_stack,
+            "Physical Infrastructure": intelligence.current_tech_stack,  # Renamed for clarity
             "Competitor Tools": intelligence.competitor_tools,
             "Recent Announcements": intelligence.recent_announcements,
             "Conversation Triggers": intelligence.conversation_triggers

@@ -228,7 +228,7 @@ class NotionClient:
                 {"name": "Enterprise", "color": "red"}
             ]}},
             "Hiring Velocity": {"rich_text": {}},
-            "Current Tech Stack": {"rich_text": {}},
+            "Physical Infrastructure": {"rich_text": {}},
             "Competitor Tools": {"rich_text": {}},
             "Recent Announcements": {"rich_text": {}},
             "Conversation Triggers": {"rich_text": {}}
