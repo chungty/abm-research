@@ -1,71 +1,111 @@
-# ABM Research System
+# Verdigris ABM Intelligence System
 
-A production-ready Account-Based Marketing intelligence system with LinkedIn enrichment and Notion integration.
+Production-ready Account-Based Marketing intelligence platform that transforms research data into actionable sales strategies.
 
-## 🎯 Features
+## 🎯 Vision: Research → Intelligence → Action
 
-- **Complete ABM Pipeline**: 5-phase research system (Account Intelligence, Contact Discovery, LinkedIn Enrichment, Engagement Intelligence, Partnership Intelligence)
-- **LinkedIn Real Data Integration**: AI-enhanced profile analysis with activity tracking and content themes
-- **Notion Persistence**: Automatic saving of enriched contact data to Notion databases
-- **Apollo Integration**: Contact discovery via Apollo API
-- **Trigger Event Detection**: Real-time monitoring for expansion, leadership changes, AI workloads, etc.
-- **Intelligent Caching**: Local LinkedIn profile caching to minimize API costs
+This system doesn't just collect account data - it synthesizes contextual intelligence into ready-to-execute sales actions with pre-written messaging, partnership angles, and optimal timing.
 
-## 🏗️ Architecture
+## 🚀 Account Command Center Features
+
+- **Opportunity Intelligence Briefing**: 30-second strategic context for each account
+- **Priority Action Queue**: Contact prioritization with synthesized next actions
+- **Conversation Assets**: Pre-written LinkedIn messages and email templates
+- **Partnership Intelligence**: Warm intro paths via existing vendor relationships
+- **Live Trigger Monitoring**: Real-time opportunity detection with business context
+- **Competitive Positioning**: Strategic advantages and conversation positioning
+
+## 🏗️ Architecture: Intelligence-Driven Sales Workflow
 
 ```
-LinkedIn Profile → AI Enhancement → Local Cache → Notion Database → Dashboard
-     ↓                    ↓              ↓            ↓              ↓
-Real/Enhanced        Engagement     Performance    Persistence    Real-time
-Profile Data         Analysis        Caching        Layer         Display
+Trigger Detection → Account Research → Contact Intelligence → Action Synthesis → Sales Execution
+       ↓                    ↓              ↓                    ↓                ↓
+   Market Events        ICP Scoring     LinkedIn Activity    Message Templates   Revenue
+   Competitive Intel    Partnership     Role Analysis        Timing Strategy     Results
+   Leadership Changes   Context         Pain Points          Intro Pathways      Closed Deals
 ```
 
 ## 🚀 Quick Start
 
 ### 1. Environment Setup
 ```bash
+# Install dependencies
+pip install -e .
+
+# Configure environment
 cp .env.template .env
-# Fill in your API keys in .env
+# Add your API keys: NOTION_API_KEY, APOLLO_API_KEY
 ```
 
-### 2. Install Dependencies
+### 2. Launch Account Command Center
 ```bash
-pip install -r requirements.txt
+cd src && python3 abm_research/dashboard/abm_dashboard.py
 ```
 
-### 3. Test the System
+**Visit**: http://localhost:8081 to see Genesis Cloud account intelligence demo
+
+### 3. API Access
 ```bash
-python test_linkedin_integration.py      # Test LinkedIn integration
-python test_notion_persistence.py        # Test Notion persistence
+# Start research via API
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"company_name":"Genesis Cloud","domain":"genesiscloud.com"}' \
+  http://localhost:8081/api/research/start
+
+# Check system health
+curl http://localhost:8081/api/health
 ```
 
-### 4. Run ABM Research
+## 📋 Core Architecture
+
+### Consolidated System (src/abm_research/)
+- **core/abm_system.py**: 5-phase research pipeline orchestration
+- **dashboard/abm_dashboard.py**: Account Command Center interface
+- **integrations/notion_client.py**: Unified Notion workspace management
+- **phases/**: Individual research phase implementations
+- **intelligence/**: AI-powered analysis engines
+
+### Example Account Workflow
 ```bash
-python comprehensive_abm_system.py
+# Genesis Cloud Intelligence Briefing generates:
+1. Opportunity Brief: "10x GPU expansion + power challenges = 14-day window"
+2. Priority Actions: Jennifer Martinez (VP Ops) - LinkedIn message ready
+3. Partnership Angles: NVIDIA intro path identified
+4. Competitive Position: vs Schneider Electric positioning prepared
+5. Message Templates: Personalized outreach with CoreWeave case study
 ```
 
-## 📋 Core Components
-
-- **linkedin_enrichment_engine.py**: LinkedIn profile analysis and scoring
-- **notion_persistence_manager.py**: Notion database integration
-- **comprehensive_abm_system.py**: Complete 5-phase research pipeline
-- **apollo_contact_discovery.py**: Contact discovery via Apollo
-- **enhanced_trigger_event_detector.py**: Real-time trigger event monitoring
-
-## 🧪 Testing
+## 🧪 Testing & Validation
 
 ```bash
-python test_linkedin_integration.py     # LinkedIn enrichment tests
-python test_notion_persistence.py       # Notion integration tests
-python test_full_abm_integration.py     # Complete pipeline tests
+# Test consolidated system
+python3 -c "from abm_research.core.abm_system import ComprehensiveABMSystem; \
+  abm = ComprehensiveABMSystem(); \
+  result = abm.conduct_complete_account_research('Stripe', 'stripe.com'); \
+  print('✅ Research Complete:', len(result.get('contacts', [])))"
+
+# Validate all imports
+pytest tests/unit/ -v
+
+# End-to-end integration test
+python3 -c "import requests; \
+  r = requests.post('http://localhost:8081/api/research/start', \
+    json={'company_name': 'Test Company', 'domain': 'test.com'}); \
+  print('API Response:', r.json())"
 ```
 
-## 📊 Results
+## 🎯 Results: From Research Data to Sales Action
 
-The system enriches LinkedIn profiles with:
-- Lead scores with engagement dimension
-- Activity levels and content themes
-- Connection pathways for warm introductions
-- Responsibility keyword analysis
+**Traditional ABM**: "Here's contact data for Genesis Cloud"
+**Verdigris ABM Intelligence**:
 
-All data automatically saves to Notion for dashboard use.
+```
+🎯 GENESIS CLOUD OPPORTUNITY BRIEF
+10x GPU expansion triggered by CoreWeave funding pressure.
+VP Ops posted about power density challenges 3 days ago.
+→ SEND: LinkedIn message with CoreWeave case study reference
+→ TIMING: Next 14 days during infrastructure planning
+→ INTRO: NVIDIA partnership team warm introduction available
+→ POSITIONING: "Predictive monitoring prevents $2M+ expansion delays"
+```
+
+**Impact**: From hours of research → seconds of strategic execution

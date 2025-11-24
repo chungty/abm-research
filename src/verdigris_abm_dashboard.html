@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VERDIGRIS ABM Intelligence Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --terminal-bg: #0a0e1a;
+            --panel-bg: #1a1f2e;
+            --border-primary: #2a3441;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --glow-blue: rgba(59, 130, 246, 0.3);
+            --glow-cyan: rgba(6, 182, 212, 0.3);
+            --mono-font: 'JetBrains Mono', monospace;
+            --sans-font: 'Inter', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--terminal-bg);
+            color: var(--text-primary);
+            font-family: var(--sans-font);
+            line-height: 1.4;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background Grid */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: grid-pulse 8s ease-in-out infinite;
+            z-index: -1;
+        }
+
+        @keyframes grid-pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.1; }
+        }
+
+        /* Terminal Header */
+        .terminal-header {
+            background: var(--panel-bg);
+            border-bottom: 2px solid var(--border-primary);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .terminal-title {
+            font-family: var(--mono-font);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 10px var(--glow-cyan);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .system-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: var(--mono-font);
+            font-size: 0.875rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+            animation: pulse-green 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 10px var(--accent-green); }
+            50% { box-shadow: 0 0 20px var(--accent-green), 0 0 30px var(--accent-green); }
+        }
+
+        /* Main Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            grid-template-rows: auto 1fr;
+            height: calc(100vh - 80px);
+            gap: 0;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            grid-row: 1 / -1;
+            background: var(--panel-bg);
+            border-right: 2px solid var(--border-primary);
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        /* Workflow Pipeline */
+        .workflow-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-family: var(--mono-font);
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .phase-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .phase-item {
+            background: rgba(42, 52, 65, 0.5);
+            border: 1px solid var(--border-primary);
+            border-radius: 6px;
+            padding: 0.875rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .phase-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--accent-blue);
+            transform: translateX(4px);
+        }
+
+        .phase-item.active {
+            background: rgba(6, 182, 212, 0.15);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+        }
+
+        .phase-number {
+            font-family: var(--mono-font);
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+
+        .phase-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin: 0.25rem 0;
+        }
+
+        .phase-status {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-family: var(--mono-font);
+        }
+
+        /* Main Content Area */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+        }
+
+        .panel-title {
+            font-family: var(--mono-font);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        /* Input Grid */
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .input-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .terminal-input {
+            background: var(--terminal-bg);
+            border: 1px solid var(--border-primary);
+            border-radius: 4px;
+            padding: 0.75rem;
+            color: var(--text-primary);
+            font-family: var(--mono-font);
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+
+        .terminal-input:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+        }
+
+        .terminal-button {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            border: none;
+            border-radius: 6px;
+            padding: 0.75rem 1.5rem;
+            color: white;
+            font-family: var(--mono-font);
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .terminal-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .terminal-button:active {
+            transform: translateY(0);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-value {
+            font-family: var(--mono-font);
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 10px var(--glow-cyan);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0.5rem;
+        }
+
+        /* Research Console */
+        .research-console {
+            background: var(--terminal-bg);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            min-height: 400px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .console-header {
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-primary);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .console-title {
+            font-family: var(--mono-font);
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--accent-green);
+        }
+
+        .console-output {
+            padding: 1.5rem;
+            font-family: var(--mono-font);
+            font-size: 0.875rem;
+            line-height: 1.6;
+            height: 350px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0;
+            border-left: 2px solid transparent;
+            padding-left: 0.75rem;
+            animation: fadeInUp 0.3s ease-out;
+        }
+
+        .log-entry.success { border-color: var(--accent-green); color: var(--accent-green); }
+        .log-entry.warning { border-color: var(--accent-amber); color: var(--accent-amber); }
+        .log-entry.error { border-color: var(--accent-red); color: var(--accent-red); }
+        .log-entry.info { border-color: var(--accent-blue); color: var(--accent-blue); }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Loading Animation */
+        .loading-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--accent-cyan);
+        }
+
+        .loading-dots {
+            display: inline-flex;
+            gap: 2px;
+        }
+
+        .loading-dots span {
+            width: 4px;
+            height: 4px;
+            background: var(--accent-cyan);
+            border-radius: 50%;
+            animation: loading-pulse 1.4s ease-in-out infinite;
+        }
+
+        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes loading-pulse {
+            0%, 80%, 100% {
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Account Pipeline */
+        .account-item {
+            background: rgba(42, 52, 65, 0.3);
+            border: 1px solid var(--border-primary);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .account-item:hover {
+            border-color: var(--accent-cyan);
+            background: rgba(6, 182, 212, 0.05);
+        }
+
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .account-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .account-score {
+            font-family: var(--mono-font);
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        .account-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-family: var(--mono-font);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 1fr;
+            }
+
+            .sidebar {
+                grid-row: 2;
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Terminal Header -->
+    <header class="terminal-header">
+        <div class="terminal-title">
+            <span>⚡</span>
+            VERDIGRIS ABM INTELLIGENCE TERMINAL
+            <span style="font-size: 0.75rem; color: var(--text-secondary);">v3.2.1</span>
+        </div>
+        <div class="system-indicator">
+            <div class="status-dot"></div>
+            <span>SYSTEM OPERATIONAL</span>
+            <span style="margin-left: 1rem; color: var(--text-secondary);">UPTIME: 127:42:18</span>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <div class="dashboard-grid">
+        <!-- Sidebar: 5-Phase Workflow -->
+        <aside class="sidebar">
+            <div class="workflow-section">
+                <h2 class="section-title">Research Pipeline</h2>
+                <div class="phase-list">
+                    <div class="phase-item active" data-phase="1">
+                        <div class="phase-number">PHASE_01</div>
+                        <div class="phase-name">Account Intelligence</div>
+                        <div class="phase-status">Baseline firmographics & ICP scoring</div>
+                    </div>
+                    <div class="phase-item" data-phase="2">
+                        <div class="phase-number">PHASE_02</div>
+                        <div class="phase-name">Contact Discovery</div>
+                        <div class="phase-status">Apollo API + buying committee mapping</div>
+                    </div>
+                    <div class="phase-item" data-phase="3">
+                        <div class="phase-number">PHASE_03</div>
+                        <div class="phase-name">LinkedIn Enrichment</div>
+                        <div class="phase-status">Profile analysis & activity tracking</div>
+                    </div>
+                    <div class="phase-item" data-phase="4">
+                        <div class="phase-number">PHASE_04</div>
+                        <div class="phase-name">Engagement Intelligence</div>
+                        <div class="phase-status">Connection pathways & content themes</div>
+                    </div>
+                    <div class="phase-item" data-phase="5">
+                        <div class="phase-number">PHASE_05</div>
+                        <div class="phase-name">Strategic Partnerships</div>
+                        <div class="phase-status">Vendor relationships & co-sell ops</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="workflow-section">
+                <h2 class="section-title">Active Pipeline</h2>
+                <div class="account-item">
+                    <div class="account-header">
+                        <div class="account-name">Genesis Cloud</div>
+                        <div class="account-score">92</div>
+                    </div>
+                    <div class="account-meta">Phase 4/5 • 23 contacts • AI expansion trigger</div>
+                </div>
+                <div class="account-item">
+                    <div class="account-header">
+                        <div class="account-name">CoreWeave</div>
+                        <div class="account-score">88</div>
+                    </div>
+                    <div class="account-meta">Phase 3/5 • 31 contacts • New CTO hire</div>
+                </div>
+                <div class="account-item">
+                    <div class="account-header">
+                        <div class="account-name">Lambda Labs</div>
+                        <div class="account-score">76</div>
+                    </div>
+                    <div class="account-meta">Phase 2/5 • 18 contacts • Facility expansion</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Control Panel -->
+            <section class="control-panel">
+                <div class="panel-header">
+                    <h2 class="panel-title">TARGET ACQUISITION CONTROL</h2>
+                </div>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label class="input-label">Target Account</label>
+                        <input type="text" class="terminal-input" placeholder="Enter company name..." value="Stripe">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Domain</label>
+                        <input type="text" class="terminal-input" placeholder="company.com" value="stripe.com">
+                    </div>
+                    <button class="terminal-button" onclick="initializeResearch()">
+                        INITIATE SCAN
+                    </button>
+                </div>
+            </section>
+
+            <!-- System Stats -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="activeResearch">3</div>
+                    <div class="stat-label">Active Research</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="triggerEvents">12</div>
+                    <div class="stat-label">Trigger Events</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="qualifiedContacts">147</div>
+                    <div class="stat-label">Qualified Contacts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="partnershipOps">8</div>
+                    <div class="stat-label">Partnership Ops</div>
+                </div>
+            </section>
+
+            <!-- Research Console -->
+            <section class="research-console">
+                <div class="console-header">
+                    <h3 class="console-title">RESEARCH_TERMINAL_OUTPUT</h3>
+                    <div class="loading-indicator" id="loadingIndicator" style="display: none;">
+                        <span>PROCESSING</span>
+                        <div class="loading-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="console-output" id="consoleOutput">
+                    <div class="log-entry info">[2024-11-23 04:25:32] System initialized. ABM Intelligence Terminal ready.</div>
+                    <div class="log-entry success">[2024-11-23 04:25:33] Connected to Notion workspace: verdigris-abm-prod</div>
+                    <div class="log-entry success">[2024-11-23 04:25:34] Apollo API connection established. Rate limit: 1000/hour</div>
+                    <div class="log-entry info">[2024-11-23 04:25:35] LinkedIn enrichment engine: STANDBY</div>
+                    <div class="log-entry info">[2024-11-23 04:25:36] Trigger event monitoring: ACTIVE</div>
+                    <div class="log-entry success">[2024-11-23 04:25:37] All systems nominal. Ready for target acquisition.</div>
+                    <div class="log-entry warning">[2024-11-23 04:25:45] High-priority trigger detected: Genesis Cloud AI infrastructure expansion</div>
+                    <div class="log-entry info">[2024-11-23 04:25:52] Awaiting research target input...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Initialize research function
+        let researchActive = false;
+
+        function initializeResearch() {
+            if (researchActive) return;
+
+            const company = document.querySelector('input[placeholder="Enter company name..."]').value;
+            const domain = document.querySelector('input[placeholder="company.com"]').value;
+
+            if (!company || !domain) {
+                addLogEntry('error', 'Target acquisition failed: Missing required parameters');
+                return;
+            }
+
+            researchActive = true;
+            document.getElementById('loadingIndicator').style.display = 'flex';
+
+            // Simulate 5-phase research workflow
+            addLogEntry('info', `Target acquired: ${company} (${domain})`);
+            addLogEntry('info', 'Initializing 5-phase research protocol...');
+
+            setTimeout(() => {
+                addLogEntry('success', 'PHASE 1: Account intelligence baseline - COMPLETE');
+                updatePhaseStatus(1, true);
+            }, 1500);
+
+            setTimeout(() => {
+                addLogEntry('success', `PHASE 2: Contact discovery via Apollo - 34 prospects identified`);
+                updatePhaseStatus(2, true);
+            }, 3000);
+
+            setTimeout(() => {
+                addLogEntry('warning', 'PHASE 3: LinkedIn enrichment - Rate limiting detected, adjusting throttle');
+                setTimeout(() => {
+                    addLogEntry('success', 'PHASE 3: LinkedIn enrichment - 20 profiles analyzed');
+                    updatePhaseStatus(3, true);
+                }, 2000);
+            }, 4500);
+
+            setTimeout(() => {
+                addLogEntry('success', 'PHASE 4: Engagement intelligence - Connection pathways mapped');
+                updatePhaseStatus(4, true);
+            }, 7000);
+
+            setTimeout(() => {
+                addLogEntry('success', 'PHASE 5: Strategic partnerships - 3 vendor relationships detected');
+                addLogEntry('info', `Research complete for ${company}. Data persisted to Notion.`);
+                updatePhaseStatus(5, true);
+                document.getElementById('loadingIndicator').style.display = 'none';
+                researchActive = false;
+
+                // Reset phases after completion
+                setTimeout(() => {
+                    for(let i = 1; i <= 5; i++) {
+                        updatePhaseStatus(i, false);
+                    }
+                    updatePhaseStatus(1, true);
+                }, 5000);
+            }, 8500);
+
+            // Update stats
+            setTimeout(() => {
+                document.getElementById('qualifiedContacts').textContent = parseInt(document.getElementById('qualifiedContacts').textContent) + 34;
+                document.getElementById('triggerEvents').textContent = parseInt(document.getElementById('triggerEvents').textContent) + 1;
+                document.getElementById('partnershipOps').textContent = parseInt(document.getElementById('partnershipOps').textContent) + 3;
+            }, 9000);
+        }
+
+        function addLogEntry(type, message) {
+            const output = document.getElementById('consoleOutput');
+            const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+
+            output.appendChild(entry);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function updatePhaseStatus(phaseNum, active) {
+            const phases = document.querySelectorAll('.phase-item');
+            phases.forEach(phase => {
+                phase.classList.remove('active');
+            });
+
+            if (active) {
+                const activePhase = document.querySelector(`[data-phase="${phaseNum}"]`);
+                if (activePhase) {
+                    activePhase.classList.add('active');
+                }
+            }
+        }
+
+        // Phase click handlers
+        document.querySelectorAll('.phase-item').forEach(phase => {
+            phase.addEventListener('click', function() {
+                const phaseNum = this.dataset.phase;
+                const descriptions = {
+                    '1': 'Gathering firmographics and ICP scoring for target account...',
+                    '2': 'Initiating Apollo contact discovery and buying committee analysis...',
+                    '3': 'Processing LinkedIn profiles for engagement patterns and activity...',
+                    '4': 'Analyzing connection pathways and content engagement themes...',
+                    '5': 'Scanning for strategic partnerships and vendor relationships...'
+                };
+
+                addLogEntry('info', `Manual phase selection: ${descriptions[phaseNum]}`);
+                updatePhaseStatus(parseInt(phaseNum), true);
+            });
+        });
+
+        // Animate stats on load
+        window.addEventListener('load', () => {
+            const statValues = document.querySelectorAll('.stat-value');
+            statValues.forEach((stat, index) => {
+                setTimeout(() => {
+                    stat.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        stat.style.transform = 'scale(1)';
+                    }, 200);
+                }, index * 100);
+            });
+        });
+
+        // Real-time clock
+        setInterval(() => {
+            const uptimeElement = document.querySelector('.system-indicator span:last-child');
+            const current = uptimeElement.textContent.split(': ')[1];
+            const [hours, minutes, seconds] = current.split(':').map(Number);
+            let newSeconds = seconds + 1;
+            let newMinutes = minutes;
+            let newHours = hours;
+
+            if (newSeconds >= 60) {
+                newSeconds = 0;
+                newMinutes++;
+                if (newMinutes >= 60) {
+                    newMinutes = 0;
+                    newHours++;
+                }
+            }
+
+            uptimeElement.textContent = `UPTIME: ${newHours.toString().padStart(3, '0')}:${newMinutes.toString().padStart(2, '0')}:${newSeconds.toString().padStart(2, '0')}`;
+        }, 1000);
+    </script>
+</body>
+</html>
