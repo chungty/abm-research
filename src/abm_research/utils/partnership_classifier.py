@@ -225,6 +225,13 @@ class PartnershipClassifier:
             if indicator in text:
                 score += 25
 
+        # GPU/AI-specific boost for companies like NVIDIA
+        gpu_ai_indicators = ["gpu", "h100", "a100", "dgx", "cuda", "ai training", "machine learning hardware"]
+        for indicator in gpu_ai_indicators:
+            if indicator in text:
+                score += 15  # Additional points for GPU/AI focus
+                break  # Only add bonus once
+
         # Software platforms
         for indicator in self.strategic_partner_indicators["software_platforms"]:
             if indicator in text:

@@ -410,41 +410,272 @@ class ApolloContactDiscovery:
             logger.error(f"❌ Failed to check Apollo credits: {e}")
             return None
 
-    def convert_to_notion_format(self, contacts: List[ApolloContact]) -> List[Dict]:
+    def convert_to_notion_format(self, contacts: List[ApolloContact], company_name: str = None) -> List[Dict]:
         """
-        Convert Apollo contacts to Notion database format
-        Compatible with existing ABM system expectations
+        Convert Apollo contacts to enhanced schema format with confidence indicators and data provenance
         """
         notion_contacts = []
 
         for contact in contacts:
-            notion_contact = {
-                'name': contact.name or f"{contact.first_name} {contact.last_name}".strip(),
-                'title': contact.title or 'Unknown Title',
-                'email': contact.email,
-                'phone': contact.phone,
-                'linkedin_url': contact.linkedin_url,
-                'company_name': contact.company_name,
-                'company_domain': contact.company_domain,
-                'seniority': contact.seniority,
-                'department': contact.department,
-                'city': contact.city,
-                'state': contact.state,
-                'country': contact.country,
-
-                # ABM system compatibility
-                'buying_committee_role': self._map_to_buying_committee_role(contact.title, contact.seniority),
-                'apollo_id': contact.apollo_id,
-                'apollo_score': contact.apollo_score,
-                'data_enriched': contact.enriched,
-                'discovery_source': 'apollo_api',
-                'discovery_date': contact.search_timestamp,
-                'enrichment_date': contact.enrichment_timestamp
-            }
-
+            notion_contact = self._convert_to_enhanced_schema(contact, company_name)
             notion_contacts.append(notion_contact)
 
         return notion_contacts
+
+    def _convert_to_enhanced_schema(self, contact: ApolloContact, company_name: str = None) -> Dict:
+        """Convert single contact to enhanced schema format with confidence indicators"""
+
+        # Helper function for confidence indicators
+        def format_with_confidence(value: str, confidence: int = None, searched: bool = True,
+                                 source: str = "apollo") -> str:
+            if not searched:
+                return "N/A - not searched in this analysis"
+            elif not value or value.strip() == "":
+                return f"Not found (searched via {source}, 95% confidence)"
+            else:
+                conf = f"({confidence}% confidence)" if confidence else "(80% confidence)"
+                return f"{value} {conf}"
+
+        # Calculate data quality score based on completeness and enrichment
+        data_quality_score = self._calculate_data_quality_score(contact)
+
+        # Determine lead score based on title, seniority, and data quality
+        lead_score = self._calculate_lead_score(contact)
+
+        # Generate engagement level based on contact characteristics
+        engagement_level = self._determine_engagement_level(contact)
+
+        return {
+            # Core Contact Fields with confidence indicators
+            "Name": format_with_confidence(
+                contact.name or f"{contact.first_name or ''} {contact.last_name or ''}".strip(),
+                85 if contact.name else 75,
+                True,
+                "apollo"
+            ),
+            "Email": format_with_confidence(
+                contact.email,
+                90 if contact.enriched else None,
+                contact.enriched,
+                "apollo enrichment" if contact.enriched else "apollo"
+            ),
+            "Title": format_with_confidence(
+                contact.title,
+                80 if contact.title else None,
+                True,
+                "apollo"
+            ),
+
+            # Enhanced Data Provenance Fields
+            "Name Source": "apollo",
+            "Email Source": "apollo" if contact.email else "not_found",
+            "Title Source": "apollo" if contact.title else "not_found",
+            "Data Quality Score": data_quality_score,
+            "Last Enriched": contact.enrichment_timestamp or contact.search_timestamp,
+
+            # Lead Scoring and Engagement
+            "Lead Score": lead_score,
+            "ICP Fit Score": lead_score,  # Use same score for backward compatibility
+            "Engagement Level": engagement_level,
+
+            # Additional Contact Information
+            "LinkedIn URL": contact.linkedin_url or None,
+            "Phone": contact.phone,
+            "Contact Date": contact.search_timestamp,
+            "Notes": self._generate_contact_notes(contact),
+
+            # Professional Details
+            "Seniority": contact.seniority or "Unknown",
+            "Department": contact.department or "Unknown",
+            "Location": self._format_location(contact),
+
+            # ABM Intelligence
+            "Buying Committee Role": self._map_to_buying_committee_role(contact.title, contact.seniority),
+            "Contact Priority": self._determine_contact_priority(contact),
+
+            # Metadata and Legacy Compatibility
+            "Apollo ID": contact.apollo_id,
+            "Apollo Score": contact.apollo_score,
+            "Data Enriched": contact.enriched,
+            "Discovery Source": "apollo_api",
+            "Discovery Date": contact.search_timestamp,
+            "Enrichment Date": contact.enrichment_timestamp,
+
+            # Account Relations - Use company name for now, ABM system will handle account lookup
+            "Company Name (for Account Relation)": contact.company_name or company_name,
+            "Company Domain": contact.company_domain,
+
+            # Legacy field names for backward compatibility
+            'name': contact.name or f"{contact.first_name or ''} {contact.last_name or ''}".strip(),
+            'title': contact.title or 'Unknown Title',
+            'email': contact.email,
+            'phone': contact.phone,
+            'linkedin_url': contact.linkedin_url,
+            'company_name': contact.company_name,
+            'company_domain': contact.company_domain,
+            'seniority': contact.seniority,
+            'department': contact.department,
+            'city': contact.city,
+            'state': contact.state,
+            'country': contact.country,
+            'buying_committee_role': self._map_to_buying_committee_role(contact.title, contact.seniority),
+            'apollo_id': contact.apollo_id,
+            'apollo_score': contact.apollo_score,
+            'data_enriched': contact.enriched,
+            'discovery_source': 'apollo_api',
+            'discovery_date': contact.search_timestamp,
+            'enrichment_date': contact.enrichment_timestamp
+        }
+
+    def _calculate_data_quality_score(self, contact: ApolloContact) -> int:
+        """Calculate data quality score based on completeness and reliability"""
+        score = 0
+
+        # Base score for having a contact
+        score += 20
+
+        # Name completeness
+        if contact.name or (contact.first_name and contact.last_name):
+            score += 15
+
+        # Professional information
+        if contact.title:
+            score += 20
+        if contact.company_name:
+            score += 15
+        if contact.company_domain:
+            score += 10
+
+        # Contact information (premium value)
+        if contact.email:
+            score += 20  # Email is highly valuable
+        if contact.linkedin_url:
+            score += 10
+        if contact.phone:
+            score += 5
+
+        # Apollo confidence
+        if contact.apollo_score:
+            score += min(contact.apollo_score / 10, 10)  # Max 10 points from Apollo score
+
+        # Enrichment bonus
+        if contact.enriched:
+            score += 15
+
+        return min(100, int(score))
+
+    def _calculate_lead_score(self, contact: ApolloContact) -> int:
+        """Calculate lead score based on buying power and influence"""
+        score = 40  # Base score
+
+        # Seniority scoring (decision-making power)
+        seniority_scores = {
+            "c_suite": 40, "vp": 35, "director": 30, "manager": 20,
+            "senior": 15, "entry": 5, "intern": 0
+        }
+        if contact.seniority:
+            score += seniority_scores.get(contact.seniority.lower(), 10)
+
+        # Title-based scoring
+        if contact.title:
+            title_lower = contact.title.lower()
+
+            # High-value decision maker keywords
+            if any(keyword in title_lower for keyword in
+                   ["cto", "cio", "vp", "vice president", "chief", "head of"]):
+                score += 30
+
+            # Director level
+            elif "director" in title_lower:
+                score += 25
+
+            # Senior/Lead level
+            elif any(keyword in title_lower for keyword in
+                     ["senior", "lead", "principal", "staff"]):
+                score += 15
+
+            # Infrastructure/DevOps specific (Verdigris relevance)
+            if any(keyword in title_lower for keyword in
+                   ["infrastructure", "devops", "sre", "reliability", "platform", "facilities"]):
+                score += 15
+
+        # Data quality bonus
+        data_quality = self._calculate_data_quality_score(contact)
+        if data_quality > 80:
+            score += 10
+        elif data_quality > 60:
+            score += 5
+
+        # Apollo confidence bonus
+        if contact.apollo_score and contact.apollo_score > 80:
+            score += 10
+
+        return min(100, int(score))
+
+    def _determine_engagement_level(self, contact: ApolloContact) -> str:
+        """Determine appropriate engagement level based on contact characteristics"""
+        lead_score = self._calculate_lead_score(contact)
+
+        if lead_score >= 80:
+            return "High"
+        elif lead_score >= 60:
+            return "Medium"
+        else:
+            return "Low"
+
+    def _determine_contact_priority(self, contact: ApolloContact) -> str:
+        """Determine contact priority for sales engagement"""
+        lead_score = self._calculate_lead_score(contact)
+        data_quality = self._calculate_data_quality_score(contact)
+
+        # High priority: High lead score and good data quality
+        if lead_score >= 75 and data_quality >= 70:
+            return "High"
+
+        # Medium priority: Decent lead score or good data
+        elif lead_score >= 60 or data_quality >= 80:
+            return "Medium"
+
+        else:
+            return "Low"
+
+    def _format_location(self, contact: ApolloContact) -> str:
+        """Format location string from contact data"""
+        location_parts = []
+
+        if contact.city:
+            location_parts.append(contact.city)
+        if contact.state:
+            location_parts.append(contact.state)
+        if contact.country:
+            location_parts.append(contact.country)
+
+        return ", ".join(location_parts) if location_parts else "Unknown"
+
+    def _generate_contact_notes(self, contact: ApolloContact) -> str:
+        """Generate intelligent contact notes based on available data"""
+        notes = []
+
+        # Apollo insights
+        if contact.apollo_score and contact.apollo_score > 80:
+            notes.append(f"High Apollo match score ({contact.apollo_score})")
+
+        # Enrichment status
+        if contact.enriched:
+            notes.append("Successfully enriched with email/contact data")
+        else:
+            notes.append("Basic contact info only - enrichment needed")
+
+        # Professional insights
+        if contact.seniority in ["c_suite", "vp", "director"]:
+            notes.append("Key decision maker - high priority for outreach")
+
+        # Infrastructure relevance
+        if contact.title and any(keyword in contact.title.lower() for keyword in
+                               ["infrastructure", "devops", "sre", "facilities", "operations"]):
+            notes.append("Infrastructure role - excellent fit for power monitoring solutions")
+
+        return "; ".join(notes) if notes else "Standard contact profile"
 
     def _map_to_buying_committee_role(self, title: str, seniority: str) -> str:
         """

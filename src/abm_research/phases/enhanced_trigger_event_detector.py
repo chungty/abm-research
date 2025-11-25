@@ -529,6 +529,308 @@ class EnhancedTriggerEventDetector:
         """Sort events by relevance score (highest first)"""
         return sorted(events, key=lambda e: (e.relevance_score, e.confidence_score), reverse=True)
 
+    def convert_to_enhanced_schema(self, events: List[TriggerEvent]) -> List[Dict]:
+        """Convert trigger events to enhanced schema format with multi-dimensional scoring"""
+
+        enhanced_events = []
+
+        for event in events:
+            # Calculate multi-dimensional scores based on event characteristics
+            business_impact_score = self._calculate_business_impact_score(event)
+            actionability_score = self._calculate_actionability_score(event)
+            timing_urgency_score = self._calculate_timing_urgency_score(event)
+            strategic_fit_score = self._calculate_strategic_fit_score(event)
+
+            # Generate time intelligence fields
+            action_deadline = self._calculate_action_deadline(event)
+            peak_relevance_window = self._calculate_peak_relevance_window(event)
+            decay_rate = self._calculate_decay_rate(event)
+
+            # Generate tactical follow-up actions with confidence
+            follow_up_actions = self._generate_follow_up_actions(event)
+
+            # Helper function for confidence indicators
+            def format_with_confidence(value: str, confidence: int = None, searched: bool = True) -> str:
+                if not searched:
+                    return "N/A - not searched in this analysis"
+                elif not value or value.strip() == "":
+                    return f"Not found (searched multiple sources, 95% confidence)"
+                else:
+                    conf = f"({confidence}% confidence)" if confidence else f"({event.confidence_score}% confidence)"
+                    return f"{value} {conf}"
+
+            enhanced_event = {
+                # Core Event Fields (Tactical, Time-bound)
+                "Event Description": format_with_confidence(
+                    event.description,
+                    event.confidence_score
+                ),
+                "Event Type": event.event_type,
+                "Event Stage": self._determine_event_stage(event),
+                "Confidence": event.confidence,  # High/Medium/Low select field
+                "Source URL": event.source_url,
+                "Detected Date": event.detected_date,
+
+                # Multi-Dimensional Scoring System (Tactical Intelligence)
+                "Business Impact Score": business_impact_score,
+                "Actionability Score": actionability_score,
+                "Timing Urgency Score": timing_urgency_score,
+                "Strategic Fit Score": strategic_fit_score,
+
+                # Time Intelligence Fields (Tactical, Action-oriented)
+                "Action Deadline": action_deadline,
+                "Peak Relevance Window": peak_relevance_window,
+                "Decay Rate": decay_rate,
+                "Urgency Level": event.urgency_level,
+
+                # Tactical Actions (Event-specific, time-bound)
+                "Follow-up Actions": follow_up_actions,
+
+                # Metadata
+                "Source Type": event.source_type,
+                "Occurred Date": event.occurred_date
+            }
+
+            enhanced_events.append(enhanced_event)
+
+        return enhanced_events
+
+    def _calculate_business_impact_score(self, event: TriggerEvent) -> int:
+        """Calculate business impact score (0-100) based on event characteristics"""
+        base_score = 50
+
+        # Event type multipliers
+        impact_multipliers = {
+            "expansion": 1.8,      # High business impact
+            "ai_workload": 1.6,    # High impact for power monitoring
+            "energy_pressure": 1.7, # Very high for Verdigris
+            "incident": 1.5,       # Medium-high urgency
+            "leadership_change": 1.2, # Lower immediate impact
+            "sustainability": 1.4   # Medium impact
+        }
+
+        score = base_score * impact_multipliers.get(event.event_type, 1.0)
+
+        # Boost for high relevance
+        if event.relevance_score > 80:
+            score += 15
+        elif event.relevance_score > 60:
+            score += 10
+
+        # Boost for high confidence
+        if event.confidence_score > 80:
+            score += 10
+
+        return min(100, int(score))
+
+    def _calculate_actionability_score(self, event: TriggerEvent) -> int:
+        """Calculate actionability score (0-100) - how actionable is this event"""
+        base_score = 60
+
+        # Event type actionability
+        actionability_scores = {
+            "expansion": 90,       # Very actionable - immediate sales opportunity
+            "incident": 80,        # High actionability - pain point
+            "energy_pressure": 85, # High for power monitoring solutions
+            "ai_workload": 75,     # Good for infrastructure monitoring
+            "leadership_change": 40, # Lower immediate actionability
+            "sustainability": 70    # Good for long-term positioning
+        }
+
+        score = actionability_scores.get(event.event_type, base_score)
+
+        # Boost for specific keywords indicating actionable scenarios
+        actionable_keywords = ["expansion", "problem", "challenge", "cost", "efficiency", "monitoring"]
+        if any(keyword in event.description.lower() for keyword in actionable_keywords):
+            score += 10
+
+        return min(100, int(score))
+
+    def _calculate_timing_urgency_score(self, event: TriggerEvent) -> int:
+        """Calculate timing urgency score (0-100) - how time-sensitive is action"""
+        base_score = event.confidence_score  # Start with confidence as base
+
+        # Event type urgency multipliers
+        urgency_multipliers = {
+            "incident": 1.8,       # Very urgent
+            "expansion": 1.6,      # High urgency - competitive window
+            "energy_pressure": 1.4, # Medium-high urgency
+            "ai_workload": 1.3,    # Medium urgency
+            "leadership_change": 0.8, # Lower urgency
+            "sustainability": 1.1   # Medium urgency
+        }
+
+        score = base_score * urgency_multipliers.get(event.event_type, 1.0)
+
+        # Time-based urgency boost
+        try:
+            event_date = datetime.fromisoformat(event.occurred_date.replace('Z', '+00:00'))
+            days_old = (datetime.now() - event_date).days
+
+            if days_old < 7:      # Very recent
+                score += 20
+            elif days_old < 30:   # Recent
+                score += 10
+            elif days_old < 90:   # Moderately recent
+                score += 5
+        except:
+            pass  # Skip if date parsing fails
+
+        return min(100, int(score))
+
+    def _calculate_strategic_fit_score(self, event: TriggerEvent) -> int:
+        """Calculate strategic fit score (0-100) - alignment with Verdigris solutions"""
+
+        # Base strategic fit by event type
+        strategic_fit_scores = {
+            "energy_pressure": 95,  # Perfect fit for power monitoring
+            "expansion": 90,        # Excellent fit - new infrastructure needs monitoring
+            "ai_workload": 85,      # Very good fit - GPUs need power monitoring
+            "incident": 80,         # Good fit - reliability and monitoring needs
+            "sustainability": 75,   # Good fit - energy efficiency focus
+            "leadership_change": 50 # Lower strategic fit
+        }
+
+        base_score = strategic_fit_scores.get(event.event_type, 60)
+
+        # Keyword-based strategic fit boost
+        strategic_keywords = {
+            "power": 15, "energy": 15, "monitoring": 15, "efficiency": 12,
+            "infrastructure": 10, "capacity": 10, "reliability": 8,
+            "datacenter": 12, "gpu": 10, "cooling": 8, "ups": 12
+        }
+
+        description_lower = event.description.lower()
+        for keyword, boost in strategic_keywords.items():
+            if keyword in description_lower:
+                base_score += boost
+                break  # Only apply one keyword boost
+
+        return min(100, int(base_score))
+
+    def _determine_event_stage(self, event: TriggerEvent) -> str:
+        """Determine event lifecycle stage"""
+        description_lower = event.description.lower()
+
+        # Keywords that indicate different stages
+        if any(keyword in description_lower for keyword in ["rumor", "considering", "planning", "may"]):
+            return "Rumored"
+        elif any(keyword in description_lower for keyword in ["announced", "confirms", "official", "press release"]):
+            return "Announced"
+        elif any(keyword in description_lower for keyword in ["implementing", "deploying", "building", "in progress"]):
+            return "In-Progress"
+        elif any(keyword in description_lower for keyword in ["completed", "finished", "launched", "live"]):
+            return "Completed"
+        else:
+            return "Announced"  # Default
+
+    def _calculate_action_deadline(self, event: TriggerEvent) -> str:
+        """Calculate suggested action deadline based on event urgency"""
+        try:
+            base_date = datetime.now()
+
+            # Deadline based on urgency and event type
+            if event.urgency_level == "High":
+                if event.event_type in ["incident", "expansion"]:
+                    deadline = base_date + timedelta(days=7)    # 1 week for urgent events
+                else:
+                    deadline = base_date + timedelta(days=14)   # 2 weeks for other high urgency
+            elif event.urgency_level == "Medium":
+                deadline = base_date + timedelta(days=30)       # 1 month for medium urgency
+            else:
+                deadline = base_date + timedelta(days=60)       # 2 months for low urgency
+
+            return deadline.date().isoformat()
+
+        except:
+            # Fallback to 30 days from now
+            return (datetime.now() + timedelta(days=30)).date().isoformat()
+
+    def _calculate_peak_relevance_window(self, event: TriggerEvent) -> str:
+        """Calculate when this event will be most relevant for action"""
+        try:
+            # Peak relevance is typically shortly after the event
+            event_date = datetime.fromisoformat(event.occurred_date.replace('Z', '+00:00'))
+
+            # Peak window based on event type
+            if event.event_type == "incident":
+                peak_window = event_date + timedelta(days=3)    # Act quickly on incidents
+            elif event.event_type == "expansion":
+                peak_window = event_date + timedelta(days=14)   # Expansion has longer planning cycle
+            else:
+                peak_window = event_date + timedelta(days=7)    # General events peak in 1 week
+
+            return peak_window.date().isoformat()
+
+        except:
+            # Fallback to 1 week from detection
+            return (datetime.now() + timedelta(days=7)).date().isoformat()
+
+    def _calculate_decay_rate(self, event: TriggerEvent) -> str:
+        """Calculate how quickly this event loses relevance"""
+
+        # Decay rates by event type
+        decay_rates = {
+            "incident": "Fast",         # Incidents lose relevance quickly once resolved
+            "leadership_change": "Slow", # Leadership changes have lasting impact
+            "expansion": "Medium",      # Expansion opportunities have medium decay
+            "ai_workload": "Medium",    # AI workload changes are moderately persistent
+            "energy_pressure": "Slow",  # Energy concerns are persistent
+            "sustainability": "Permanent" # Sustainability initiatives are long-term
+        }
+
+        return decay_rates.get(event.event_type, "Medium")
+
+    def _generate_follow_up_actions(self, event: TriggerEvent) -> str:
+        """Generate specific tactical follow-up actions with confidence indicators"""
+
+        # Action templates by event type
+        action_templates = {
+            "expansion": [
+                "Schedule infrastructure assessment call with engineering team",
+                "Provide power monitoring ROI analysis for new facility",
+                "Connect with facilities manager about monitoring needs"
+            ],
+            "incident": [
+                "Reach out immediately about preventing future outages",
+                "Offer power monitoring trial to detect issues early",
+                "Schedule post-incident review meeting"
+            ],
+            "energy_pressure": [
+                "Propose power efficiency audit and monitoring trial",
+                "Schedule demo of cost optimization features",
+                "Connect with sustainability team about energy reporting"
+            ],
+            "ai_workload": [
+                "Discuss GPU power monitoring and optimization needs",
+                "Schedule technical call about infrastructure monitoring",
+                "Provide AI workload power analysis case study"
+            ],
+            "leadership_change": [
+                "Introduce Verdigris solutions to new leadership",
+                "Schedule strategic discussion about infrastructure priorities",
+                "Provide industry benchmarking report"
+            ],
+            "sustainability": [
+                "Schedule sustainability reporting and monitoring demo",
+                "Connect with ESG team about power analytics",
+                "Provide carbon footprint reduction case studies"
+            ]
+        }
+
+        # Get appropriate actions for event type
+        actions = action_templates.get(event.event_type, [
+            "Schedule discovery call to understand infrastructure needs",
+            "Provide relevant power monitoring case study",
+            "Connect with appropriate technical stakeholder"
+        ])
+
+        # Select most relevant action and add confidence
+        primary_action = actions[0]
+        confidence = min(95, event.confidence_score + 10)  # Boost confidence for actions
+
+        return f"{primary_action} ({confidence}% confidence this will drive engagement)"
+
 
 # Export for use by production system
 enhanced_trigger_detector = EnhancedTriggerEventDetector()

@@ -114,8 +114,7 @@ class NotionClient:
             'accounts': os.getenv('NOTION_ACCOUNTS_DB_ID'),
             'contacts': os.getenv('NOTION_CONTACTS_DB_ID'),
             'trigger_events': os.getenv('NOTION_TRIGGER_EVENTS_DB_ID') or os.getenv('NOTION_EVENTS_DB_ID'),
-            'partnerships': os.getenv('NOTION_PARTNERSHIPS_DB_ID'),
-            'intelligence': os.getenv('NOTION_INTELLIGENCE_DB_ID')
+            'partnerships': os.getenv('NOTION_PARTNERSHIPS_DB_ID')
         }
 
         # Log configuration status
@@ -179,7 +178,6 @@ class NotionClient:
             databases['accounts'] = self._create_accounts_database(parent_page_id)['id']
             databases['trigger_events'] = self._create_trigger_events_database(parent_page_id)['id']
             databases['contacts'] = self._create_contacts_database(parent_page_id)['id']
-            databases['intelligence'] = self._create_contact_intelligence_database(parent_page_id)['id']
             databases['partnerships'] = self._create_partnerships_database(parent_page_id)['id']
 
             # Update local configuration
@@ -466,7 +464,7 @@ class NotionClient:
         try:
             query = {
                 "filter": {
-                    "property": "Company Name",
+                    "property": "Name",
                     "title": {"equals": company_name}
                 }
             }
@@ -527,17 +525,16 @@ class NotionClient:
     # ═══════════════════════════════════════════════════════════════════════════════════
 
     def _create_account(self, account: Dict) -> Optional[str]:
-        """Create new account record using correct Notion field names"""
+        """Create new account record using actual production database field names"""
         properties = {
-            # Core fields (using actual Notion field names from NOTION_SCHEMA.md)
-            "Company Name": {"title": [{"text": {"content": account.get('name', 'Unknown')}}]},
+            # Core fields (using ACTUAL production field names)
+            "Name": {"title": [{"text": {"content": account.get('name', 'Unknown')}}]},
             "Domain": {"rich_text": [{"text": {"content": account.get('domain', '')}}]},
-            "Industry": {"select": {"name": account.get('business_model', 'Technology')}},
+            "Business Model": {"select": {"name": account.get('business_model', 'Technology')}},
             "Employee Count": {"number": account.get('employee_count', 0)},
             "ICP Fit Score": {"number": account.get('icp_fit_score', 0)},
-            "Research Status": {"select": {"name": "In Progress"}},
+            "Account Research Status": {"select": {"name": "Research Complete"}},
             "Last Updated": {"date": {"start": datetime.now().isoformat()}},
-            "Notes": {"rich_text": [{"text": {"content": account.get('notes', '')}}]},
 
             # Enhanced Intelligence Fields (using exact field names)
             "Recent Leadership Changes": {"rich_text": [{"text": {"content": account.get('Recent Leadership Changes', '')}}]},
@@ -560,17 +557,41 @@ class NotionClient:
         return response.json().get('id')
 
     def _create_contact(self, contact: Dict, account_name: str = "") -> Optional[str]:
-        """Create new contact record"""
+        """Create new contact record with proper Account relation and enhanced fields"""
+        # Handle URL field properly - use null instead of empty string
+        linkedin_url = contact.get('linkedin_url', '') or None
+
+        # CRITICAL FIX: Find the actual account to create proper relation
+        account_id = None
+        if account_name:
+            account_id = self._find_existing_account(account_name)
+
         properties = {
+            # Core fields using production schema
             "Name": {"title": [{"text": {"content": contact.get('name', 'Unknown')}}]},
-            "Company": {"rich_text": [{"text": {"content": contact.get('company', account_name)}}]},
-            "Title": {"rich_text": [{"text": {"content": contact.get('title', '')}}]},
             "Email": {"email": contact.get('email', '')},
-            "LinkedIn URL": {"url": contact.get('linkedin_url', '')},
+            "Title": {"rich_text": [{"text": {"content": contact.get('title', '')}}]},
+            "ICP Fit Score": {"number": contact.get('final_lead_score', contact.get('lead_score', 0))},
+
+            # New enhanced data provenance fields
+            "Name Source": {"select": {"name": contact.get('name_source', 'apollo')}},
+            "Email Source": {"select": {"name": contact.get('email_source', 'apollo')}},
+            "Title Source": {"select": {"name": contact.get('title_source', 'apollo')}},
+            "Data Quality Score": {"number": contact.get('data_quality_score', 80)},
+            "Last Enriched": {"date": {"start": datetime.now().isoformat()}},
             "Lead Score": {"number": contact.get('final_lead_score', contact.get('lead_score', 0))},
             "Engagement Level": {"select": {"name": contact.get('engagement_level', 'Medium')}},
-            "Contact Date": {"date": {"start": datetime.now().isoformat()}}
+            "Contact Date": {"date": {"start": datetime.now().isoformat()}},
+            "LinkedIn URL": {"url": linkedin_url},
+            "Notes": {"rich_text": [{"text": {"content": contact.get('notes', '')}}]}
         }
+
+        # CRITICAL FIX: Use proper Account relation instead of rich_text
+        if account_id:
+            properties["Account"] = {"relation": [{"id": account_id}]}
+        else:
+            # Fallback: Add account name as rich_text for manual linking
+            properties["Account Name (Fallback)"] = {"rich_text": [{"text": {"content": account_name or 'Unknown Account'}}]}
 
         data = {
             "parent": {"database_id": self.database_ids['contacts']},
@@ -581,17 +602,49 @@ class NotionClient:
         return response.json().get('id')
 
     def _create_trigger_event(self, event: Dict, account_name: str = "") -> Optional[str]:
-        """Create new trigger event record"""
+        """Create new trigger event record with proper Account relation and enhanced multi-dimensional intelligence"""
+        # Handle URL field properly - use null instead of empty string
+        source_url = event.get('source_url', '') or None
+
+        # CRITICAL FIX: Find the actual account to create proper relation
+        account_id = None
+        if account_name:
+            account_id = self._find_existing_account(account_name)
+
         properties = {
-            "Event Description": {"title": [{"text": {"content": event.get('description', event.get('event_description', 'Unknown Event'))}}]},
-            "Company": {"rich_text": [{"text": {"content": event.get('company_name', account_name)}}]},
+            # Core fields using production schema
+            "Name": {"title": [{"text": {"content": event.get('description', event.get('event_description', 'Unknown Event'))}}]},
             "Event Type": {"select": {"name": event.get('event_type', 'other')}},
             "Confidence": {"select": {"name": event.get('confidence', 'Medium')}},
-            "Urgency": {"select": {"name": event.get('urgency_level', 'Medium')}},
-            "Source URL": {"url": event.get('source_url', '')},
+            "Source URL": {"url": source_url},
             "Detected Date": {"date": {"start": event.get('detected_date', datetime.now().strftime('%Y-%m-%d'))}},
-            "Relevance Score": {"number": event.get('relevance_score', 0)}
+
+            # NEW: Multi-Dimensional Scoring System
+            "Business Impact Score": {"number": event.get('business_impact_score', 50)},
+            "Actionability Score": {"number": event.get('actionability_score', 50)},
+            "Timing Urgency Score": {"number": event.get('timing_urgency_score', 50)},
+            "Strategic Fit Score": {"number": event.get('strategic_fit_score', 50)},
+
+            # NEW: Time Intelligence Fields
+            "Action Deadline": {"date": {"start": event.get('action_deadline', '')} if event.get('action_deadline') else None},
+            "Peak Relevance Window": {"date": {"start": event.get('peak_relevance_window', '')} if event.get('peak_relevance_window') else None},
+            "Decay Rate": {"select": {"name": event.get('decay_rate', 'Medium')}},
+
+            # NEW: Event Lifecycle Tracking
+            "Event Stage": {"select": {"name": event.get('event_stage', 'Announced')}},
+            "Follow-up Actions": {"rich_text": [{"text": {"content": event.get('follow_up_actions', '')}}]},
+            "Urgency Level": {"select": {"name": event.get('urgency_level', 'Medium')}}
         }
+
+        # CRITICAL FIX: Use proper Account relation instead of rich_text
+        if account_id:
+            properties["Account"] = {"relation": [{"id": account_id}]}
+        else:
+            # Fallback: Add account name as rich_text for manual linking
+            properties["Account Name (Fallback)"] = {"rich_text": [{"text": {"content": account_name or 'Unknown Account'}}]}
+
+        # Remove None values to avoid API errors
+        properties = {k: v for k, v in properties.items() if v is not None}
 
         data = {
             "parent": {"database_id": self.database_ids['trigger_events']},
@@ -602,17 +655,34 @@ class NotionClient:
         return response.json().get('id')
 
     def _create_partnership(self, partnership: Dict, account_name: str = "") -> Optional[str]:
-        """Create new partnership record with correct field mapping"""
+        """Create new partnership record with enhanced strategic intelligence using production field names"""
         # Get source URL and ensure it's either a valid URL or null (not empty string)
-        source_url = partnership.get('source_url', '') or None
+        source_url = partnership.get('source_url', partnership.get('evidence_url', '')) or None
 
         properties = {
-            "Partner Name": {"title": [{"text": {"content": partnership.get('account_name', partnership.get('partner_name', 'Unknown Partner'))}}]},
-            "Partnership Type": {"select": {"name": partnership.get('partnership_type', 'Strategic Alliance')}},
-            "Relevance Score": {"number": partnership.get('confidence_score', partnership.get('relevance_score', 0))},
-            "Context": {"rich_text": [{"text": {"content": partnership.get('reasoning', partnership.get('context', ''))}}]},
-            "Source URL": {"url": source_url},
-            "Discovered Date": {"date": {"start": datetime.now().isoformat()}}
+            # Core fields (using ACTUAL production field names)
+            "Name": {"title": [{"text": {"content": partnership.get('account_name', partnership.get('partner_name', 'Unknown Partner'))}}]},
+            "Category": {"select": {"name": partnership.get('partnership_type', partnership.get('category', 'Strategic Alliance'))}},
+            "Priority Score": {"number": partnership.get('confidence_score', partnership.get('relevance_score', partnership.get('priority_score', 0)))},
+            "Relationship Evidence": {"rich_text": [{"text": {"content": partnership.get('reasoning', partnership.get('context', partnership.get('relationship_evidence', '')))}}]},
+            "Evidence URL": {"url": source_url},
+            "Detected Date": {"date": {"start": partnership.get('detected_date', datetime.now().strftime('%Y-%m-%d'))}},
+
+            # Enhanced Strategic Partnership Intelligence Fields
+            # Partnership Depth & Strategy
+            "Relationship Depth": {"select": {"name": partnership.get('relationship_depth', 'Surface Integration')}},
+            "Partnership Maturity": {"select": {"name": partnership.get('partnership_maturity', 'Basic')}},
+
+            # Entry Vector Intelligence
+            "Warm Introduction Path": {"rich_text": [{"text": {"content": partnership.get('warm_introduction_path', '')}}]},
+            "Common Partners": {"rich_text": [{"text": {"content": partnership.get('common_partners', '')}}]},
+            "Competitive Overlap": {"select": {"name": partnership.get('competitive_overlap', 'None')}},
+
+            # Action Intelligence
+            "Best Approach": {"select": {"name": partnership.get('best_approach', 'Technical Discussion')}},
+            "Decision Timeline": {"select": {"name": partnership.get('decision_timeline', 'Medium (months)')}},
+            "Success Metrics": {"rich_text": [{"text": {"content": partnership.get('success_metrics', '')}}]},
+            "Recommended Next Steps": {"rich_text": [{"text": {"content": partnership.get('recommended_next_steps', partnership.get('next_actions', ''))}}]}
         }
 
         data = {
@@ -627,16 +697,16 @@ class NotionClient:
     # UPDATE OPERATIONS (simplified for space)
     # ═══════════════════════════════════════════════════════════════════════════════════
 
-    def _update_account(self, page_id: str, account: Dict) -> bool:
+    def _update_account(self, page_id: str, account: Dict) -> Optional[str]:
         """Update existing account record"""
         try:
             properties = {
-                "Company Name": {"title": [{"text": {"content": account.get('name', 'Unknown')}}]},
+                "Name": {"title": [{"text": {"content": account.get('name', 'Unknown')}}]},
                 "Domain": {"rich_text": [{"text": {"content": account.get('domain', '')}}]},
-                "Industry": {"select": {"name": account.get('business_model', 'Technology Company')}},
+                "Business Model": {"select": {"name": account.get('business_model', 'Technology')}},
                 "Employee Count": {"number": account.get('employee_count', 0)},
                 "ICP Fit Score": {"number": account.get('icp_fit_score', 0)},
-                "Research Status": {"select": {"name": "In Progress"}},
+                "Account Research Status": {"select": {"name": "Research Complete"}},
                 "Last Updated": {"date": {"start": datetime.now().isoformat()}},
 
                 # Enhanced Intelligence Fields (using exact field names and types from schema)
@@ -655,11 +725,11 @@ class NotionClient:
             response = self._make_request('PATCH', url, json={"properties": properties})
 
             logger.info(f"✅ Updated account: {account.get('name', 'unknown')}")
-            return True
+            return page_id  # Return page_id for consistency with _create_account
 
         except Exception as e:
             logger.error(f"Error updating account: {e}")
-            return False
+            return None
 
     def _update_contact(self, page_id: str, contact: Dict) -> Optional[str]:
         """Update existing contact record"""

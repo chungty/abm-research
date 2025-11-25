@@ -202,10 +202,26 @@ class ComprehensiveABMSystem:
 
             # PHASE 5: Strategic Partnership Intelligence
             logger.info("\n🤝 PHASE 5: Strategic Partnership Intelligence")
-            partnerships = self._phase_5_partnership_intelligence(
+            partnership_data = self._phase_5_partnership_intelligence(
                 company_name, company_domain
             )
-            research_results['partnerships'] = partnerships
+
+            # FIXED: Integrate account classification into account data
+            if partnership_data.get('account_classification'):
+                account_classification = partnership_data['account_classification']
+                # Add partnership fields to account data
+                research_results['account']['partnership_classification'] = account_classification.get('partnership_classification', 'unknown')
+                research_results['account']['classification_confidence'] = account_classification.get('classification_confidence', 0.0)
+                research_results['account']['classification_reasoning'] = account_classification.get('classification_reasoning', '')
+                research_results['account']['recommended_approach'] = account_classification.get('recommended_approach', '')
+                research_results['account']['potential_value'] = account_classification.get('potential_value', '')
+                research_results['account']['next_actions'] = account_classification.get('next_actions', [])
+                research_results['account']['classification_date'] = account_classification.get('classification_date', '')
+
+                logger.info(f"✅ Account classification integrated: {research_results['account']['partnership_classification']} ({research_results['account']['classification_confidence']:.1f}%)")
+
+            # Store only strategic partnerships list, not account classification
+            research_results['partnerships'] = partnership_data.get('strategic_partnerships', [])
 
             # Generate comprehensive research summary
             research_results['research_summary'] = self._generate_research_summary(
@@ -332,7 +348,7 @@ class ComprehensiveABMSystem:
             logger.info("🔍 Discovering contacts via Apollo API...")
             try:
                 raw_contacts = self.apollo_discovery.discover_contacts(company_name, company_domain)
-                contacts = self.apollo_discovery.convert_to_notion_format(raw_contacts)
+                contacts = self.apollo_discovery.convert_to_notion_format(raw_contacts, company_name)
 
                 enhanced_contacts = []
                 for contact in contacts:
@@ -460,11 +476,16 @@ class ComprehensiveABMSystem:
         logger.info(f"✅ Generated intelligence for {intelligence_count}/{len(contacts)} contacts")
         return intelligence_contacts
 
-    def _phase_5_partnership_intelligence(self, company_name: str, company_domain: str) -> List[Dict]:
-        """Phase 5: Strategic Partnership Intelligence with Classification"""
+    def _phase_5_partnership_intelligence(self, company_name: str, company_domain: str) -> Dict[str, any]:
+        """Phase 5: Partnership Classification & Strategic Partnership Detection"""
         logger.info("🤝 Analyzing strategic partnership classification...")
 
-        # Try enhanced partnership classification first
+        partnership_data = {
+            'account_classification': None,
+            'strategic_partnerships': []
+        }
+
+        # PART A: Classify the account itself (Strategic Partner, Direct ICP, etc.)
         if self.partnership_classifier:
             try:
                 # Use account intelligence to build company profile for classification
@@ -491,45 +512,46 @@ class ComprehensiveABMSystem:
                         'growth_stage': account_data.get('Growth Stage', '')
                     })
 
+                    # CRITICAL FIX: Preserve original company name (account_data may have empty name)
+                    company_data['name'] = company_name
+
+                # DEBUG: Log exactly what data we're sending to the classifier
+                debug_name = company_data.get('name', 'EMPTY_NAME')
+                debug_infra = company_data.get('physical_infrastructure', 'EMPTY_INFRA')[:50]
+                logger.info(f"🔍 DEBUG: Sending to classifier - Name: '{debug_name}', Infra: '{debug_infra}...'")
+
                 # Classify partnership potential
                 classification = self.partnership_classifier.classify_partnership(company_data)
 
-                partnership_result = {
-                    'account_name': company_name,
-                    'partnership_type': classification.partnership_type.value,
-                    'industry_category': classification.industry_category.value,
-                    'confidence_score': classification.confidence_score,
-                    'reasoning': classification.reasoning,
+                # FIXED: Partnership classification is account property, not partnership record
+                account_classification = {
+                    'partnership_classification': classification.partnership_type.value,
+                    'classification_confidence': classification.confidence_score,
+                    'classification_reasoning': classification.reasoning,
                     'recommended_approach': classification.recommended_approach,
                     'potential_value': classification.potential_value,
                     'next_actions': classification.next_actions,
                     'classification_date': datetime.now().isoformat()
                 }
 
-                logger.info(f"✅ Partnership Classification: {classification.partnership_type.value} ({classification.confidence_score:.1f}% confidence)")
-                return [partnership_result]
+                partnership_data['account_classification'] = account_classification
+
+                logger.info(f"✅ Account Classification: {classification.partnership_type.value} ({classification.confidence_score:.1f}% confidence)")
 
             except Exception as e:
-                logger.warning(f"Partnership classification failed: {e}")
+                logger.warning(f"Account classification failed: {e}")
 
-        # Fallback to legacy partnership intelligence if available
+        # PART B: Detect actual strategic partnerships (DCIM vendors, GPU providers, etc.)
+        # TODO: This would detect actual partner companies like "NVIDIA", "Schneider Electric"
         if self.partnership_intelligence:
             try:
                 partnerships = self.partnership_intelligence.analyze_partnerships(company_name, company_domain)
-                logger.info(f"✅ Found {len(partnerships)} strategic partnerships (legacy)")
-                return partnerships
+                partnership_data['strategic_partnerships'] = partnerships
+                logger.info(f"✅ Found {len(partnerships)} strategic technology partnerships")
             except Exception as e:
-                logger.error(f"Legacy partnership analysis failed: {e}")
+                logger.warning(f"Strategic partnership detection failed: {e}")
 
-        # Final fallback
-        logger.warning("⚠️  No partnership intelligence available, using minimal data")
-        return [{
-            'account_name': company_name,
-            'partnership_type': 'unknown',
-            'confidence_score': 0,
-            'reasoning': f'{company_name} requires further analysis to determine partnership potential',
-            'classification_date': datetime.now().isoformat()
-        }]
+        return partnership_data
 
     def _save_complete_research_to_notion(self, research_results: Dict) -> Dict:
         """Save complete research to Notion using consolidated client (UPDATED)"""

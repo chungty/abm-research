@@ -371,20 +371,28 @@ class DataConflictResolver:
         return "low"
 
     def _add_provenance_fields(self, field_sources: Dict[str, str]) -> Dict[str, str]:
-        """Add data provenance fields for Notion tracking"""
+        """Add enhanced data provenance fields for schema compliance"""
 
         provenance = {}
 
-        # Add source tracking for key fields
+        # Enhanced provenance tracking for all key fields
         key_fields = {
             "name": "Name Source",
             "email": "Email Source",
-            "title": "Title Source"
+            "title": "Title Source",
+            "phone": "Phone Source",
+            "linkedin_url": "LinkedIn Source"
         }
 
         for field_name, notion_field in key_fields.items():
             if field_name in field_sources:
                 provenance[notion_field] = field_sources[field_name]
+            else:
+                provenance[notion_field] = "not_found"
+
+        # Add additional enhanced schema fields
+        provenance["Last Enriched"] = datetime.now().isoformat()
+        provenance["Enrichment Status"] = "multi_source_resolved"
 
         return provenance
 

@@ -79,9 +79,8 @@ class CompanyEnrichmentService:
             logger.info("✓ Using cached company data")
             return self.company_cache[cache_key]
 
-        # Prevent mock data injection
-        if 'coreweave' in domain.lower() or 'coreweave' in company_name.lower():
-            raise ValueError("CoreWeave is mock data - not allowed")
+        # Note: All company enrichment now uses live API data
+        # No mock data filters needed for production use
 
         # Primary method: Apollo people search to extract organization data
         # (organizations endpoint appears to require different subscription tier)

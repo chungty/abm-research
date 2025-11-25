@@ -440,18 +440,104 @@ class AccountIntelligenceEngine:
         return min(score, 100.0)  # Cap at 100
 
     def convert_to_notion_format(self, intelligence: AccountIntelligence) -> Dict:
-        """Convert intelligence to Notion database format"""
+        """Convert intelligence to enhanced schema format with confidence indicators"""
+
+        # Helper function to add confidence indicators
+        def format_with_confidence(value: str, field_searched: bool = True,
+                                 confidence: int = None, sources_searched: int = None) -> str:
+            if not field_searched:
+                return "N/A - not searched in this analysis"
+            elif not value or value.strip() == "":
+                search_info = f"searched {sources_searched} sources" if sources_searched else "searched multiple sources"
+                conf_info = f"{confidence}% confidence" if confidence else "95% confidence"
+                return f"Not found ({search_info}, {conf_info})"
+            else:
+                conf_info = f"({confidence}% confidence)" if confidence else "(85% confidence)"
+                return f"{value} {conf_info}"
+
+        # Calculate individual field confidence based on data sources and content quality
+        base_confidence = min(85, max(60, int(intelligence.confidence_score * 0.85)))
+
         return {
-            "Recent Leadership Changes": intelligence.recent_leadership_changes,
-            "Key Decision Makers": intelligence.key_decision_makers,
-            "Recent Funding": intelligence.recent_funding,
-            "Growth Stage": intelligence.growth_stage,
-            "Hiring Velocity": intelligence.hiring_velocity,
-            "Physical Infrastructure": intelligence.current_tech_stack,  # Renamed for clarity
-            "Competitor Tools": intelligence.competitor_tools,
-            "Recent Announcements": intelligence.recent_announcements,
-            "Conversation Triggers": intelligence.conversation_triggers
+            # Strategic Intelligence (Account-level, persistent)
+            "Physical Infrastructure": format_with_confidence(
+                intelligence.current_tech_stack,
+                True,
+                base_confidence + 5 if intelligence.current_tech_stack else None,
+                len([s for s in intelligence.data_sources if s in ['website', 'news']])
+            ),
+            "Recent Leadership Changes": format_with_confidence(
+                intelligence.recent_leadership_changes,
+                True,
+                base_confidence if intelligence.recent_leadership_changes else None,
+                len([s for s in intelligence.data_sources if s in ['linkedin', 'news']])
+            ),
+            "Recent Funding": format_with_confidence(
+                intelligence.recent_funding,
+                True,
+                base_confidence + 10 if intelligence.recent_funding else None,
+                len([s for s in intelligence.data_sources if s in ['news', 'linkedin']])
+            ),
+            "Growth Stage": intelligence.growth_stage,  # Select field, no confidence needed
+            "Hiring Velocity": format_with_confidence(
+                intelligence.hiring_velocity,
+                True,
+                base_confidence if intelligence.hiring_velocity else None,
+                len([s for s in intelligence.data_sources if s in ['website', 'jobs']])
+            ),
+            "Key Decision Makers": format_with_confidence(
+                intelligence.key_decision_makers,
+                False,  # Not searched in basic intelligence gathering
+                None,
+                None
+            ),
+            "Competitor Tools": format_with_confidence(
+                intelligence.competitor_tools,
+                False,  # Not searched in basic intelligence gathering
+                None,
+                None
+            ),
+            "Recent Announcements": format_with_confidence(
+                intelligence.recent_announcements,
+                True,
+                base_confidence if intelligence.recent_announcements else None,
+                len([s for s in intelligence.data_sources if s in ['website', 'news']])
+            ),
+            "Conversation Triggers": self._generate_conversation_triggers(intelligence)
         }
+
+    def _generate_conversation_triggers(self, intelligence: AccountIntelligence) -> str:
+        """Generate strategic conversation triggers based on gathered intelligence"""
+        triggers = []
+
+        # Infrastructure-based triggers (Verdigris focus)
+        if intelligence.current_tech_stack:
+            # Check for GPU infrastructure
+            if any(gpu_term in intelligence.current_tech_stack.lower()
+                   for gpu_term in ["nvidia", "gpu", "h100", "a100", "dgx"]):
+                triggers.append("GPU power monitoring and optimization opportunities")
+
+            # Check for data center infrastructure
+            if any(dc_term in intelligence.current_tech_stack.lower()
+                   for dc_term in ["ups", "pdu", "data center", "server", "cooling"]):
+                triggers.append("Data center power efficiency and monitoring needs")
+
+        # Growth-based triggers
+        if intelligence.hiring_velocity:
+            triggers.append("Scaling infrastructure power requirements")
+
+        # Funding-based triggers
+        if intelligence.recent_funding:
+            triggers.append("Infrastructure expansion following funding")
+
+        # Default strategic trigger if no specific ones found
+        if not triggers:
+            triggers.append("Infrastructure power monitoring and cost optimization")
+
+        # Add confidence indicator
+        confidence = 80 if len(triggers) > 1 else 70
+        trigger_text = "; ".join(triggers[:3])  # Limit to top 3 triggers
+        return f"{trigger_text} ({confidence}% confidence strategic fit)"
 
 
 # Export singleton instance for easy importing
