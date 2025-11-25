@@ -203,10 +203,10 @@ class PartnershipClassifier:
                 score += 30
 
         # High employee count suggests infrastructure scale
-        employee_count = company_data.get('employee_count', 0)
-        if employee_count > 1000:
+        employee_count = company_data.get('employee_count', 0) or 0
+        if employee_count and employee_count > 1000:
             score += 10
-        elif employee_count > 500:
+        elif employee_count and employee_count > 500:
             score += 5
 
         return min(score, 100)

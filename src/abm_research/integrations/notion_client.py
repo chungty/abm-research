@@ -466,7 +466,7 @@ class NotionClient:
         try:
             query = {
                 "filter": {
-                    "property": "Name",
+                    "property": "Company Name",
                     "title": {"equals": company_name}
                 }
             }
@@ -527,25 +527,28 @@ class NotionClient:
     # ═══════════════════════════════════════════════════════════════════════════════════
 
     def _create_account(self, account: Dict) -> Optional[str]:
-        """Create new account record"""
+        """Create new account record using correct Notion field names"""
         properties = {
-            "Name": {"title": [{"text": {"content": account.get('name', 'Unknown')}}]},
+            # Core fields (using actual Notion field names from NOTION_SCHEMA.md)
+            "Company Name": {"title": [{"text": {"content": account.get('name', 'Unknown')}}]},
             "Domain": {"rich_text": [{"text": {"content": account.get('domain', '')}}]},
-            "Business Model": {"select": {"name": account.get('business_model', 'Technology Company')}},
-            "Employee Count": {"number": account.get('employee_count', 0)},  # Real employee count
+            "Industry": {"select": {"name": account.get('business_model', 'Technology')}},
+            "Employee Count": {"number": account.get('employee_count', 0)},
             "ICP Fit Score": {"number": account.get('icp_fit_score', 0)},
-            "Account Research Status": {"select": {"name": "In Progress"}},
+            "Research Status": {"select": {"name": "In Progress"}},
             "Last Updated": {"date": {"start": datetime.now().isoformat()}},
-            # Apollo fields - empty when not available
-            "Apollo Account ID": {"rich_text": [{"text": {"content": account.get('apollo_account_id', '')}}]},
-            "Apollo Organization ID": {"rich_text": [{"text": {"content": account.get('apollo_organization_id', '')}}]},
-            # ICP Breakdown Fields - All exist in your schema
-            "Title Match Score": {"number": account.get('title_match_score', 0)},
-            "Responsibility Keywords Score": {"number": account.get('responsibility_keywords_score', 0)},
-            "Trigger Events Count": {"number": account.get('trigger_events_count', 0)},
-            "Trigger Events Impact": {"rich_text": [{"text": {"content": account.get('trigger_events_impact', 'No events detected')}}]},
-            "ICP Calculation Details": {"rich_text": [{"text": {"content": account.get('icp_calculation_details', 'Base scoring applied')}}]},
-            "Infrastructure Relevance": {"select": {"name": account.get('infrastructure_relevance', 'Unknown')}}
+            "Notes": {"rich_text": [{"text": {"content": account.get('notes', '')}}]},
+
+            # Enhanced Intelligence Fields (using exact field names)
+            "Recent Leadership Changes": {"rich_text": [{"text": {"content": account.get('Recent Leadership Changes', '')}}]},
+            "Recent Funding": {"rich_text": [{"text": {"content": account.get('Recent Funding', '')}}]},
+            "Growth Stage": {"select": {"name": account.get('Growth Stage', 'Unknown')}},
+            "Physical Infrastructure": {"rich_text": [{"text": {"content": account.get('Physical Infrastructure', '')}}]},
+            "Recent Announcements": {"rich_text": [{"text": {"content": account.get('Recent Announcements', '')}}]},
+            "Hiring Velocity": {"rich_text": [{"text": {"content": account.get('Hiring Velocity', '')}}]},
+            "Conversation Triggers": {"rich_text": [{"text": {"content": account.get('Conversation Triggers', '')}}]},
+            "Key Decision Makers": {"rich_text": [{"text": {"content": account.get('Key Decision Makers', '')}}]},
+            "Competitor Tools": {"rich_text": [{"text": {"content": account.get('Competitor Tools', '')}}]}
         }
 
         data = {
@@ -599,13 +602,16 @@ class NotionClient:
         return response.json().get('id')
 
     def _create_partnership(self, partnership: Dict, account_name: str = "") -> Optional[str]:
-        """Create new partnership record"""
+        """Create new partnership record with correct field mapping"""
+        # Get source URL and ensure it's either a valid URL or null (not empty string)
+        source_url = partnership.get('source_url', '') or None
+
         properties = {
-            "Partner Name": {"title": [{"text": {"content": partnership.get('partner_name', partnership.get('name', 'Unknown Partner'))}}]},
+            "Partner Name": {"title": [{"text": {"content": partnership.get('account_name', partnership.get('partner_name', 'Unknown Partner'))}}]},
             "Partnership Type": {"select": {"name": partnership.get('partnership_type', 'Strategic Alliance')}},
-            "Relevance Score": {"number": partnership.get('relevance_score', 0)},
-            "Context": {"rich_text": [{"text": {"content": partnership.get('context', '')}}]},
-            "Source URL": {"url": partnership.get('source_url', '')},
+            "Relevance Score": {"number": partnership.get('confidence_score', partnership.get('relevance_score', 0))},
+            "Context": {"rich_text": [{"text": {"content": partnership.get('reasoning', partnership.get('context', ''))}}]},
+            "Source URL": {"url": source_url},
             "Discovered Date": {"date": {"start": datetime.now().isoformat()}}
         }
 
@@ -625,19 +631,24 @@ class NotionClient:
         """Update existing account record"""
         try:
             properties = {
-                "Name": {"title": [{"text": {"content": account.get('name', 'Unknown')}}]},
+                "Company Name": {"title": [{"text": {"content": account.get('name', 'Unknown')}}]},
                 "Domain": {"rich_text": [{"text": {"content": account.get('domain', '')}}]},
-                "Business Model": {"select": {"name": account.get('business_model', 'Technology Company')}},
+                "Industry": {"select": {"name": account.get('business_model', 'Technology Company')}},
                 "Employee Count": {"number": account.get('employee_count', 0)},
                 "ICP Fit Score": {"number": account.get('icp_fit_score', 0)},
-                "Apollo Account ID": {"rich_text": [{"text": {"content": account.get('apollo_account_id', '')}}]},
-                "Apollo Organization ID": {"rich_text": [{"text": {"content": account.get('apollo_organization_id', '')}}]},
-                "Title Match Score": {"number": account.get('title_match_score', 0)},
-                "Responsibility Keywords Score": {"number": account.get('responsibility_keywords_score', 0)},
-                "Trigger Events Count": {"number": account.get('trigger_events_count', 0)},
-                "Trigger Events Impact": {"rich_text": [{"text": {"content": account.get('trigger_events_impact', 'No events detected')}}]},
-                "ICP Calculation Details": {"rich_text": [{"text": {"content": account.get('icp_calculation_details', 'Base scoring applied')}}]},
-                "Infrastructure Relevance": {"select": {"name": account.get('infrastructure_relevance', 'Unknown')}}
+                "Research Status": {"select": {"name": "In Progress"}},
+                "Last Updated": {"date": {"start": datetime.now().isoformat()}},
+
+                # Enhanced Intelligence Fields (using exact field names and types from schema)
+                "Recent Leadership Changes": {"rich_text": [{"text": {"content": account.get('Recent Leadership Changes', '')}}]},
+                "Recent Funding": {"rich_text": [{"text": {"content": account.get('Recent Funding', '')}}]},
+                "Growth Stage": {"select": {"name": account.get('Growth Stage', 'Unknown')[:100] or 'Unknown'}},  # Select field
+                "Physical Infrastructure": {"rich_text": [{"text": {"content": account.get('Physical Infrastructure', '')}}]},
+                "Recent Announcements": {"rich_text": [{"text": {"content": account.get('Recent Announcements', '')}}]},
+                "Hiring Velocity": {"rich_text": [{"text": {"content": account.get('Hiring Velocity', '')}}]},
+                "Conversation Triggers": {"rich_text": [{"text": {"content": account.get('Conversation Triggers', '')}}]},
+                "Key Decision Makers": {"rich_text": [{"text": {"content": account.get('Key Decision Makers', '')}}]},
+                "Competitor Tools": {"rich_text": [{"text": {"content": account.get('Competitor Tools', '')}}]}
             }
 
             url = f"https://api.notion.com/v1/pages/{page_id}"

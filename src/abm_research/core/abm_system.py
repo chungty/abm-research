@@ -47,6 +47,7 @@ except ImportError:
 try:
     from ..utils.account_intelligence_engine import account_intelligence_engine
     from ..utils.data_conflict_resolver import data_conflict_resolver
+    from ..utils.partnership_classifier import partnership_classifier
     ENHANCED_INTELLIGENCE_AVAILABLE = True
 except ImportError:
     ENHANCED_INTELLIGENCE_AVAILABLE = False
@@ -112,6 +113,7 @@ class ComprehensiveABMSystem:
         # Enhanced intelligence components
         self.account_intelligence = account_intelligence_engine if ENHANCED_INTELLIGENCE_AVAILABLE else None
         self.conflict_resolver = data_conflict_resolver if ENHANCED_INTELLIGENCE_AVAILABLE else None
+        self.partnership_classifier = partnership_classifier if ENHANCED_INTELLIGENCE_AVAILABLE else None
 
         # Initialize consolidated Notion client (UPDATED)
         self.notion_client = None
@@ -318,6 +320,9 @@ class ComprehensiveABMSystem:
             **enhanced_intelligence
         }
 
+        # Store account data for Phase 5 partnership classification
+        self._current_account_data = account_data
+
         logger.info(f"✅ Account ICP fit score: {icp_fit_score}")
         return account_data, formatted_events
 
@@ -456,25 +461,75 @@ class ComprehensiveABMSystem:
         return intelligence_contacts
 
     def _phase_5_partnership_intelligence(self, company_name: str, company_domain: str) -> List[Dict]:
-        """Phase 5: Strategic Partnership Intelligence"""
-        if not self.partnership_intelligence:
-            logger.warning("⚠️  Partnership intelligence not available, using mock data")
-            return [{
-                'partner_name': 'Example Strategic Partner',
-                'partnership_type': 'Technology Integration',
-                'relevance_score': 75,
-                'context': f'Mock partnership data for {company_name}',
-                'source_url': f'https://example.com/partnerships'
-            }]
+        """Phase 5: Strategic Partnership Intelligence with Classification"""
+        logger.info("🤝 Analyzing strategic partnership classification...")
 
-        logger.info("🤝 Analyzing strategic partnerships...")
-        try:
-            partnerships = self.partnership_intelligence.analyze_partnerships(company_name, company_domain)
-            logger.info(f"✅ Found {len(partnerships)} strategic partnerships")
-            return partnerships
-        except Exception as e:
-            logger.error(f"Partnership analysis failed: {e}")
-            return []
+        # Try enhanced partnership classification first
+        if self.partnership_classifier:
+            try:
+                # Use account intelligence to build company profile for classification
+                company_data = {
+                    'name': company_name,
+                    'domain': company_domain,
+                    'business_model': '',
+                    'physical_infrastructure': '',
+                    'tech_stack': '',
+                    'recent_announcements': '',
+                    'employee_count': 0,
+                    'growth_stage': ''
+                }
+
+                # Enhance with available account intelligence data if present
+                if hasattr(self, '_current_account_data') and self._current_account_data:
+                    account_data = self._current_account_data
+                    company_data.update({
+                        'business_model': account_data.get('business_model', ''),
+                        'physical_infrastructure': account_data.get('Physical Infrastructure', ''),
+                        'tech_stack': account_data.get('Physical Infrastructure', ''),
+                        'recent_announcements': account_data.get('Recent Announcements', ''),
+                        'employee_count': account_data.get('employee_count', 0) or 0,
+                        'growth_stage': account_data.get('Growth Stage', '')
+                    })
+
+                # Classify partnership potential
+                classification = self.partnership_classifier.classify_partnership(company_data)
+
+                partnership_result = {
+                    'account_name': company_name,
+                    'partnership_type': classification.partnership_type.value,
+                    'industry_category': classification.industry_category.value,
+                    'confidence_score': classification.confidence_score,
+                    'reasoning': classification.reasoning,
+                    'recommended_approach': classification.recommended_approach,
+                    'potential_value': classification.potential_value,
+                    'next_actions': classification.next_actions,
+                    'classification_date': datetime.now().isoformat()
+                }
+
+                logger.info(f"✅ Partnership Classification: {classification.partnership_type.value} ({classification.confidence_score:.1f}% confidence)")
+                return [partnership_result]
+
+            except Exception as e:
+                logger.warning(f"Partnership classification failed: {e}")
+
+        # Fallback to legacy partnership intelligence if available
+        if self.partnership_intelligence:
+            try:
+                partnerships = self.partnership_intelligence.analyze_partnerships(company_name, company_domain)
+                logger.info(f"✅ Found {len(partnerships)} strategic partnerships (legacy)")
+                return partnerships
+            except Exception as e:
+                logger.error(f"Legacy partnership analysis failed: {e}")
+
+        # Final fallback
+        logger.warning("⚠️  No partnership intelligence available, using minimal data")
+        return [{
+            'account_name': company_name,
+            'partnership_type': 'unknown',
+            'confidence_score': 0,
+            'reasoning': f'{company_name} requires further analysis to determine partnership potential',
+            'classification_date': datetime.now().isoformat()
+        }]
 
     def _save_complete_research_to_notion(self, research_results: Dict) -> Dict:
         """Save complete research to Notion using consolidated client (UPDATED)"""

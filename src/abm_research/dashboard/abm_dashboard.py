@@ -34,31 +34,45 @@ except ImportError:
     HYBRID_DATA_AVAILABLE = False
     print("⚠️  Warning: Hybrid data manager not available")
 
-# Intelligence analyzers (enhanced insights)
-try:
-    from ..intelligence.enhanced_buying_signals_analyzer import EnhancedBuyingSignalsAnalyzer
-    from ..intelligence.contact_value_analyzer import ContactValueAnalyzer
-    from ..intelligence.enhanced_account_plan_generator import EnhancedAccountPlanGenerator
-    ANALYZERS_AVAILABLE = True
-except ImportError:
-    ANALYZERS_AVAILABLE = False
-    print("⚠️  Warning: Intelligence analyzers not available")
-
-# Research execution engine
+# Enhanced Intelligence System (production-ready components)
 try:
     from ..core.abm_system import ComprehensiveABMSystem
+    from ..utils.account_intelligence_engine import AccountIntelligenceEngine
+    from ..utils.data_conflict_resolver import DataConflictResolver
+    from ..utils.partnership_classifier import PartnershipClassifier
+
+    # Initialize enhanced intelligence components
+    abm_system = ComprehensiveABMSystem()
+    account_intelligence = AccountIntelligenceEngine()
+    conflict_resolver = DataConflictResolver()
+    partnership_classifier = PartnershipClassifier()
+
+    ENHANCED_INTELLIGENCE_AVAILABLE = True
     RESEARCH_ENGINE_AVAILABLE = True
-except ImportError:
+    logger = logging.getLogger(__name__)
+    logger.info("✅ Enhanced Intelligence System initialized")
+    logger.info(f"✅ Account Intelligence: {abm_system.account_intelligence is not None}")
+    logger.info(f"✅ Conflict Resolver: {abm_system.conflict_resolver is not None}")
+except ImportError as e:
+    abm_system = None
+    account_intelligence = None
+    conflict_resolver = None
+    partnership_classifier = None
+    ENHANCED_INTELLIGENCE_AVAILABLE = False
     RESEARCH_ENGINE_AVAILABLE = False
-    print("⚠️  Warning: Research engine not available")
+    logger = logging.getLogger(__name__)
+    logger.warning(f"⚠️  Enhanced Intelligence System not available: {e}")
 
 # Fallback data service
 try:
     from .dashboard_data_service import NotionDataService
+    notion_service = NotionDataService()
     NOTION_SERVICE_AVAILABLE = True
-except ImportError:
+    logger.info("✅ Notion service initialized")
+except ImportError as e:
+    notion_service = None
     NOTION_SERVICE_AVAILABLE = False
-    print("⚠️  Warning: Notion service not available")
+    logger.warning(f"⚠️  Notion service not available: {e}")
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -68,41 +82,8 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)
 
-# ═══════════════════════════════════════════════════════════════════════════════════
-# COMPONENT INITIALIZATION
-# ═══════════════════════════════════════════════════════════════════════════════════
-
-# Initialize intelligence analyzers
-buying_signals_analyzer = None
-contact_value_analyzer = None
-account_plan_generator = None
-
-if ANALYZERS_AVAILABLE:
-    try:
-        buying_signals_analyzer = EnhancedBuyingSignalsAnalyzer()
-        contact_value_analyzer = ContactValueAnalyzer()
-        account_plan_generator = EnhancedAccountPlanGenerator()
-        logger.info("✅ Intelligence analyzers initialized")
-    except Exception as e:
-        logger.warning(f"⚠️  Could not initialize analyzers: {e}")
-
-# Initialize research engine
-abm_system = None
-if RESEARCH_ENGINE_AVAILABLE:
-    try:
-        abm_system = ComprehensiveABMSystem()
-        logger.info("✅ Research engine initialized")
-    except Exception as e:
-        logger.warning(f"⚠️  Could not initialize research engine: {e}")
-
-# Initialize fallback data service
-notion_service = None
-if NOTION_SERVICE_AVAILABLE:
-    try:
-        notion_service = NotionDataService()
-        logger.info("✅ Notion service initialized")
-    except Exception as e:
-        logger.warning(f"⚠️  Could not initialize Notion service: {e}")
+# Define missing variables for compatibility
+ANALYZERS_AVAILABLE = ENHANCED_INTELLIGENCE_AVAILABLE  # Use enhanced intelligence as proxy for analyzers
 
 # ═══════════════════════════════════════════════════════════════════════════════════
 # THREAD-SAFE RESEARCH MANAGEMENT
@@ -242,11 +223,11 @@ def calculate_account_research_progress(account_name: str, contacts: List[Dict],
 @app.route('/')
 @app.route('/dashboard')
 def dashboard():
-    """Serve the Account Command Center (demo with Genesis Cloud)."""
+    """Serve the ABM Sales Dashboard with real account data."""
     # Look for HTML file relative to the project structure
     import os
     html_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    return send_from_directory(html_dir, 'genesis_cloud_command_center.html')
+    return send_from_directory(html_dir, 'verdigris_sales_dashboard.html')
 
 @app.route('/terminal')
 def terminal_view():

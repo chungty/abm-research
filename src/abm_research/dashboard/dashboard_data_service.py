@@ -98,7 +98,18 @@ class NotionDataService:
                         'employee_count': self._extract_number(props.get('Employee Count', {})),
                         'research_status': self._extract_select(props.get('Account Research Status', {})),
                         'last_updated': self._extract_date(props.get('Last Updated', {})),
-                        'created_time': result.get('created_time')
+                        'created_time': result.get('created_time'),
+
+                        # Enhanced Intelligence Fields (from AccountIntelligenceEngine)
+                        'recent_leadership_changes': self._extract_rich_text(props.get('Recent Leadership Changes', {})),
+                        'recent_funding': self._extract_rich_text(props.get('Recent Funding', {})),
+                        'growth_stage': self._extract_rich_text(props.get('Growth Stage', {})),
+                        'physical_infrastructure': self._extract_rich_text(props.get('Physical Infrastructure', {})),
+                        'recent_announcements': self._extract_rich_text(props.get('Recent Announcements', {})),
+                        'hiring_velocity': self._extract_rich_text(props.get('Hiring Velocity', {})),
+                        'conversation_triggers': self._extract_rich_text(props.get('Conversation Triggers', {})),
+                        'key_decision_makers': self._extract_rich_text(props.get('Key Decision Makers', {})),
+                        'competitor_tools': self._extract_rich_text(props.get('Competitor Tools', {}))
                     }
                     accounts.append(account)
 
