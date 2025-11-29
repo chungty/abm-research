@@ -497,6 +497,93 @@ class NotionClient:
             logger.error(f"Error querying all accounts: {e}")
             return []
 
+    def query_all_contacts(self, account_id: Optional[str] = None) -> List[Dict]:
+        """Query all contacts from Notion database, optionally filtered by account"""
+        if not self.database_ids.get('contacts'):
+            logger.warning("Contacts database ID not configured")
+            return []
+
+        try:
+            url = f"https://api.notion.com/v1/databases/{self.database_ids['contacts']}/query"
+            query = {}
+
+            # Filter by account relation if provided
+            if account_id:
+                query = {
+                    "filter": {
+                        "property": "Account",
+                        "relation": {"contains": account_id}
+                    }
+                }
+
+            response = self._make_request('POST', url, json=query)
+
+            results = response.json().get('results', [])
+            logger.info(f"Retrieved {len(results)} contacts from Notion")
+            return results
+
+        except Exception as e:
+            logger.error(f"Error querying contacts: {e}")
+            return []
+
+    def query_all_trigger_events(self, account_id: Optional[str] = None) -> List[Dict]:
+        """Query all trigger events from Notion database, optionally filtered by account"""
+        if not self.database_ids.get('trigger_events'):
+            logger.warning("Trigger events database ID not configured")
+            return []
+
+        try:
+            url = f"https://api.notion.com/v1/databases/{self.database_ids['trigger_events']}/query"
+            query = {}
+
+            # Filter by account relation if provided
+            if account_id:
+                query = {
+                    "filter": {
+                        "property": "Account",
+                        "relation": {"contains": account_id}
+                    }
+                }
+
+            response = self._make_request('POST', url, json=query)
+
+            results = response.json().get('results', [])
+            logger.info(f"Retrieved {len(results)} trigger events from Notion")
+            return results
+
+        except Exception as e:
+            logger.error(f"Error querying trigger events: {e}")
+            return []
+
+    def query_all_partnerships(self, account_id: Optional[str] = None) -> List[Dict]:
+        """Query all partnerships from Notion database, optionally filtered by account"""
+        if not self.database_ids.get('partnerships'):
+            logger.warning("Partnerships database ID not configured")
+            return []
+
+        try:
+            url = f"https://api.notion.com/v1/databases/{self.database_ids['partnerships']}/query"
+            query = {}
+
+            # Filter by account relation if provided
+            if account_id:
+                query = {
+                    "filter": {
+                        "property": "Account",
+                        "relation": {"contains": account_id}
+                    }
+                }
+
+            response = self._make_request('POST', url, json=query)
+
+            results = response.json().get('results', [])
+            logger.info(f"Retrieved {len(results)} partnerships from Notion")
+            return results
+
+        except Exception as e:
+            logger.error(f"Error querying partnerships: {e}")
+            return []
+
     def _find_existing_contact(self, linkedin_url: str) -> Optional[str]:
         """Find existing contact by LinkedIn URL"""
         if not self.database_ids.get('contacts') or not linkedin_url:

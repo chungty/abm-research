@@ -227,11 +227,208 @@ def extract_select(prop: Dict) -> str:
     return ''
 
 
-def get_notion_contacts(account_id: str) -> List[Dict]:
+def get_notion_contacts(account_notion_id: str) -> List[Dict]:
     """Fetch contacts for account from Notion"""
-    # For now, return mock contacts - full implementation would query contacts DB
-    # with account relation filter
-    return get_mock_contacts(account_id)
+    if not NOTION_AVAILABLE:
+        return get_mock_contacts(account_notion_id)
+
+    try:
+        notion = get_notion_client()
+        raw_contacts = notion.query_all_contacts(account_notion_id)
+
+        contacts = []
+        for page in raw_contacts:
+            contact = transform_notion_contact(page)
+            if contact:
+                contacts.append(contact)
+
+        logger.info(f"✅ Loaded {len(contacts)} contacts from Notion for account {account_notion_id}")
+        return contacts
+
+    except Exception as e:
+        logger.error(f"❌ Error fetching contacts from Notion: {e}")
+        return get_mock_contacts(account_notion_id)
+
+
+def get_notion_trigger_events(account_notion_id: str = None) -> List[Dict]:
+    """Fetch trigger events from Notion, optionally for a specific account"""
+    if not NOTION_AVAILABLE:
+        return []
+
+    try:
+        notion = get_notion_client()
+        raw_events = notion.query_all_trigger_events(account_notion_id)
+
+        events = []
+        for page in raw_events:
+            event = transform_notion_trigger_event(page)
+            if event:
+                events.append(event)
+
+        logger.info(f"✅ Loaded {len(events)} trigger events from Notion")
+        return events
+
+    except Exception as e:
+        logger.error(f"❌ Error fetching trigger events from Notion: {e}")
+        return []
+
+
+def get_notion_partnerships(account_notion_id: str = None) -> List[Dict]:
+    """Fetch partnerships from Notion, optionally for a specific account"""
+    if not NOTION_AVAILABLE:
+        return []
+
+    try:
+        notion = get_notion_client()
+        raw_partnerships = notion.query_all_partnerships(account_notion_id)
+
+        partnerships = []
+        for page in raw_partnerships:
+            partnership = transform_notion_partnership(page)
+            if partnership:
+                partnerships.append(partnership)
+
+        logger.info(f"✅ Loaded {len(partnerships)} partnerships from Notion")
+        return partnerships
+
+    except Exception as e:
+        logger.error(f"❌ Error fetching partnerships from Notion: {e}")
+        return []
+
+
+def transform_notion_contact(page: Dict) -> Optional[Dict]:
+    """Transform Notion contact page to API format"""
+    try:
+        props = page.get('properties', {})
+
+        # Extract name (title field)
+        name = ''
+        name_prop = props.get('Name', {})
+        if name_prop.get('title'):
+            name = name_prop['title'][0]['text']['content'] if name_prop['title'] else ''
+
+        # Extract other fields
+        email = props.get('Email', {}).get('email', '')
+        title = extract_rich_text(props.get('Title', {}))
+        company = extract_rich_text(props.get('Company', {}))
+        linkedin_url = props.get('LinkedIn URL', {}).get('url', '')
+        lead_score = props.get('Lead Score', {}).get('number', 0) or 0
+        engagement_level = extract_select(props.get('Engagement Level', {}))
+
+        # Data provenance
+        name_source = extract_select(props.get('Name Source', {}))
+        email_source = extract_select(props.get('Email Source', {}))
+        title_source = extract_select(props.get('Title Source', {}))
+        data_quality_score = props.get('Data Quality Score', {}).get('number', 0) or 0
+
+        return {
+            "id": f"con_{page['id'][:8]}",
+            "notion_id": page['id'],
+            "name": name,
+            "email": email,
+            "title": title,
+            "company": company,
+            "linkedin_url": linkedin_url,
+            "lead_score": lead_score,
+            "engagement_level": engagement_level or "Medium",
+            "name_source": name_source,
+            "email_source": email_source,
+            "title_source": title_source,
+            "data_quality_score": data_quality_score,
+            # MEDDIC scoring (placeholder until real scoring is needed)
+            "champion_potential_score": lead_score * 0.8,
+            "role_tier": "entry_point",
+            "role_classification": title if title else "Unknown",
+            "champion_potential_level": "High" if lead_score >= 70 else "Medium" if lead_score >= 50 else "Low",
+            "recommended_approach": "Pain-based outreach",
+            "enrichment_status": "enriched" if email else "pending",
+        }
+
+    except Exception as e:
+        logger.error(f"Error transforming contact: {e}")
+        return None
+
+
+def transform_notion_trigger_event(page: Dict) -> Optional[Dict]:
+    """Transform Notion trigger event page to API format"""
+    try:
+        props = page.get('properties', {})
+
+        # Extract description (title field)
+        description = ''
+        desc_prop = props.get('Event Description', {})
+        if desc_prop.get('title'):
+            description = desc_prop['title'][0]['text']['content'] if desc_prop['title'] else ''
+
+        # Extract other fields
+        company = extract_rich_text(props.get('Company', {}))
+        event_type = extract_select(props.get('Event Type', {}))
+        confidence = extract_select(props.get('Confidence', {}))
+        urgency = extract_select(props.get('Urgency', {}))
+        source_url = props.get('Source URL', {}).get('url', '')
+        relevance_score = props.get('Relevance Score', {}).get('number', 0) or 0
+
+        # Get date
+        detected_date = ''
+        date_prop = props.get('Detected Date', {}).get('date')
+        if date_prop:
+            detected_date = date_prop.get('start', '')
+
+        return {
+            "id": f"evt_{page['id'][:8]}",
+            "notion_id": page['id'],
+            "description": description,
+            "company": company,
+            "event_type": event_type,
+            "confidence": confidence or "Medium",
+            "urgency": urgency or "Medium",
+            "source_url": source_url,
+            "relevance_score": relevance_score,
+            "detected_date": detected_date,
+        }
+
+    except Exception as e:
+        logger.error(f"Error transforming trigger event: {e}")
+        return None
+
+
+def transform_notion_partnership(page: Dict) -> Optional[Dict]:
+    """Transform Notion partnership page to API format"""
+    try:
+        props = page.get('properties', {})
+
+        # Extract partner name (title field)
+        partner_name = ''
+        name_prop = props.get('Partner Name', {})
+        if name_prop.get('title'):
+            partner_name = name_prop['title'][0]['text']['content'] if name_prop['title'] else ''
+
+        # Extract other fields
+        partnership_type = extract_select(props.get('Partnership Type', {}))
+        relevance_score = props.get('Relevance Score', {}).get('number', 0) or 0
+        context = extract_rich_text(props.get('Context', {}))
+        source_url = props.get('Source URL', {}).get('url', '')
+
+        # Get date
+        discovered_date = ''
+        date_prop = props.get('Discovered Date', {}).get('date')
+        if date_prop:
+            discovered_date = date_prop.get('start', '')
+
+        return {
+            "id": f"ptr_{page['id'][:8]}",
+            "notion_id": page['id'],
+            "partner_name": partner_name,
+            "partnership_type": partnership_type or "Technology Integration",
+            "relevance_score": relevance_score,
+            "context": context,
+            "source_url": source_url,
+            "discovered_date": discovered_date,
+        }
+
+    except Exception as e:
+        logger.error(f"Error transforming partnership: {e}")
+        return None
 
 
 # ============================================================================
@@ -651,27 +848,61 @@ def get_accounts():
 
 @app.route('/api/accounts/<account_id>', methods=['GET'])
 def get_account(account_id: str):
-    """Get single account with contacts"""
+    """Get single account with contacts, events, and partnerships"""
     accounts = get_notion_accounts()
     account = next((a for a in accounts if a['id'] == account_id), None)
 
     if not account:
         return jsonify({"error": "Account not found"}), 404
 
-    contacts = get_mock_contacts(account_id)
+    # Use notion_id for querying related data
+    notion_id = account.get('notion_id', '')
+
+    # Fetch real data from Notion
+    contacts = get_notion_contacts(notion_id) if notion_id else []
+    trigger_events = get_notion_trigger_events(notion_id) if notion_id else []
+    partnerships = get_notion_partnerships(notion_id) if notion_id else []
 
     return jsonify({
         "account": account,
         "contacts": contacts,
-        "trigger_events": []
+        "trigger_events": trigger_events,
+        "partnerships": partnerships
     })
 
 
 @app.route('/api/accounts/<account_id>/contacts', methods=['GET'])
 def get_account_contacts(account_id: str):
     """Get contacts for a specific account"""
-    contacts = get_mock_contacts(account_id)
+    accounts = get_notion_accounts()
+    account = next((a for a in accounts if a['id'] == account_id), None)
+
+    if not account:
+        return jsonify({"contacts": []})
+
+    notion_id = account.get('notion_id', '')
+    contacts = get_notion_contacts(notion_id) if notion_id else []
     return jsonify({"contacts": contacts})
+
+
+@app.route('/api/trigger-events', methods=['GET'])
+def get_all_trigger_events():
+    """Get all trigger events"""
+    events = get_notion_trigger_events()
+    return jsonify({
+        "trigger_events": events,
+        "total": len(events)
+    })
+
+
+@app.route('/api/partnerships', methods=['GET'])
+def get_all_partnerships():
+    """Get all partnerships"""
+    partnerships = get_notion_partnerships()
+    return jsonify({
+        "partnerships": partnerships,
+        "total": len(partnerships)
+    })
 
 
 # ============================================================================
