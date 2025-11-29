@@ -34,10 +34,20 @@ class Account:
     recent_funding: Optional[str] = None
     growth_indicators: List[str] = field(default_factory=list)  # hiring trends, expansion announcements
 
-    # ICP scoring
+    # ICP scoring (legacy)
     icp_fit_score: float = 0.0  # 0-100
     company_type_score: int = 50  # base score from company type
     trigger_alignment_score: int = 0  # bonus from trigger events
+
+    # Account-First Scoring (NEW - with full traceability)
+    account_score: float = 0.0  # 0-100 overall account score
+    infrastructure_score: float = 0.0  # 0-100 infrastructure fit
+    business_fit_score: float = 0.0  # 0-100 business fit
+    buying_signals_score: float = 0.0  # 0-100 buying signals
+
+    # Full breakdown for dashboard traceability (JSON serializable)
+    infrastructure_breakdown: Dict[str, Any] = field(default_factory=dict)
+    account_score_breakdown: Dict[str, Any] = field(default_factory=dict)
 
     # Research tracking
     research_status: AccountResearchStatus = AccountResearchStatus.NOT_STARTED

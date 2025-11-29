@@ -61,7 +61,7 @@ except ImportError:
     logging.warning("Apollo contact discovery not available")
 
 try:
-    from .unified_lead_scorer import unified_lead_scorer
+    from .unified_lead_scorer import unified_lead_scorer, account_scorer, meddic_contact_scorer
     UNIFIED_SCORER_AVAILABLE = True
 except ImportError:
     UNIFIED_SCORER_AVAILABLE = False
@@ -336,6 +336,54 @@ class ComprehensiveABMSystem:
             **enhanced_intelligence
         }
 
+        # ACCOUNT-FIRST SCORING: Calculate infrastructure-aware account score
+        # This is an ACCOUNT-level score - the company owns the infrastructure, not contacts
+        if UNIFIED_SCORER_AVAILABLE and account_scorer:
+            logger.info("🏢 Calculating Account-First score with infrastructure breakdown...")
+            try:
+                # Prepare account data for scoring (merge all available intelligence)
+                scoring_input = {
+                    'Physical Infrastructure': account_data.get('Physical Infrastructure', ''),
+                    'physical_infrastructure': account_data.get('Physical Infrastructure', ''),
+                    'current_tech_stack': account_data.get('current_tech_stack', ''),
+                    'business_model': account_data.get('business_model', ''),
+                    'employee_count': account_data.get('employee_count', 0),
+                    'data_center_locations': account_data.get('data_center_locations', []),
+                    'growth_indicators': account_data.get('growth_indicators', []),
+                    'trigger_events': formatted_events  # Pass trigger events for buying signals
+                }
+
+                # Calculate comprehensive account score
+                account_score_result = account_scorer.calculate_account_score(scoring_input)
+
+                # Store scores on account for dashboard display
+                account_data['account_score'] = account_score_result.total_score
+                account_data['infrastructure_score'] = account_score_result.infrastructure_fit.score
+                account_data['business_fit_score'] = account_score_result.business_fit.score
+                account_data['buying_signals_score'] = account_score_result.buying_signals.score
+                account_data['account_priority_level'] = account_score_result.priority_level
+
+                # Store full breakdowns for dashboard traceability (JSON serializable)
+                account_data['infrastructure_breakdown'] = account_score_result.infrastructure_fit.to_dict()
+                account_data['account_score_breakdown'] = account_score_result.get_score_breakdown()
+
+                logger.info(f"✅ Account Score: {account_score_result.total_score:.1f} ({account_score_result.priority_level})")
+                logger.info(f"   Infrastructure: {account_score_result.infrastructure_fit.score:.1f} | "
+                          f"Business: {account_score_result.business_fit.score:.1f} | "
+                          f"Signals: {account_score_result.buying_signals.score:.1f}")
+
+                # Log detected infrastructure keywords for visibility
+                infra_breakdown = account_score_result.infrastructure_fit.breakdown
+                detected_categories = [cat for cat, data in infra_breakdown.items() if data.get('detected')]
+                if detected_categories:
+                    logger.info(f"   🔍 Detected infrastructure: {', '.join(detected_categories)}")
+
+            except Exception as e:
+                logger.warning(f"⚠️  Account scoring failed: {e}")
+                account_data['account_score'] = 0.0
+                account_data['infrastructure_score'] = 0.0
+                account_data['account_score_breakdown'] = {'error': str(e)}
+
         # Store account data for Phase 5 partnership classification
         self._current_account_data = account_data
 
@@ -343,7 +391,7 @@ class ComprehensiveABMSystem:
         return account_data, formatted_events
 
     def _phase_2_contact_discovery(self, company_name: str, company_domain: str, account_data: Dict) -> List[Dict]:
-        """Phase 2: Contact Discovery & Segmentation"""
+        """Phase 2: Contact Discovery & Segmentation with MEDDIC scoring"""
         if self.apollo_discovery:
             logger.info("🔍 Discovering contacts via Apollo API...")
             try:
@@ -352,15 +400,60 @@ class ComprehensiveABMSystem:
 
                 enhanced_contacts = []
                 for contact in contacts:
-                    if self.scoring_engine:
+                    # MEDDIC SCORING: Prioritize Entry Point roles (Technical Believers)
+                    # This INVERTS traditional scoring that would prioritize VPs/CIOs first
+                    if UNIFIED_SCORER_AVAILABLE and meddic_contact_scorer:
+                        try:
+                            meddic_result = meddic_contact_scorer.calculate_contact_score(contact, account_data)
+
+                            # Store MEDDIC scores
+                            contact['lead_score'] = meddic_result.total_score
+                            contact['initial_lead_score'] = meddic_result.total_score
+                            contact['champion_potential_score'] = meddic_result.champion_potential_score
+                            contact['role_tier'] = meddic_result.role_tier
+                            contact['role_classification'] = meddic_result.role_classification
+                            contact['champion_potential_level'] = meddic_result.champion_potential_level
+                            contact['recommended_approach'] = meddic_result.recommended_approach
+                            contact['why_prioritize'] = meddic_result.why_prioritize
+                            contact['meddic_score_breakdown'] = meddic_result.get_score_breakdown()
+
+                        except Exception as e:
+                            logger.warning(f"MEDDIC scoring failed for {contact.get('name', 'unknown')}: {e}")
+                            # Fallback to legacy scoring
+                            if self.scoring_engine:
+                                score = self.scoring_engine.calculate_lead_score(contact, account_data)
+                                contact['lead_score'] = score
+                                contact['initial_lead_score'] = score
+                            else:
+                                contact['lead_score'] = 50
+                                contact['initial_lead_score'] = 50
+                    elif self.scoring_engine:
+                        # Legacy scoring fallback
                         score = self.scoring_engine.calculate_lead_score(contact, account_data)
-                        contact['lead_score'] = score  # Use field name expected by Notion client
-                        contact['initial_lead_score'] = score  # Keep for backward compatibility
+                        contact['lead_score'] = score
+                        contact['initial_lead_score'] = score
                     else:
-                        contact['lead_score'] = 50  # Default score
-                        contact['initial_lead_score'] = 50  # Default score
+                        contact['lead_score'] = 50
+                        contact['initial_lead_score'] = 50
 
                     enhanced_contacts.append(contact)
+
+                # Log MEDDIC scoring summary
+                if UNIFIED_SCORER_AVAILABLE and meddic_contact_scorer:
+                    entry_points = [c for c in enhanced_contacts if c.get('role_tier') == 'entry_point']
+                    middle_deciders = [c for c in enhanced_contacts if c.get('role_tier') == 'middle_decider']
+                    economic_buyers = [c for c in enhanced_contacts if c.get('role_tier') == 'economic_buyer']
+                    logger.info(f"✅ MEDDIC Segmentation: {len(entry_points)} Entry Points, "
+                              f"{len(middle_deciders)} Middle Deciders, {len(economic_buyers)} Economic Buyers")
+
+                    # Highlight high-champion-potential contacts
+                    high_champions = [c for c in enhanced_contacts
+                                     if c.get('champion_potential_level') in ['Very High', 'High']]
+                    if high_champions:
+                        logger.info(f"🏆 High Champion Potential: {len(high_champions)} contacts")
+                        for c in high_champions[:3]:  # Show top 3
+                            logger.info(f"   → {c.get('name', 'Unknown')}: {c.get('title', 'Unknown')} "
+                                       f"({c.get('champion_potential_level', 'N/A')})")
 
                 logger.info(f"✅ Discovered {len(enhanced_contacts)} contacts")
                 return enhanced_contacts
@@ -385,6 +478,15 @@ class ComprehensiveABMSystem:
         if not self.linkedin_enrichment:
             logger.warning("⚠️  LinkedIn enrichment not available, skipping enrichment")
             return contacts
+
+        # Normalize field names from Apollo output (Notion format uses capitals, Python uses lowercase)
+        # This fixes the bug where high-scoring contacts were being skipped due to field name mismatch
+        for contact in contacts:
+            # Normalize Lead Score field names
+            if 'Lead Score' in contact and 'lead_score' not in contact:
+                contact['lead_score'] = contact['Lead Score']
+            if 'Initial Lead Score' in contact and 'initial_lead_score' not in contact:
+                contact['initial_lead_score'] = contact['Initial Lead Score']
 
         # Check for both field names (lead_score from Apollo, initial_lead_score for backward compatibility)
         def get_lead_score(contact):

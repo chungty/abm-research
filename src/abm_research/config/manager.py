@@ -94,9 +94,9 @@ class ConfigManager:
             'partnerships': self._get_required_env('NOTION_PARTNERSHIPS_DB_ID')
         }
 
-        # Normalize database IDs (remove dashes for consistency)
-        for key, db_id in self.database_ids.items():
-            self.database_ids[key] = db_id.replace('-', '')
+        # NOTE: Database IDs must keep dashes - Notion API requires UUIDs in RFC 4122 format
+        # The previous code removed dashes which caused 404 errors
+        # Keeping IDs as-is from environment variables
 
     def _load_external_configs(self):
         """Load external JSON configuration files"""
