@@ -26,13 +26,37 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(o
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# Import Notion client for real data
+# Import Notion client and scorer directly (avoid package __init__ chain)
+NOTION_AVAILABLE = False
+account_scorer = None
+
 try:
-    from src.abm_research.integrations.notion_client import NotionClient, get_notion_client
-    from src.abm_research.core.unified_lead_scorer import account_scorer, meddic_contact_scorer
+    # Direct imports to avoid triggering full package initialization
+    import importlib.util
+
+    # Load notion_client directly
+    notion_spec = importlib.util.spec_from_file_location(
+        "notion_client",
+        os.path.join(project_root, "src/abm_research/integrations/notion_client.py")
+    )
+    notion_module = importlib.util.module_from_spec(notion_spec)
+    notion_spec.loader.exec_module(notion_module)
+    NotionClient = notion_module.NotionClient
+    get_notion_client = notion_module.get_notion_client
+
+    # Load unified_lead_scorer directly
+    scorer_spec = importlib.util.spec_from_file_location(
+        "unified_lead_scorer",
+        os.path.join(project_root, "src/abm_research/core/unified_lead_scorer.py")
+    )
+    scorer_module = importlib.util.module_from_spec(scorer_spec)
+    scorer_spec.loader.exec_module(scorer_module)
+    account_scorer = scorer_module.account_scorer
+    meddic_contact_scorer = scorer_module.meddic_contact_scorer
+
     NOTION_AVAILABLE = True
     logger.info("✅ Notion client available - using real data")
-except ImportError as e:
+except Exception as e:
     NOTION_AVAILABLE = False
     logger.warning(f"⚠️ Notion client not available, using mock data: {e}")
 
@@ -100,7 +124,17 @@ def transform_notion_account(page: Dict, idx: int = 0) -> Optional[Dict]:
         }
 
         # Get full scoring breakdown
-        score_result = account_scorer.calculate_account_score(account_data)
+        if account_scorer:
+            score_result = account_scorer.calculate_account_score(account_data)
+        else:
+            # Fallback scoring when scorer not available
+            score_result = {
+                'total_score': icp_fit_score,
+                'infrastructure_fit': {'score': 0, 'breakdown': {}},
+                'business_fit': {'score': icp_fit_score, 'breakdown': {}},
+                'buying_signals': {'score': 0, 'breakdown': {}},
+                'priority_level': 'Medium'
+            }
 
         return {
             "id": f"acc_{page['id'][:8]}",
@@ -598,7 +632,7 @@ def get_account_contacts(account_id: str):
 
 def main():
     """Run the Flask server"""
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 5001))  # 5001 to avoid macOS AirPlay on 5000
     debug = os.environ.get('FLASK_DEBUG', 'true').lower() == 'true'
 
     logger.info(f"🚀 Starting ABM Dashboard API on port {port}")
