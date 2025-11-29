@@ -23,6 +23,18 @@ logger = logging.getLogger(__name__)
 
 # Add project root to path for imports
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+# Load .env file from project root
+env_file = os.path.join(project_root, '.env')
+if os.path.exists(env_file):
+    logger.info(f"📁 Loading environment from {env_file}")
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                if key not in os.environ:  # Don't override existing env vars
+                    os.environ[key] = value
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
@@ -123,18 +135,54 @@ def transform_notion_account(page: Dict, idx: int = 0) -> Optional[Dict]:
             'growth_stage': growth_stage,
         }
 
-        # Get full scoring breakdown
+        # PRIMARY SCORE: Use ICP Fit Score from Notion (single source of truth)
+        # This score is calculated during enrichment and stored in Notion
+        total_score = icp_fit_score
+
+        # DERIVED DISPLAY: Calculate infrastructure breakdown for visual detail
+        # This is derived from Physical Infrastructure field for dashboard display only
         if account_scorer:
-            score_result = account_scorer.calculate_account_score(account_data)
+            score_obj = account_scorer.calculate_account_score(account_data)
+            infra_score = score_obj.infrastructure_fit.score
+            infra_breakdown = score_obj.infrastructure_fit.to_dict()
+            # Use scorer-calculated business/buying scores for breakdown display
+            business_score = score_obj.business_fit.score
+            buying_score = score_obj.buying_signals.score
         else:
-            # Fallback scoring when scorer not available
-            score_result = {
-                'total_score': icp_fit_score,
-                'infrastructure_fit': {'score': 0, 'breakdown': {}},
-                'business_fit': {'score': icp_fit_score, 'breakdown': {}},
-                'buying_signals': {'score': 0, 'breakdown': {}},
-                'priority_level': 'Medium'
-            }
+            infra_score = 0
+            business_score = 0
+            buying_score = 0
+            infra_breakdown = {'score': 0, 'breakdown': {}}
+
+        # Priority level derived from total score
+        if total_score >= 80:
+            priority_level = "Very High"
+        elif total_score >= 65:
+            priority_level = "High"
+        elif total_score >= 50:
+            priority_level = "Medium"
+        else:
+            priority_level = "Low"
+
+        # Full breakdown for dashboard (informational, not the primary score)
+        score_breakdown = {
+            'total_score': total_score,  # From Notion ICP Fit Score
+            'infrastructure_fit': {
+                'score': infra_score,
+                'weight': '35%',
+                'breakdown': infra_breakdown.get('breakdown', {})
+            },
+            'business_fit': {
+                'score': business_score,
+                'weight': '35%',
+            },
+            'buying_signals': {
+                'score': buying_score,
+                'weight': '30%',
+            },
+            'priority_level': priority_level,
+            'note': 'Total score from Notion ICP Fit Score (source of truth)'
+        }
 
         return {
             "id": f"acc_{page['id'][:8]}",
@@ -144,15 +192,15 @@ def transform_notion_account(page: Dict, idx: int = 0) -> Optional[Dict]:
             "employee_count": employee_count,
             "industry": account_data.get('industry', 'Technology'),
             "business_model": business_model or "Unknown",
-            "account_score": score_result.get('total_score', 0),
-            "infrastructure_score": score_result.get('infrastructure_fit', {}).get('score', 0),
-            "business_fit_score": score_result.get('business_fit', {}).get('score', 0),
-            "buying_signals_score": score_result.get('buying_signals', {}).get('score', 0),
-            "account_priority_level": score_result.get('priority_level', 'Medium'),
-            "infrastructure_breakdown": score_result.get('infrastructure_fit', {}),
-            "account_score_breakdown": score_result,
-            "partnership_classification": "Direct ICP" if score_result.get('total_score', 0) > 70 else "Research Target",
-            "classification_confidence": min(95, score_result.get('total_score', 0) + 10),
+            "account_score": total_score,
+            "infrastructure_score": infra_score,
+            "business_fit_score": business_score,
+            "buying_signals_score": buying_score,
+            "account_priority_level": priority_level,
+            "infrastructure_breakdown": infra_breakdown,
+            "account_score_breakdown": score_breakdown,
+            "partnership_classification": "Direct ICP" if total_score > 70 else "Research Target",
+            "classification_confidence": min(95, total_score + 10),
             "icp_fit_score": icp_fit_score,
             "last_updated": datetime.now().isoformat(),
             "contacts_count": 0  # Will be populated by separate query
