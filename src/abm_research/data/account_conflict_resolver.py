@@ -2,37 +2,16 @@
 Smart Account Conflict Resolution System
 Prevents duplicate accounts and intelligently merges data
 """
-import os
-import json
 import requests
-from pathlib import Path
-from dotenv import load_dotenv
 from difflib import SequenceMatcher
-
-# Load environment variables
-env_path = Path(__file__).parent.parent / '.env'
-load_dotenv(env_path)
+from ..config.manager import config_manager
 
 class AccountConflictResolver:
     """Smart system for handling account duplicates and conflicts"""
 
     def __init__(self):
-        self.api_key = os.getenv('NOTION_ABM_API_KEY')
-        self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-            "Notion-Version": "2022-06-28"
-        }
+        self.headers = config_manager.get_notion_headers()
         self.base_url = "https://api.notion.com/v1"
-        self.load_database_ids()
-
-    def load_database_ids(self):
-        """Load existing database IDs"""
-        try:
-            with open('database_ids.json', 'r') as f:
-                self.database_ids = json.load(f)
-        except:
-            self.database_ids = {}
 
     def query_database(self, database_id):
         """Query Notion database using raw API"""
@@ -73,12 +52,17 @@ class AccountConflictResolver:
 
     def find_potential_duplicates(self, new_account):
         """Find potential duplicate accounts in Notion"""
-        if 'accounts' not in self.database_ids:
+        try:
+            # Get accounts database ID
+            accounts_db_id = config_manager.get_database_id('accounts')
+            # Query existing accounts
+            accounts_data = self.query_database(accounts_db_id)
+        except ValueError:
+            return []
+        except Exception:
             return []
 
         try:
-            # Query existing accounts
-            accounts_data = self.query_database(self.database_ids['accounts'])
             existing_accounts = []
 
             for page in accounts_data.get('results', []):

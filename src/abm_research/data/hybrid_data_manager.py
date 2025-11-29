@@ -48,6 +48,9 @@ class HybridDataManager:
         # Initialize database
         self._init_database()
 
+        # Migrate foreign key schema if needed
+        self._migrate_foreign_keys()
+
         # Sync status tracking
         self.sync_status: Dict[str, SyncStatus] = {}
 
@@ -178,6 +181,104 @@ class HybridDataManager:
             conn.commit()
             print("✅ Database schema initialized")
 
+    def _migrate_foreign_keys(self):
+        """
+        Migrate database schema from string-based foreign keys to proper ID-based foreign keys.
+        This fixes the anti-pattern of using company_name/target_company as foreign keys.
+        """
+        with self.get_db_connection() as conn:
+            cursor = conn.cursor()
+
+            try:
+                # Check if migration is needed by looking for account_id columns
+                cursor.execute("PRAGMA table_info(contacts)")
+                contacts_columns = [col[1] for col in cursor.fetchall()]
+
+                if 'account_id' in contacts_columns:
+                    # Migration already completed
+                    return
+
+                print("🔄 Starting foreign key migration...")
+
+                # Step 1: Add account_id columns to all tables
+                print("   Adding account_id columns...")
+
+                # Add account_id to contacts table
+                cursor.execute("ALTER TABLE contacts ADD COLUMN account_id TEXT")
+
+                # Add account_id to trigger_events table
+                cursor.execute("ALTER TABLE trigger_events ADD COLUMN account_id TEXT")
+
+                # Add account_id to partnerships table
+                cursor.execute("ALTER TABLE partnerships ADD COLUMN account_id TEXT")
+
+                # Step 2: Populate account_id columns by joining with accounts table
+                print("   Populating account_id from company names...")
+
+                # Update contacts.account_id
+                cursor.execute("""
+                    UPDATE contacts
+                    SET account_id = (
+                        SELECT accounts.id
+                        FROM accounts
+                        WHERE accounts.name = contacts.company_name
+                    )
+                    WHERE contacts.company_name IS NOT NULL
+                """)
+
+                # Update trigger_events.account_id
+                cursor.execute("""
+                    UPDATE trigger_events
+                    SET account_id = (
+                        SELECT accounts.id
+                        FROM accounts
+                        WHERE accounts.name = trigger_events.company_name
+                    )
+                    WHERE trigger_events.company_name IS NOT NULL
+                """)
+
+                # Update partnerships.account_id
+                cursor.execute("""
+                    UPDATE partnerships
+                    SET account_id = (
+                        SELECT accounts.id
+                        FROM accounts
+                        WHERE accounts.name = partnerships.target_company
+                    )
+                    WHERE partnerships.target_company IS NOT NULL
+                """)
+
+                # Step 3: Validate data migration
+                print("   Validating migration...")
+
+                cursor.execute("SELECT COUNT(*) FROM contacts WHERE account_id IS NULL AND company_name IS NOT NULL")
+                orphaned_contacts = cursor.fetchone()[0]
+
+                cursor.execute("SELECT COUNT(*) FROM trigger_events WHERE account_id IS NULL AND company_name IS NOT NULL")
+                orphaned_events = cursor.fetchone()[0]
+
+                cursor.execute("SELECT COUNT(*) FROM partnerships WHERE account_id IS NULL AND target_company IS NOT NULL")
+                orphaned_partnerships = cursor.fetchone()[0]
+
+                if orphaned_contacts > 0 or orphaned_events > 0 or orphaned_partnerships > 0:
+                    print(f"   ⚠️ Warning: Found orphaned records - Contacts: {orphaned_contacts}, Events: {orphaned_events}, Partnerships: {orphaned_partnerships}")
+                    print("   These records have company names that don't match any account names")
+
+                # Step 4: Since SQLite doesn't support DROP FOREIGN KEY, we need to recreate tables
+                # For now, we'll keep the old columns for backward compatibility
+                # In a future version, we can drop them once all code is updated
+
+                conn.commit()
+                print("✅ Foreign key migration completed successfully")
+                print("   - Added account_id columns to all child tables")
+                print("   - Populated account_id values from existing company names")
+                print("   - Old company_name columns preserved for backward compatibility")
+
+            except Exception as e:
+                print(f"❌ Foreign key migration failed: {e}")
+                conn.rollback()
+                raise
+
     @contextmanager
     def get_db_connection(self):
         """Get database connection with proper error handling"""
@@ -229,14 +330,27 @@ class HybridDataManager:
                          company_name: str = None,
                          min_lead_score: int = None,
                          limit: int = None) -> List[Dict]:
-        """Fast contact query from local database"""
+        """Fast contact query from local database (optimized with account_id lookup)"""
         with self.get_db_connection() as conn:
+            cursor = conn.cursor()
             query = "SELECT * FROM contacts WHERE 1=1"
             params = []
 
             if company_name:
-                query += " AND company_name = ?"
-                params.append(company_name)
+                # Use efficient account_id lookup when possible (post-migration)
+                # First try to get account_id from company_name for better performance
+                cursor.execute("SELECT id FROM accounts WHERE name = ?", (company_name,))
+                account_result = cursor.fetchone()
+
+                if account_result:
+                    # Use account_id for fast lookup (primary approach post-migration)
+                    account_id = account_result[0]
+                    query += " AND account_id = ?"
+                    params.append(account_id)
+                else:
+                    # Fallback to company_name for backward compatibility
+                    query += " AND company_name = ?"
+                    params.append(company_name)
 
             if min_lead_score is not None:
                 query += " AND final_lead_score >= ?"
@@ -256,14 +370,27 @@ class HybridDataManager:
                                company_name: str = None,
                                urgency_level: str = None,
                                days_back: int = 30) -> List[Dict]:
-        """Fast trigger events query from local database"""
+        """Fast trigger events query from local database (optimized with account_id lookup)"""
         with self.get_db_connection() as conn:
+            cursor = conn.cursor()
             query = "SELECT * FROM trigger_events WHERE 1=1"
             params = []
 
             if company_name:
-                query += " AND company_name = ?"
-                params.append(company_name)
+                # Use efficient account_id lookup when possible (post-migration)
+                # First try to get account_id from company_name for better performance
+                cursor.execute("SELECT id FROM accounts WHERE name = ?", (company_name,))
+                account_result = cursor.fetchone()
+
+                if account_result:
+                    # Use account_id for fast lookup (primary approach post-migration)
+                    account_id = account_result[0]
+                    query += " AND account_id = ?"
+                    params.append(account_id)
+                else:
+                    # Fallback to company_name for backward compatibility
+                    query += " AND company_name = ?"
+                    params.append(company_name)
 
             if urgency_level:
                 query += " AND urgency_level = ?"

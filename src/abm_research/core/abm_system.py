@@ -61,11 +61,11 @@ except ImportError:
     logging.warning("Apollo contact discovery not available")
 
 try:
-    from ..phases.lead_scoring_engine import scoring_engine
-    SCORING_ENGINE_AVAILABLE = True
+    from .unified_lead_scorer import unified_lead_scorer
+    UNIFIED_SCORER_AVAILABLE = True
 except ImportError:
-    SCORING_ENGINE_AVAILABLE = False
-    logging.warning("Lead scoring engine not available")
+    UNIFIED_SCORER_AVAILABLE = False
+    logging.warning("Unified lead scorer not available")
 
 # Import consolidated Notion client from integrations
 try:
@@ -108,7 +108,7 @@ class ComprehensiveABMSystem:
         self.engagement_intelligence = enhanced_engagement_intelligence if ENGAGEMENT_INTELLIGENCE_AVAILABLE else None
         self.partnership_intelligence = strategic_partnership_intelligence if PARTNERSHIP_INTELLIGENCE_AVAILABLE else None
         self.apollo_discovery = apollo_discovery if APOLLO_DISCOVERY_AVAILABLE else None
-        self.scoring_engine = scoring_engine if SCORING_ENGINE_AVAILABLE else None
+        self.scoring_engine = unified_lead_scorer if UNIFIED_SCORER_AVAILABLE else None
 
         # Enhanced intelligence components
         self.account_intelligence = account_intelligence_engine if ENHANCED_INTELLIGENCE_AVAILABLE else None
@@ -135,7 +135,7 @@ class ComprehensiveABMSystem:
             'LinkedIn Enrichment': LINKEDIN_ENRICHMENT_AVAILABLE,
             'Engagement Intelligence': ENGAGEMENT_INTELLIGENCE_AVAILABLE,
             'Partnership Intelligence': PARTNERSHIP_INTELLIGENCE_AVAILABLE,
-            'Lead Scoring': SCORING_ENGINE_AVAILABLE,
+            'Lead Scoring': UNIFIED_SCORER_AVAILABLE,
             'Notion Persistence': bool(self.notion_client)
         }
 

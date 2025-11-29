@@ -10,18 +10,13 @@ import json
 import time
 import hashlib
 import schedule
+import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Set, Optional, Tuple
 from collections import defaultdict
 from dataclasses import dataclass
 
-from abm_config import config
-from config.settings import (
-    NOTION_ACCOUNTS_DB_ID,
-    NOTION_CONTACTS_DB_ID,
-    NOTION_TRIGGER_EVENTS_DB_ID,
-    NOTION_PARTNERSHIPS_DB_ID
-)
+from ..config.manager import config_manager
 
 @dataclass
 class DataQualityRule:
@@ -36,14 +31,10 @@ class ABMDataQualitySystem:
     """Automated data quality system with prevention, detection, and remediation"""
 
     def __init__(self):
-        self.headers = config.get_notion_headers()
-        # Use environment variables for database IDs - no hardcoded values!
-        self.database_ids = {
-            'accounts': NOTION_ACCOUNTS_DB_ID,
-            'contacts': NOTION_CONTACTS_DB_ID,
-            'trigger_events': NOTION_TRIGGER_EVENTS_DB_ID,
-            'partnerships': NOTION_PARTNERSHIPS_DB_ID
-        }
+        self.logger = logging.getLogger(__name__)
+        self.headers = config_manager.get_notion_headers()
+        # Use unified configuration manager for database IDs - no hardcoded values!
+        self.database_ids = config_manager.get_all_database_ids()
 
         # Data quality rules
         self.quality_rules = [
@@ -540,7 +531,14 @@ class ABMDataQualitySystem:
             payload = {"properties": {"Account": {"relation": [{"id": account_id}]}}}
             response = requests.patch(url, headers=self.headers, json=payload, timeout=30)
             return response.status_code == 200
-        except:
+        except requests.RequestException as e:
+            self.logger.error(f"Network error linking contact {contact_id[:8]}... to account {account_id[:8]}...: {e}")
+            return False
+        except (ValueError, KeyError) as e:
+            self.logger.error(f"Invalid ID format when linking contact {contact_id[:8]}... to account {account_id[:8]}...: {e}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Unexpected error linking contact {contact_id[:8]}... to account {account_id[:8]}...: {e}")
             return False
 
     def _update_trigger_event_confidence(self, event_id: str, confidence_score: int) -> bool:
@@ -549,7 +547,14 @@ class ABMDataQualitySystem:
             payload = {"properties": {"Confidence Score": {"number": confidence_score}}}
             response = requests.patch(url, headers=self.headers, json=payload, timeout=30)
             return response.status_code == 200
-        except:
+        except requests.RequestException as e:
+            self.logger.error(f"Network error updating confidence score for event {event_id[:8]}... to {confidence_score}: {e}")
+            return False
+        except (ValueError, KeyError) as e:
+            self.logger.error(f"Invalid data when updating event {event_id[:8]}... confidence to {confidence_score}: {e}")
+            return False
+        except Exception as e:
+            self.logger.error(f"Unexpected error updating event {event_id[:8]}... confidence to {confidence_score}: {e}")
             return False
 
     # Property extraction methods (reuse from cleanup script)

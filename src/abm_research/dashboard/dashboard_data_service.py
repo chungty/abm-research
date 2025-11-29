@@ -22,7 +22,7 @@ from ..config.settings import (
     NOTION_TRIGGER_EVENTS_DB_ID,
     NOTION_PARTNERSHIPS_DB_ID
 )
-from ..phases.lead_scoring_engine import scoring_engine
+from ..core.unified_lead_scorer import unified_lead_scorer
 from ..intelligence.enhanced_buying_signals_analyzer import enhanced_buying_signals_analyzer
 from ..intelligence.contact_value_analyzer import contact_value_analyzer
 
@@ -184,10 +184,10 @@ class NotionDataService:
                     }
 
                     # Calculate enhanced lead score with organizational hierarchy
-                    enhanced_score, scoring_breakdown = scoring_engine.calculate_enhanced_lead_score(contact)
-                    contact['lead_score'] = enhanced_score
-                    contact['final_lead_score'] = enhanced_score  # Frontend compatibility
-                    contact['scoring_breakdown'] = scoring_breakdown
+                    lead_score_obj = unified_lead_scorer.calculate_comprehensive_lead_score(contact)
+                    contact['lead_score'] = lead_score_obj.final_score
+                    contact['final_lead_score'] = lead_score_obj.final_score  # Frontend compatibility
+                    contact['scoring_breakdown'] = lead_score_obj.get_score_breakdown()
 
                     contacts.append(contact)
 

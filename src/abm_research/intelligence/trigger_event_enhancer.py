@@ -2,41 +2,22 @@
 Trigger Event Enhancement System
 Adds timing context, relevance decay, and actionable insights to trigger events
 """
-import os
-import json
 import requests
 from datetime import datetime, timedelta
-from pathlib import Path
-from dotenv import load_dotenv
-
-# Load environment variables
-env_path = Path(__file__).parent.parent / '.env'
-load_dotenv(env_path)
+from ..config.manager import config_manager
 
 class TriggerEventEnhancer:
     """Enhance trigger events with timing and context"""
 
     def __init__(self):
-        self.api_key = os.getenv('NOTION_ABM_API_KEY')
-        self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-            "Notion-Version": "2022-06-28"
-        }
+        self.headers = config_manager.get_notion_headers()
         self.base_url = "https://api.notion.com/v1"
-        self.load_database_ids()
-
-    def load_database_ids(self):
-        """Load existing database IDs"""
-        try:
-            with open('database_ids.json', 'r') as f:
-                self.database_ids = json.load(f)
-        except:
-            self.database_ids = {}
 
     def enhance_trigger_events(self):
         """Enhance existing trigger events with timing context"""
-        if 'trigger_events' not in self.database_ids:
+        try:
+            trigger_events_db_id = config_manager.get_database_id('trigger_events')
+        except ValueError:
             print("❌ Trigger events database not found")
             return
 
