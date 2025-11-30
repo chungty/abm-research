@@ -7,13 +7,6 @@ interface ScoreBadgeProps {
   showScore?: boolean;
 }
 
-const priorityColors: Record<string, string> = {
-  'Very High': 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  'High': 'bg-blue-100 text-blue-800 border-blue-200',
-  'Medium': 'bg-amber-100 text-amber-800 border-amber-200',
-  'Low': 'bg-gray-100 text-gray-600 border-gray-200',
-};
-
 const sizeClasses = {
   sm: 'px-2 py-0.5 text-xs',
   md: 'px-2.5 py-1 text-sm',
@@ -27,10 +20,10 @@ export function ScoreBadge({
   showScore = true
 }: ScoreBadgeProps) {
   const level = priorityLevel || getPriorityFromScore(score);
-  const colorClass = priorityColors[level] || priorityColors['Low'];
+  const badgeClass = getBadgeClass(level);
 
   return (
-    <span className={`inline-flex items-center rounded-full font-medium border ${colorClass} ${sizeClasses[size]}`}>
+    <span className={`badge ${badgeClass} ${sizeClasses[size]}`}>
       {showScore && <span className="font-bold mr-1">{Math.round(score)}</span>}
       <span>{level}</span>
     </span>
@@ -44,6 +37,19 @@ function getPriorityFromScore(score: number): PriorityLevel {
   return 'Low';
 }
 
+function getBadgeClass(level: string): string {
+  switch (level) {
+    case 'Very High':
+      return 'badge-very-high';
+    case 'High':
+      return 'badge-high';
+    case 'Medium':
+      return 'badge-medium';
+    default:
+      return 'badge-low';
+  }
+}
+
 // Role tier badge for MEDDIC contacts
 interface RoleTierBadgeProps {
   tier: 'entry_point' | 'middle_decider' | 'economic_buyer';
@@ -53,20 +59,23 @@ interface RoleTierBadgeProps {
 const tierConfig = {
   entry_point: {
     label: 'Entry Point',
-    emoji: '🔧',
-    color: 'bg-purple-100 text-purple-800 border-purple-200',
+    color: 'var(--color-infra-vendor)',
+    bgColor: 'rgba(217, 70, 239, 0.12)',
+    borderColor: 'rgba(217, 70, 239, 0.25)',
     description: 'Technical Believer - feels the pain',
   },
   middle_decider: {
     label: 'Middle Decider',
-    emoji: '📊',
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    color: 'var(--color-priority-medium)',
+    bgColor: 'var(--color-priority-medium-bg)',
+    borderColor: 'var(--color-priority-medium-border)',
     description: 'Tooling decision maker',
   },
   economic_buyer: {
     label: 'Economic Buyer',
-    emoji: '💰',
-    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    color: 'var(--color-infra-cooling)',
+    bgColor: 'rgba(6, 182, 212, 0.12)',
+    borderColor: 'rgba(6, 182, 212, 0.25)',
     description: 'Budget authority - engage via champion',
   },
 };
@@ -76,11 +85,22 @@ export function RoleTierBadge({ tier, classification }: RoleTierBadgeProps) {
 
   return (
     <div className="flex flex-col gap-1">
-      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold border ${config.color}`}>
-        <span className="mr-1">{config.emoji}</span>
+      <span
+        className="inline-flex items-center px-2 py-1 rounded text-xs font-semibold"
+        style={{
+          color: config.color,
+          backgroundColor: config.bgColor,
+          border: `1px solid ${config.borderColor}`
+        }}
+      >
         {config.label}
       </span>
-      <span className="text-xs text-gray-500">{classification}</span>
+      <span
+        className="text-xs"
+        style={{ color: 'var(--color-text-muted)' }}
+      >
+        {classification}
+      </span>
     </div>
   );
 }
@@ -93,36 +113,27 @@ interface InfraChipProps {
   maxPoints: number;
 }
 
-const infraColors: Record<string, string> = {
-  gpu_infrastructure: 'bg-red-100 text-red-700 border-red-200',
-  target_vendors: 'bg-pink-100 text-pink-700 border-pink-200',
-  power_systems: 'bg-amber-100 text-amber-700 border-amber-200',
-  cooling_systems: 'bg-blue-100 text-blue-700 border-blue-200',
-  dcim_software: 'bg-green-100 text-green-700 border-green-200',
-};
-
-const infraLabels: Record<string, string> = {
-  gpu_infrastructure: '🎮 GPU/AI',
-  target_vendors: '🎯 Target Vendor',
-  power_systems: '⚡ Power',
-  cooling_systems: '❄️ Cooling',
-  dcim_software: '📊 DCIM',
+const infraConfig: Record<string, { label: string; className: string }> = {
+  gpu_infrastructure: { label: 'GPU/AI', className: 'gpu' },
+  target_vendors: { label: 'Vendor', className: 'vendor' },
+  power_systems: { label: 'Power', className: 'power' },
+  cooling_systems: { label: 'Cooling', className: 'cooling' },
+  dcim_software: { label: 'DCIM', className: 'dcim' },
 };
 
 export function InfraChip({ category, detected, points }: InfraChipProps) {
-  const colorClass = infraColors[category] || 'bg-gray-100 text-gray-700';
-  const label = infraLabels[category] || category;
+  const config = infraConfig[category] || { label: category, className: '' };
   const isDetected = detected.length > 0;
 
   if (!isDetected) return null;
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium border ${colorClass} mr-1 mb-1`}
+      className={`infra-chip ${config.className}`}
       title={`Detected: ${detected.join(', ')}`}
     >
-      {label}
-      <span className="ml-1 opacity-70">+{points}</span>
+      {config.label}
+      <span style={{ opacity: 0.7 }}>+{points}</span>
     </span>
   );
 }

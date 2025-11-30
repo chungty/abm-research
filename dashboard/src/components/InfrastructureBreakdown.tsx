@@ -33,7 +33,10 @@ export function InfrastructureBreakdown({ breakdown, compact = false }: Props) {
   if (compact) {
     return (
       <div className="flex flex-wrap items-center gap-1">
-        <span className="text-sm font-medium text-gray-700 mr-2">
+        <span
+          className="text-sm font-medium mr-2"
+          style={{ color: 'var(--color-text-secondary)' }}
+        >
           Infra: {Math.round(score)}
         </span>
         {detectedCategories.map(cat => (
@@ -46,32 +49,58 @@ export function InfrastructureBreakdown({ breakdown, compact = false }: Props) {
           />
         ))}
         {detectedCategories.length === 0 && (
-          <span className="text-xs text-gray-400">No infrastructure detected</span>
+          <span
+            className="text-xs"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            No infrastructure detected
+          </span>
         )}
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="card-surface p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Infrastructure Breakdown</h3>
+        <h3
+          className="text-base font-semibold"
+          style={{ color: 'var(--color-text-primary)' }}
+        >
+          Infrastructure Breakdown
+        </h3>
         <div className="flex items-center">
-          <span className="text-2xl font-bold text-gray-900">{Math.round(score)}</span>
-          <span className="text-sm text-gray-500 ml-1">/100</span>
+          <span
+            className="score-value text-2xl"
+            style={{ color: 'var(--color-priority-very-high)' }}
+          >
+            {Math.round(score)}
+          </span>
+          <span
+            className="text-sm ml-1"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            /100
+          </span>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+      <div
+        className="w-full rounded-full h-2 mb-4"
+        style={{ backgroundColor: 'var(--color-bg-elevated)' }}
+      >
         <div
-          className="bg-gradient-to-r from-emerald-500 to-emerald-600 h-2 rounded-full transition-all"
-          style={{ width: `${Math.min(score, 100)}%` }}
+          className="h-2 rounded-full transition-all"
+          style={{
+            width: `${Math.min(score, 100)}%`,
+            background: 'linear-gradient(90deg, var(--color-priority-very-high), var(--color-accent-primary))'
+          }}
         />
       </div>
 
       {/* Category breakdown */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {categoryOrder.map(cat => {
           const data = categories[cat];
           if (!data) return null;
@@ -80,8 +109,12 @@ export function InfrastructureBreakdown({ breakdown, compact = false }: Props) {
           const percentage = (data.points / data.max_points) * 100;
 
           return (
-            <div key={cat} className={`${isDetected ? '' : 'opacity-50'}`}>
-              <div className="flex items-center justify-between mb-1">
+            <div
+              key={cat}
+              className="transition-opacity"
+              style={{ opacity: isDetected ? 1 : 0.4 }}
+            >
+              <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-2">
                   <InfraChip
                     category={cat}
@@ -90,29 +123,42 @@ export function InfrastructureBreakdown({ breakdown, compact = false }: Props) {
                     maxPoints={data.max_points}
                   />
                   {!isDetected && (
-                    <span className="text-xs text-gray-400">
+                    <span
+                      className="text-xs"
+                      style={{ color: 'var(--color-text-muted)' }}
+                    >
                       {categoryDescriptions[cat]?.split(' - ')[0] || cat}
                     </span>
                   )}
                 </div>
-                <span className="text-sm font-medium">
+                <span
+                  className="text-sm font-data font-medium"
+                  style={{ color: 'var(--color-text-secondary)' }}
+                >
                   {data.points}/{data.max_points}
                 </span>
               </div>
 
               {/* Mini progress bar */}
-              <div className="w-full bg-gray-100 rounded-full h-1.5">
+              <div
+                className="w-full rounded-full h-1"
+                style={{ backgroundColor: 'var(--color-bg-elevated)' }}
+              >
                 <div
-                  className={`h-1.5 rounded-full transition-all ${
-                    isDetected ? 'bg-emerald-500' : 'bg-gray-300'
-                  }`}
-                  style={{ width: `${percentage}%` }}
+                  className="h-1 rounded-full transition-all"
+                  style={{
+                    width: `${percentage}%`,
+                    backgroundColor: isDetected ? 'var(--color-priority-very-high)' : 'var(--color-border-strong)'
+                  }}
                 />
               </div>
 
               {/* Detected keywords */}
               {isDetected && data.detected.length > 0 && (
-                <div className="mt-1 text-xs text-gray-500">
+                <div
+                  className="mt-1.5 text-xs"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
                   Detected: {data.detected.slice(0, 5).join(', ')}
                   {data.detected.length > 5 && ` +${data.detected.length - 5} more`}
                 </div>
@@ -124,12 +170,44 @@ export function InfrastructureBreakdown({ breakdown, compact = false }: Props) {
 
       {/* GPU Infrastructure highlight */}
       {categories.gpu_infrastructure?.detected?.length > 0 && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">🎯</span>
+        <div
+          className="mt-4 p-3 rounded-lg"
+          style={{
+            backgroundColor: 'var(--color-target-hot-bg)',
+            border: '1px solid var(--color-target-hot-border)'
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)' }}
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                style={{ color: 'var(--color-target-hot)' }}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+            </div>
             <div>
-              <p className="text-sm font-semibold text-red-800">TARGET ICP: GPU Infrastructure Detected</p>
-              <p className="text-xs text-red-600">
+              <p
+                className="text-sm font-semibold"
+                style={{ color: 'var(--color-target-hot)' }}
+              >
+                TARGET ICP: GPU Infrastructure Detected
+              </p>
+              <p
+                className="text-xs"
+                style={{ color: 'var(--color-text-tertiary)' }}
+              >
                 Neocloud datacenter - highest priority account type
               </p>
             </div>

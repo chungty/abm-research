@@ -1,161 +1,401 @@
-import type { Contact, RoleTier, ChampionPotentialLevel } from '../types';
+import { useState } from 'react';
+import type { Contact, Account, RoleTier, ChampionPotentialLevel } from '../types';
 import { ScoreBadge, RoleTierBadge } from './ScoreBadge';
+import { OutreachPanel } from './OutreachPanel';
 
 interface Props {
   contact: Contact;
+  account?: Account;
   expanded?: boolean;
   onToggleExpand?: () => void;
 }
 
-const tierConfig: Record<RoleTier, { emoji: string; bgColor: string; borderColor: string }> = {
+const tierConfig: Record<RoleTier, {
+  color: string;
+  bgColor: string;
+  borderColor: string;
+  glowColor: string;
+}> = {
   entry_point: {
-    emoji: '🔧',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-200',
+    color: 'var(--color-infra-vendor)',
+    bgColor: 'rgba(217, 70, 239, 0.08)',
+    borderColor: 'rgba(217, 70, 239, 0.2)',
+    glowColor: 'rgba(217, 70, 239, 0.1)',
   },
   middle_decider: {
-    emoji: '📊',
-    bgColor: 'bg-orange-50',
-    borderColor: 'border-orange-200',
+    color: 'var(--color-priority-medium)',
+    bgColor: 'var(--color-priority-medium-bg)',
+    borderColor: 'var(--color-priority-medium-border)',
+    glowColor: 'rgba(245, 158, 11, 0.1)',
   },
   economic_buyer: {
-    emoji: '💰',
-    bgColor: 'bg-cyan-50',
-    borderColor: 'border-cyan-200',
+    color: 'var(--color-infra-cooling)',
+    bgColor: 'rgba(6, 182, 212, 0.08)',
+    borderColor: 'rgba(6, 182, 212, 0.2)',
+    glowColor: 'rgba(6, 182, 212, 0.1)',
   },
 };
 
 const championColors: Record<ChampionPotentialLevel, string> = {
-  'Very High': 'text-emerald-600',
-  High: 'text-blue-600',
-  Medium: 'text-amber-600',
-  Low: 'text-gray-500',
+  'Very High': 'var(--color-priority-very-high)',
+  High: 'var(--color-priority-high)',
+  Medium: 'var(--color-priority-medium)',
+  Low: 'var(--color-text-tertiary)',
 };
 
-export function ContactCard({ contact, expanded = false, onToggleExpand }: Props) {
+// Threshold for showing "Reveal Email" button - only for high-value contacts
+const LEAD_SCORE_THRESHOLD = 60;
+
+export function ContactCard({ contact, account, expanded = false, onToggleExpand }: Props) {
+  const [showOutreach, setShowOutreach] = useState(false);
+  const [isRevealing, setIsRevealing] = useState(false);
+  const [revealedEmail, setRevealedEmail] = useState<string | null>(null);
+  const [revealError, setRevealError] = useState<string | null>(null);
+
   const config = tierConfig[contact.role_tier] || tierConfig.entry_point;
   const isHighChampion = ['Very High', 'High'].includes(contact.champion_potential_level);
 
+  // Determine current email (revealed or from contact)
+  const currentEmail = revealedEmail || contact.email;
+  const hasValidEmail = currentEmail && currentEmail.trim() !== '' && !currentEmail.includes('@unknown');
+  const canRevealEmail = !hasValidEmail && contact.lead_score >= LEAD_SCORE_THRESHOLD;
+
+  const handleRevealEmail = async () => {
+    if (isRevealing || !contact.id) return;
+
+    setIsRevealing(true);
+    setRevealError(null);
+
+    try {
+      const response = await fetch(`http://localhost:5001/api/contacts/${contact.id}/reveal-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to reveal email');
+      }
+
+      if (data.email) {
+        setRevealedEmail(data.email);
+      } else {
+        setRevealError('No email found');
+      }
+    } catch (err) {
+      setRevealError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsRevealing(false);
+    }
+  };
+
   return (
-    <div
-      className={`rounded-lg border p-4 transition-all ${config.bgColor} ${config.borderColor} ${
-        isHighChampion ? 'ring-2 ring-purple-300' : ''
-      }`}
-    >
-      {/* Header */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">{config.emoji}</span>
-            <h4 className="font-semibold text-gray-900 truncate">{contact.name}</h4>
-            {isHighChampion && (
-              <span className="text-xs px-1.5 py-0.5 bg-purple-200 text-purple-800 rounded font-medium">
-                🏆 Champion
-              </span>
-            )}
+    <>
+      <div
+        className="rounded-lg p-4 transition-all"
+        style={{
+          backgroundColor: config.bgColor,
+          border: `1px solid ${config.borderColor}`,
+          boxShadow: isHighChampion ? `0 0 12px ${config.glowColor}` : 'none'
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h4
+                className="font-semibold truncate"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                {contact.name}
+              </h4>
+              {isHighChampion && (
+                <span
+                  className="text-xs px-1.5 py-0.5 rounded font-medium"
+                  style={{
+                    color: 'var(--color-infra-vendor)',
+                    backgroundColor: 'rgba(217, 70, 239, 0.15)',
+                    border: '1px solid rgba(217, 70, 239, 0.25)'
+                  }}
+                >
+                  Champion
+                </span>
+              )}
+            </div>
+            <p
+              className="text-sm truncate"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
+              {contact.title}
+            </p>
           </div>
-          <p className="text-sm text-gray-600 truncate">{contact.title}</p>
+          <div className="flex flex-col items-end gap-1">
+            <ScoreBadge score={contact.lead_score} size="sm" />
+            <span
+              className="text-xs font-medium"
+              style={{ color: championColors[contact.champion_potential_level] }}
+            >
+              {contact.champion_potential_level} Champion
+            </span>
+          </div>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <ScoreBadge score={contact.lead_score} size="sm" />
-          <span className={`text-xs font-medium ${championColors[contact.champion_potential_level]}`}>
-            {contact.champion_potential_level} Champion
+
+        {/* Role Tier */}
+        <div className="mb-3">
+          <RoleTierBadge tier={contact.role_tier} classification={contact.role_classification} />
+        </div>
+
+        {/* Score Breakdown */}
+        <div
+          className="grid grid-cols-3 gap-2 mb-3 text-center p-2 rounded-md"
+          style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)' }}
+        >
+          <MiniScore
+            label="Champion"
+            score={contact.champion_potential_score}
+            weight="45%"
+          />
+          <MiniScore
+            label="Role Fit"
+            score={contact.meddic_score_breakdown?.role_fit?.score || 0}
+            weight="30%"
+          />
+          <MiniScore
+            label="Engagement"
+            score={contact.meddic_score_breakdown?.engagement_potential?.score || 0}
+            weight="25%"
+          />
+        </div>
+
+        {/* Why Prioritize */}
+        {contact.why_prioritize && contact.why_prioritize.length > 0 && (
+          <div
+            className="mb-3 p-2 rounded"
+            style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)' }}
+          >
+            <p
+              className="text-xs font-medium mb-1"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
+              Why Prioritize:
+            </p>
+            <ul className="text-xs space-y-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
+              {contact.why_prioritize.slice(0, expanded ? undefined : 2).map((reason, i) => (
+                <li key={i} className="flex items-start gap-1">
+                  <span style={{ color: 'var(--color-priority-very-high)' }}>✓</span>
+                  {reason}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Recommended Approach */}
+        <div
+          className="p-2 rounded text-xs"
+          style={{
+            backgroundColor: 'var(--color-priority-high-bg)',
+            border: '1px solid var(--color-priority-high-border)'
+          }}
+        >
+          <span
+            className="font-medium"
+            style={{ color: 'var(--color-priority-high)' }}
+          >
+            Approach:{' '}
+          </span>
+          <span style={{ color: 'var(--color-text-secondary)' }}>
+            {contact.recommended_approach}
           </span>
         </div>
-      </div>
 
-      {/* Role Tier */}
-      <div className="mb-3">
-        <RoleTierBadge tier={contact.role_tier} classification={contact.role_classification} />
-      </div>
-
-      {/* Score Breakdown */}
-      <div className="grid grid-cols-3 gap-2 mb-3 text-center">
-        <MiniScore
-          label="Champion"
-          score={contact.champion_potential_score}
-          weight="45%"
-        />
-        <MiniScore
-          label="Role Fit"
-          score={contact.meddic_score_breakdown?.role_fit?.score || 0}
-          weight="30%"
-        />
-        <MiniScore
-          label="Engagement"
-          score={contact.meddic_score_breakdown?.engagement_potential?.score || 0}
-          weight="25%"
-        />
-      </div>
-
-      {/* Why Prioritize */}
-      {contact.why_prioritize && contact.why_prioritize.length > 0 && (
-        <div className="mb-3 p-2 bg-white/50 rounded">
-          <p className="text-xs font-medium text-gray-700 mb-1">Why Prioritize:</p>
-          <ul className="text-xs text-gray-600 space-y-0.5">
-            {contact.why_prioritize.slice(0, expanded ? undefined : 2).map((reason, i) => (
-              <li key={i} className="flex items-start gap-1">
-                <span className="text-emerald-500">✓</span>
-                {reason}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Recommended Approach */}
-      <div className="p-2 bg-blue-50 border border-blue-100 rounded text-xs">
-        <span className="font-medium text-blue-800">Approach: </span>
-        <span className="text-blue-700">{contact.recommended_approach}</span>
-      </div>
-
-      {/* Contact Info */}
-      <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
-        <a
-          href={`mailto:${contact.email}`}
-          className="hover:text-blue-600 truncate max-w-[60%]"
-          onClick={e => e.stopPropagation()}
+        {/* Contact Info & Actions */}
+        <div
+          className="mt-3 pt-3 flex items-center justify-between"
+          style={{ borderTop: '1px solid var(--color-border-subtle)' }}
         >
-          {contact.email}
-        </a>
-        {contact.linkedin_url && (
-          <a
-            href={contact.linkedin_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800"
-            onClick={e => e.stopPropagation()}
+          <div className="flex items-center gap-3 text-xs">
+            {/* Email - show link if available, or Reveal button if eligible */}
+            {hasValidEmail ? (
+              <a
+                href={`mailto:${currentEmail}`}
+                className="truncate max-w-[120px] transition-colors"
+                style={{ color: 'var(--color-text-tertiary)' }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accent-primary)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-tertiary)'}
+                onClick={e => e.stopPropagation()}
+              >
+                {currentEmail}
+                {revealedEmail && (
+                  <span
+                    className="ml-1 text-xs"
+                    style={{ color: 'var(--color-priority-high)' }}
+                  >
+                    ✓
+                  </span>
+                )}
+              </a>
+            ) : canRevealEmail ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRevealEmail();
+                }}
+                disabled={isRevealing}
+                className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-all"
+                style={{
+                  backgroundColor: isRevealing ? 'var(--color-bg-card)' : 'var(--color-priority-high-bg)',
+                  color: isRevealing ? 'var(--color-text-muted)' : 'var(--color-priority-high)',
+                  border: `1px solid ${isRevealing ? 'var(--color-border-default)' : 'var(--color-priority-high-border)'}`,
+                  cursor: isRevealing ? 'wait' : 'pointer'
+                }}
+              >
+                {isRevealing ? (
+                  <>
+                    <LoadingSpinner />
+                    Revealing...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Reveal Email
+                  </>
+                )}
+              </button>
+            ) : revealError ? (
+              <span
+                className="text-xs"
+                style={{ color: 'var(--color-priority-low)' }}
+              >
+                {revealError}
+              </span>
+            ) : (
+              <span
+                className="text-xs"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                No email
+              </span>
+            )}
+            {contact.linkedin_url && (
+              <a
+                href={contact.linkedin_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors"
+                style={{ color: 'var(--color-priority-high)' }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accent-primary)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-priority-high)'}
+                onClick={e => e.stopPropagation()}
+              >
+                LinkedIn
+              </a>
+            )}
+          </div>
+
+          {/* Outreach Button */}
+          {account && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowOutreach(true);
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all"
+              style={{
+                backgroundColor: 'var(--color-accent-primary-muted)',
+                color: 'var(--color-accent-primary)',
+                border: '1px solid var(--color-accent-primary)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--color-accent-primary)';
+                e.currentTarget.style.color = 'var(--color-bg-base)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--color-accent-primary-muted)';
+                e.currentTarget.style.color = 'var(--color-accent-primary)';
+              }}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              Generate Outreach
+            </button>
+          )}
+        </div>
+
+        {/* Expand/Collapse */}
+        {onToggleExpand && (
+          <button
+            onClick={onToggleExpand}
+            className="w-full mt-2 text-xs transition-colors"
+            style={{ color: 'var(--color-text-muted)' }}
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-muted)'}
           >
-            LinkedIn →
-          </a>
+            {expanded ? '▲ Less' : '▼ More'}
+          </button>
         )}
       </div>
 
-      {/* Expand/Collapse */}
-      {onToggleExpand && (
-        <button
-          onClick={onToggleExpand}
-          className="w-full mt-2 text-xs text-gray-500 hover:text-gray-700"
-        >
-          {expanded ? '▲ Less' : '▼ More'}
-        </button>
+      {/* Outreach Panel Modal */}
+      {showOutreach && account && (
+        <OutreachPanel
+          contact={contact}
+          account={account}
+          onClose={() => setShowOutreach(false)}
+        />
       )}
-    </div>
+    </>
+  );
+}
+
+function LoadingSpinner() {
+  return (
+    <svg
+      className="animate-spin w-3 h-3"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      />
+    </svg>
   );
 }
 
 function MiniScore({ label, score, weight }: { label: string; score: number; weight: string }) {
   const getColor = (s: number) => {
-    if (s >= 80) return 'text-emerald-600';
-    if (s >= 60) return 'text-blue-600';
-    if (s >= 40) return 'text-amber-600';
-    return 'text-gray-500';
+    if (s >= 80) return 'var(--color-priority-very-high)';
+    if (s >= 60) return 'var(--color-priority-high)';
+    if (s >= 40) return 'var(--color-priority-medium)';
+    return 'var(--color-text-tertiary)';
   };
 
   return (
-    <div className="bg-white/50 rounded p-1">
-      <div className={`text-sm font-bold ${getColor(score)}`}>{Math.round(score)}</div>
-      <div className="text-xs text-gray-500">
+    <div
+      className="rounded p-1"
+      style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)' }}
+    >
+      <div
+        className="score-value text-sm"
+        style={{ color: getColor(score) }}
+      >
+        {Math.round(score)}
+      </div>
+      <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
         {label}
         <span className="opacity-50 ml-0.5">({weight})</span>
       </div>
@@ -166,10 +406,11 @@ function MiniScore({ label, score, weight }: { label: string; score: number; wei
 // Contact List component
 interface ContactListProps {
   contacts: Contact[];
+  account?: Account;
   title?: string;
 }
 
-export function ContactList({ contacts, title = 'Contacts' }: ContactListProps) {
+export function ContactList({ contacts, account, title = 'Contacts' }: ContactListProps) {
   // Group contacts by role tier
   const groupedContacts = {
     entry_point: contacts.filter(c => c.role_tier === 'entry_point'),
@@ -182,75 +423,73 @@ export function ContactList({ contacts, title = 'Contacts' }: ContactListProps) 
     group.sort((a, b) => b.lead_score - a.lead_score);
   });
 
+  const tierSections = [
+    {
+      key: 'entry_point' as const,
+      label: 'Entry Points',
+      sublabel: 'Technical Believers - Start Here',
+      color: 'var(--color-infra-vendor)',
+    },
+    {
+      key: 'middle_decider' as const,
+      label: 'Middle Deciders',
+      sublabel: 'Tooling Decision Makers',
+      color: 'var(--color-priority-medium)',
+    },
+    {
+      key: 'economic_buyer' as const,
+      label: 'Economic Buyers',
+      sublabel: 'Budget Authority - Engage via Champion',
+      color: 'var(--color-infra-cooling)',
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-gray-900">
+      <h3 style={{ color: 'var(--color-text-primary)' }} className="text-lg font-semibold">
         {title}
-        <span className="ml-2 text-sm font-normal text-gray-500">({contacts.length})</span>
+        <span
+          className="ml-2 text-sm font-normal font-data"
+          style={{ color: 'var(--color-text-tertiary)' }}
+        >
+          ({contacts.length})
+        </span>
       </h3>
 
-      {/* Entry Points - Primary targets */}
-      {groupedContacts.entry_point.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">🔧</span>
-            <h4 className="font-medium text-purple-800">
-              Entry Points
-              <span className="ml-1 text-xs font-normal text-purple-600">
-                (Technical Believers - Start Here)
-              </span>
-            </h4>
+      {tierSections.map(({ key, label, sublabel, color }) => (
+        groupedContacts[key].length > 0 && (
+          <div key={key}>
+            <div className="flex items-center gap-2 mb-3">
+              <div
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+              <h4 className="font-medium" style={{ color }}>
+                {label}
+                <span
+                  className="ml-1 text-xs font-normal"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  ({sublabel})
+                </span>
+              </h4>
+            </div>
+            <div className="grid gap-3">
+              {groupedContacts[key].map(contact => (
+                <ContactCard key={contact.id} contact={contact} account={account} />
+              ))}
+            </div>
           </div>
-          <div className="grid gap-3">
-            {groupedContacts.entry_point.map(contact => (
-              <ContactCard key={contact.id} contact={contact} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Middle Deciders */}
-      {groupedContacts.middle_decider.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">📊</span>
-            <h4 className="font-medium text-orange-800">
-              Middle Deciders
-              <span className="ml-1 text-xs font-normal text-orange-600">
-                (Tooling Decision Makers)
-              </span>
-            </h4>
-          </div>
-          <div className="grid gap-3">
-            {groupedContacts.middle_decider.map(contact => (
-              <ContactCard key={contact.id} contact={contact} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Economic Buyers */}
-      {groupedContacts.economic_buyer.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg">💰</span>
-            <h4 className="font-medium text-cyan-800">
-              Economic Buyers
-              <span className="ml-1 text-xs font-normal text-cyan-600">
-                (Budget Authority - Engage via Champion)
-              </span>
-            </h4>
-          </div>
-          <div className="grid gap-3">
-            {groupedContacts.economic_buyer.map(contact => (
-              <ContactCard key={contact.id} contact={contact} />
-            ))}
-          </div>
-        </div>
-      )}
+        )
+      ))}
 
       {contacts.length === 0 && (
-        <div className="text-center py-8 text-gray-500">No contacts found</div>
+        <div
+          className="text-center py-8"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
+          No contacts found
+        </div>
       )}
     </div>
   );

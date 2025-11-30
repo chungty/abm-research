@@ -22,26 +22,30 @@ export function AccountCard({ account, onClick, selected = false }: Props) {
   return (
     <div
       onClick={onClick}
-      className={`
-        bg-white rounded-lg border p-4 cursor-pointer transition-all hover:shadow-md
-        ${selected ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'}
-        ${hasGpu ? 'ring-1 ring-red-200' : ''}
-      `}
+      className={`card-surface p-4 cursor-pointer ${selected ? 'selected' : ''} ${hasGpu ? 'target-icp' : ''}`}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-gray-900 truncate">
+            <h3
+              className="text-base font-semibold truncate"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
               {account.name}
             </h3>
             {hasGpu && (
-              <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700 rounded font-medium">
-                🎯 TARGET ICP
+              <span className="badge badge-target text-xs px-1.5 py-0.5">
+                TARGET
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-500 truncate">{account.domain}</p>
+          <p
+            className="text-sm truncate"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
+            {account.domain}
+          </p>
         </div>
         <ScoreBadge
           score={account.account_score}
@@ -50,15 +54,18 @@ export function AccountCard({ account, onClick, selected = false }: Props) {
       </div>
 
       {/* Score Breakdown */}
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        <ScoreItem label="Infrastructure" score={account.infrastructure_score} />
-        <ScoreItem label="Business Fit" score={account.business_fit_score} />
-        <ScoreItem label="Buying Signals" score={account.buying_signals_score} />
+      <div
+        className="grid grid-cols-3 gap-3 mb-3 py-2 px-3 rounded-md"
+        style={{ backgroundColor: 'var(--color-bg-elevated)' }}
+      >
+        <ScoreItem label="Infra" score={account.infrastructure_score} />
+        <ScoreItem label="Business" score={account.business_fit_score} />
+        <ScoreItem label="Signals" score={account.buying_signals_score} />
       </div>
 
       {/* Infrastructure Chips */}
       {detectedInfra.length > 0 && (
-        <div className="flex flex-wrap mb-3">
+        <div className="flex flex-wrap gap-1 mb-3">
           {detectedInfra.map(({ category, detected, points, max_points }) => (
             <InfraChip
               key={category}
@@ -72,12 +79,26 @@ export function AccountCard({ account, onClick, selected = false }: Props) {
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between text-sm text-gray-500 pt-2 border-t border-gray-100">
-        <div className="flex items-center gap-4">
-          <span>{account.employee_count?.toLocaleString() || '?'} employees</span>
-          <span>{account.contacts_count || 0} contacts</span>
+      <div
+        className="flex items-center justify-between text-xs pt-2"
+        style={{
+          borderTop: '1px solid var(--color-border-subtle)',
+          color: 'var(--color-text-muted)'
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <span className="font-data">{account.employee_count?.toLocaleString() || '—'} employees</span>
+          <span className="font-data">{account.contacts_count || 0} contacts</span>
         </div>
-        <span className="text-xs">{account.business_model}</span>
+        <span
+          className="px-1.5 py-0.5 rounded text-xs"
+          style={{
+            backgroundColor: 'var(--color-bg-hover)',
+            color: 'var(--color-text-tertiary)'
+          }}
+        >
+          {account.business_model || 'Unknown'}
+        </span>
       </div>
     </div>
   );
@@ -85,18 +106,21 @@ export function AccountCard({ account, onClick, selected = false }: Props) {
 
 function ScoreItem({ label, score }: { label: string; score: number }) {
   const getColor = (s: number) => {
-    if (s >= 80) return 'text-emerald-600';
-    if (s >= 60) return 'text-blue-600';
-    if (s >= 40) return 'text-amber-600';
-    return 'text-gray-500';
+    if (s >= 80) return 'var(--color-priority-very-high)';
+    if (s >= 60) return 'var(--color-priority-high)';
+    if (s >= 40) return 'var(--color-priority-medium)';
+    return 'var(--color-text-tertiary)';
   };
 
   return (
     <div className="text-center">
-      <div className={`text-lg font-bold ${getColor(score)}`}>
+      <div
+        className="score-value text-lg"
+        style={{ color: getColor(score) }}
+      >
         {Math.round(score)}
       </div>
-      <div className="text-xs text-gray-500">{label}</div>
+      <div className="score-label">{label}</div>
     </div>
   );
 }

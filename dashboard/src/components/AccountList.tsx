@@ -104,7 +104,13 @@ export function AccountList({
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <div
+          className="animate-spin rounded-full h-8 w-8 border-2"
+          style={{
+            borderColor: 'var(--color-border-default)',
+            borderTopColor: 'var(--color-accent-primary)'
+          }}
+        />
       </div>
     );
   }
@@ -112,22 +118,52 @@ export function AccountList({
   return (
     <div className="flex flex-col h-full">
       {/* Header & Filters */}
-      <div className="bg-white border-b border-gray-200 p-4 space-y-3">
+      <div
+        className="p-4 space-y-3"
+        style={{
+          backgroundColor: 'var(--color-bg-elevated)',
+          borderBottom: '1px solid var(--color-border-subtle)'
+        }}
+      >
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
             Accounts
-            <span className="ml-2 text-sm font-normal text-gray-500">
+            <span
+              className="ml-2 text-sm font-normal font-data"
+              style={{ color: 'var(--color-text-tertiary)' }}
+            >
               ({sortedAccounts.length})
             </span>
           </h2>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-sm cursor-pointer group">
             <input
               type="checkbox"
               checked={showGpuOnly}
               onChange={e => setShowGpuOnly(e.target.checked)}
-              className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+              className="sr-only"
             />
-            <span className="text-red-700 font-medium">🎯 GPU Only</span>
+            <div
+              className="w-4 h-4 rounded flex items-center justify-center transition-all"
+              style={{
+                backgroundColor: showGpuOnly ? 'var(--color-target-hot-bg)' : 'var(--color-bg-card)',
+                border: `1px solid ${showGpuOnly ? 'var(--color-target-hot-border)' : 'var(--color-border-default)'}`
+              }}
+            >
+              {showGpuOnly && (
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" style={{ color: 'var(--color-target-hot)' }}>
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
+            </div>
+            <span
+              className="font-medium transition-colors"
+              style={{ color: showGpuOnly ? 'var(--color-target-hot)' : 'var(--color-text-tertiary)' }}
+            >
+              GPU/AI Only
+            </span>
           </label>
         </div>
 
@@ -137,12 +173,12 @@ export function AccountList({
           placeholder="Search accounts..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="input-field"
         />
 
         {/* Sort & Filter */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-gray-500">Sort:</span>
+          <span className="section-header">Sort</span>
           <SortButton
             label="Score"
             active={sortField === 'account_score'}
@@ -150,7 +186,7 @@ export function AccountList({
             onClick={() => handleSort('account_score')}
           />
           <SortButton
-            label="Infrastructure"
+            label="Infra"
             active={sortField === 'infrastructure_score'}
             direction={sortField === 'infrastructure_score' ? sortDirection : undefined}
             onClick={() => handleSort('infrastructure_score')}
@@ -162,7 +198,9 @@ export function AccountList({
             onClick={() => handleSort('name')}
           />
 
-          <span className="text-xs text-gray-500 ml-2">Filter:</span>
+          <div className="w-px h-4 mx-1" style={{ backgroundColor: 'var(--color-border-default)' }} />
+
+          <span className="section-header">Filter</span>
           {(['Very High', 'High', 'Medium', 'Low'] as PriorityLevel[]).map(priority => (
             <FilterChip
               key={priority}
@@ -175,9 +213,15 @@ export function AccountList({
       </div>
 
       {/* Account List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+      <div
+        className="flex-1 overflow-y-auto p-3 space-y-2"
+        style={{ backgroundColor: 'var(--color-bg-base)' }}
+      >
         {sortedAccounts.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div
+            className="text-center py-8"
+            style={{ color: 'var(--color-text-tertiary)' }}
+          >
             No accounts match your filters
           </div>
         ) : (
@@ -209,15 +253,15 @@ function SortButton({
   return (
     <button
       onClick={onClick}
-      className={`px-2 py-1 text-xs rounded transition-colors ${
-        active
-          ? 'bg-blue-100 text-blue-700 font-medium'
-          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-      }`}
+      className={`btn ${active ? 'btn-subtle active' : 'btn-ghost'}`}
+      style={{
+        fontSize: 'var(--text-xs)',
+        padding: '0.25rem 0.5rem'
+      }}
     >
       {label}
       {active && direction && (
-        <span className="ml-1">{direction === 'asc' ? '↑' : '↓'}</span>
+        <span className="ml-1 opacity-70">{direction === 'asc' ? '↑' : '↓'}</span>
       )}
     </button>
   );
@@ -232,19 +276,45 @@ function FilterChip({
   active: boolean;
   onClick: () => void;
 }) {
-  const colors: Record<string, string> = {
-    'Very High': 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    High: 'bg-blue-100 text-blue-700 border-blue-200',
-    Medium: 'bg-amber-100 text-amber-700 border-amber-200',
-    Low: 'bg-gray-100 text-gray-600 border-gray-200',
+  const getColor = (priority: string) => {
+    switch (priority) {
+      case 'Very High':
+        return active
+          ? { color: 'var(--color-priority-very-high)', bg: 'var(--color-priority-very-high-bg)', border: 'var(--color-priority-very-high-border)' }
+          : { color: 'var(--color-text-tertiary)', bg: 'transparent', border: 'var(--color-border-default)' };
+      case 'High':
+        return active
+          ? { color: 'var(--color-priority-high)', bg: 'var(--color-priority-high-bg)', border: 'var(--color-priority-high-border)' }
+          : { color: 'var(--color-text-tertiary)', bg: 'transparent', border: 'var(--color-border-default)' };
+      case 'Medium':
+        return active
+          ? { color: 'var(--color-priority-medium)', bg: 'var(--color-priority-medium-bg)', border: 'var(--color-priority-medium-border)' }
+          : { color: 'var(--color-text-tertiary)', bg: 'transparent', border: 'var(--color-border-default)' };
+      default:
+        return active
+          ? { color: 'var(--color-priority-low)', bg: 'var(--color-priority-low-bg)', border: 'var(--color-priority-low-border)' }
+          : { color: 'var(--color-text-tertiary)', bg: 'transparent', border: 'var(--color-border-default)' };
+    }
   };
+
+  const colors = getColor(label);
 
   return (
     <button
       onClick={onClick}
-      className={`px-2 py-0.5 text-xs rounded-full border transition-all ${
-        active ? colors[label] + ' ring-2 ring-offset-1' : 'bg-white text-gray-500 border-gray-200'
-      }`}
+      className="transition-all"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '0.125rem 0.5rem',
+        fontSize: 'var(--text-xs)',
+        fontWeight: 500,
+        borderRadius: 'var(--radius-full)',
+        border: `1px solid ${colors.border}`,
+        backgroundColor: colors.bg,
+        color: colors.color,
+        cursor: 'pointer'
+      }}
     >
       {label}
     </button>

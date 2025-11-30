@@ -5,3 +5,6 @@ export { AccountCard } from './AccountCard';
 export { AccountList } from './AccountList';
 export { AccountDetail } from './AccountDetail';
 export { ContactCard, ContactList } from './ContactCard';
+export { CollapsibleSection } from './CollapsibleSection';
+export { CopyButton } from './CopyButton';
+export { OutreachPanel } from './OutreachPanel';

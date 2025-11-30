@@ -6,6 +6,7 @@ Replaces hardcoded lookup tables with scalable API-based enrichment
 """
 
 import os
+import re
 import time
 import requests
 import logging
@@ -42,15 +43,21 @@ class CompanyEnrichmentService:
 
     def __init__(self):
         self.apollo_api_key = os.getenv('APOLLO_API_KEY')
+        self.brave_api_key = os.getenv('BRAVE_API_KEY')
+
         if not self.apollo_api_key:
-            raise ValueError("APOLLO_API_KEY environment variable is required")
+            logger.warning("APOLLO_API_KEY not set - Apollo enrichment will be disabled")
+        if not self.brave_api_key:
+            logger.warning("BRAVE_API_KEY not set - Brave fallback will be disabled")
 
         self.apollo_base_url = "https://api.apollo.io/v1"
+        self.brave_base_url = "https://api.search.brave.com/res/v1/web/search"
+
         self.session = requests.Session()
         self.session.headers.update({
             'Content-Type': 'application/json',
             'Cache-Control': 'no-cache',
-            'X-Api-Key': self.apollo_api_key
+            'X-Api-Key': self.apollo_api_key or ''
         })
 
         # Rate limiting
@@ -79,16 +86,17 @@ class CompanyEnrichmentService:
             logger.info("✓ Using cached company data")
             return self.company_cache[cache_key]
 
-        # Note: All company enrichment now uses live API data
-        # No mock data filters needed for production use
-
-        # Primary method: Apollo people search to extract organization data
-        # (organizations endpoint appears to require different subscription tier)
-        company_data = self._enrich_via_apollo_people_search(company_name, domain)
+        # PRIMARY METHOD: Apollo Organization Enrichment API
+        # This is the correct endpoint for enriching known domains
+        company_data = self._enrich_via_apollo_organization_enrich(company_name, domain)
 
         if not company_data:
-            # Fallback: Try Apollo organizations search (may not be available for this account)
-            company_data = self._enrich_via_apollo_organizations(company_name, domain)
+            # Fallback 1: Try Apollo people search to extract organization data
+            company_data = self._enrich_via_apollo_people_search(company_name, domain)
+
+        if not company_data:
+            # Fallback 2: Try Brave Search API for web data
+            company_data = self._enrich_via_brave_search(company_name, domain)
 
         if not company_data:
             # Final fallback: Create minimal company data
@@ -100,48 +108,94 @@ class CompanyEnrichmentService:
         logger.info(f"✓ Company enriched via {company_data.enrichment_source}")
         return company_data
 
-    def _enrich_via_apollo_organizations(self, company_name: str, domain: str) -> Optional[CompanyData]:
+    def _enrich_via_apollo_organization_enrich(self, company_name: str, domain: str) -> Optional[CompanyData]:
         """
-        Enrich company using Apollo's organizations endpoint
+        PRIMARY: Enrich company using Apollo's Organization Enrichment API
+        This endpoint returns rich company data for a known domain.
         """
+        if not self.apollo_api_key:
+            logger.info("Apollo API key not configured, skipping Apollo enrichment")
+            return None
+
         try:
             self._apply_rate_limit()
 
-            # Apollo organizations search API
-            search_params = {
-                "q_organization_domains": [domain],
-                "per_page": 1
-            }
-
-            logger.info(f"🔍 Searching Apollo organizations for {domain}")
-            logger.debug(f"Search params: {search_params}")
+            logger.info(f"🔍 Apollo Organization Enrichment for {domain}")
 
             response = self.session.post(
-                f"{self.apollo_base_url}/organizations/search",
-                json=search_params
+                f"{self.apollo_base_url}/organizations/enrich",
+                json={"domain": domain}
             )
 
-            logger.debug(f"Apollo response status: {response.status_code}")
-            logger.debug(f"Apollo response: {response.text}")
+            logger.debug(f"Apollo enrich response status: {response.status_code}")
 
             if response.status_code == 200:
                 data = response.json()
-                organizations = data.get('organizations', [])
-                logger.info(f"Found {len(organizations)} organizations")
+                org = data.get('organization', {})
 
-                if organizations:
-                    org = organizations[0]
-                    logger.info(f"Using organization: {org.get('name', 'Unknown')}")
-                    return self._parse_apollo_organization(org, domain)
+                if org and org.get('name'):
+                    logger.info(f"✓ Apollo enriched: {org.get('name')} ({org.get('estimated_num_employees', '?')} employees)")
+                    return self._parse_apollo_enrichment(org, domain)
                 else:
-                    logger.info("No organization found in Apollo organizations search")
+                    logger.info("Apollo enrichment returned no organization data")
             else:
-                logger.warning(f"Apollo organizations search failed: {response.status_code}")
-                logger.warning(f"Response: {response.text}")
+                logger.warning(f"Apollo organization enrichment failed: {response.status_code}")
+                logger.debug(f"Response: {response.text}")
 
         except Exception as e:
             logger.warning(f"Apollo organization enrichment failed: {e}")
 
+        return None
+
+    def _parse_apollo_enrichment(self, org_data: Dict, domain: str) -> CompanyData:
+        """
+        Parse Apollo Organization Enrichment API response into CompanyData
+        This endpoint returns much richer data than the search endpoint.
+        """
+        # Get employee count (exact number from enrichment API)
+        employee_count = org_data.get('estimated_num_employees')
+
+        # Infer business model from industry, keywords, and description
+        keywords = org_data.get('keywords', [])
+        keywords_str = ' '.join(keywords[:20]) if keywords else ''
+        business_model = self._infer_business_model(
+            org_data.get('industry'),
+            f"{org_data.get('short_description', '')} {keywords_str}",
+            org_data.get('name', '')
+        )
+
+        # Extract funding information
+        funding_stage = None
+        funding_events = org_data.get('funding_events', [])
+        if funding_events:
+            latest_event = funding_events[0]  # Most recent first
+            funding_stage = latest_event.get('type')
+
+        return CompanyData(
+            name=org_data.get('name', 'Unknown'),
+            domain=domain,
+            employee_count=employee_count,
+            business_model=business_model,
+            industry=org_data.get('industry'),
+            description=org_data.get('short_description'),
+            apollo_account_id=str(org_data.get('account', {}).get('id', '')),
+            apollo_organization_id=str(org_data.get('id', '')),
+            linkedin_url=org_data.get('linkedin_url'),
+            website=org_data.get('website_url'),
+            founded_year=org_data.get('founded_year'),
+            funding_stage=funding_stage,
+            enrichment_source="apollo_enrichment",
+            enriched_at=datetime.now()
+        )
+
+    def _enrich_via_apollo_organizations(self, company_name: str, domain: str) -> Optional[CompanyData]:
+        """
+        DEPRECATED: Apollo organizations search endpoint returns 0 results for most queries.
+        Use _enrich_via_apollo_organization_enrich instead.
+        Kept for backwards compatibility.
+        """
+        # This endpoint doesn't work well - skip it
+        logger.debug("Skipping deprecated organizations/search endpoint")
         return None
 
     def _enrich_via_apollo_people_search(self, company_name: str, domain: str) -> Optional[CompanyData]:
@@ -324,6 +378,115 @@ class CompanyEnrichmentService:
             return f"{industry} Services"
 
         return 'Technology Company'
+
+    def _enrich_via_brave_search(self, company_name: str, domain: str) -> Optional[CompanyData]:
+        """
+        Fallback enrichment using Brave Search API to extract company data from web results.
+        Searches for employee count, industry, and other public company information.
+        """
+        if not self.brave_api_key:
+            logger.info("Brave API key not configured, skipping Brave enrichment")
+            return None
+
+        try:
+            self._apply_rate_limit()
+
+            # Search for company information
+            query = f"{company_name} company employees headquarters funding"
+            logger.info(f"🔍 Searching Brave for company data: {company_name}")
+
+            response = requests.get(
+                self.brave_base_url,
+                params={'q': query, 'count': 5},
+                headers={
+                    'X-Subscription-Token': self.brave_api_key,
+                    'Accept': 'application/json'
+                },
+                timeout=15
+            )
+
+            if response.status_code != 200:
+                logger.warning(f"Brave search failed: {response.status_code}")
+                return None
+
+            data = response.json()
+            web_results = data.get('web', {}).get('results', [])
+
+            if not web_results:
+                logger.info("No Brave search results found")
+                return None
+
+            # Extract data from search results
+            employee_count = None
+            industry = None
+            description = None
+            funding_stage = None
+
+            for result in web_results:
+                title = result.get('title', '').lower()
+                desc = result.get('description', '')
+
+                # Extract employee count from descriptions
+                if not employee_count:
+                    emp_match = re.search(
+                        r'(\d{1,3}(?:,\d{3})*|\d+)\s*(?:\+\s*)?(?:employees?|workers|team members|people)',
+                        desc, re.I
+                    )
+                    if emp_match:
+                        emp_str = emp_match.group(1).replace(',', '')
+                        employee_count = int(emp_str)
+                        logger.info(f"Found employee count via Brave: {employee_count}")
+
+                # Try to extract employee range like "51-200 employees"
+                if not employee_count:
+                    range_match = re.search(
+                        r'(\d+)\s*[-–]\s*(\d+)\s*(?:employees?|people)',
+                        desc, re.I
+                    )
+                    if range_match:
+                        min_emp = int(range_match.group(1))
+                        max_emp = int(range_match.group(2))
+                        employee_count = (min_emp + max_emp) // 2
+                        logger.info(f"Found employee range via Brave: {min_emp}-{max_emp}, using {employee_count}")
+
+                # Extract funding information
+                if not funding_stage:
+                    funding_match = re.search(
+                        r'(Series\s+[A-F]|Seed|Pre-Seed|unicorn)',
+                        desc, re.I
+                    )
+                    if funding_match:
+                        funding_stage = funding_match.group(1)
+                        logger.info(f"Found funding stage via Brave: {funding_stage}")
+
+                # Use first result description as company description
+                if not description and len(desc) > 50:
+                    description = desc[:300]
+
+            if employee_count or description:
+                # Infer business model from search results
+                combined_text = ' '.join([r.get('description', '') for r in web_results[:3]])
+                business_model = self._infer_business_model(industry, combined_text, company_name)
+
+                logger.info(f"✓ Brave enrichment successful for {company_name}")
+                return CompanyData(
+                    name=company_name,
+                    domain=domain,
+                    employee_count=employee_count,
+                    business_model=business_model,
+                    industry=industry or 'Technology',
+                    description=description,
+                    funding_stage=funding_stage,
+                    enrichment_source="brave_search",
+                    enriched_at=datetime.now()
+                )
+
+            logger.info("Brave search found results but no extractable company data")
+            return None
+
+        except Exception as e:
+            logger.warning(f"Brave search enrichment failed: {e}")
+            return None
 
     def _create_minimal_company_data(self, company_name: str, domain: str) -> CompanyData:
         """

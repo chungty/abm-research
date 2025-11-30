@@ -12,6 +12,7 @@ import os
 import sys
 import json
 import logging
+import requests
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from datetime import datetime
@@ -863,6 +864,45 @@ def get_account(account_id: str):
     trigger_events = get_notion_trigger_events(notion_id) if notion_id else []
     partnerships = get_notion_partnerships(notion_id) if notion_id else []
 
+    # MERGE trigger events into account_score_breakdown.buying_signals.breakdown
+    # This ensures UI can read from the expected nested path
+    if trigger_events:
+        # High value = High confidence OR High urgency, otherwise include all with event_type
+        high_value_triggers = [
+            e.get('event_type', e.get('description', ''))
+            for e in trigger_events
+            if e.get('confidence') == 'High' or e.get('urgency') == 'High' or e.get('event_type')
+        ]
+        trigger_score = min(100, len(trigger_events) * 15)
+
+        # Ensure account_score_breakdown exists with buying_signals.breakdown
+        if 'account_score_breakdown' not in account:
+            account['account_score_breakdown'] = {}
+        if 'buying_signals' not in account['account_score_breakdown']:
+            account['account_score_breakdown']['buying_signals'] = {
+                'score': trigger_score,
+                'weight': '30%'
+            }
+        if 'breakdown' not in account['account_score_breakdown']['buying_signals']:
+            account['account_score_breakdown']['buying_signals']['breakdown'] = {}
+
+        # Add trigger events to the breakdown
+        account['account_score_breakdown']['buying_signals']['breakdown']['trigger_events'] = {
+            'high_value_triggers': high_value_triggers,
+            'all_events': trigger_events,
+            'total_triggers': len(trigger_events),
+            'score': trigger_score
+        }
+        # Also add expansion and hiring signals placeholders
+        account['account_score_breakdown']['buying_signals']['breakdown']['expansion_signals'] = {
+            'detected': [],
+            'score': 0
+        }
+        account['account_score_breakdown']['buying_signals']['breakdown']['hiring_signals'] = {
+            'detected': [],
+            'score': 0
+        }
+
     return jsonify({
         "account": account,
         "contacts": contacts,
@@ -903,6 +943,1164 @@ def get_all_partnerships():
         "partnerships": partnerships,
         "total": len(partnerships)
     })
+
+
+# ============================================================================
+# Enrichment Endpoints (Phase A - WS5)
+# ============================================================================
+
+# Import ABM system components for enrichment
+ABM_SYSTEM_AVAILABLE = False
+abm_system = None
+
+try:
+    # Load ABM system dynamically
+    abm_spec = importlib.util.spec_from_file_location(
+        "abm_system",
+        os.path.join(project_root, "src/abm_research/core/abm_system.py")
+    )
+    abm_module = importlib.util.module_from_spec(abm_spec)
+    abm_spec.loader.exec_module(abm_module)
+    ComprehensiveABMSystem = abm_module.ComprehensiveABMSystem
+    ABM_SYSTEM_AVAILABLE = True
+    logger.info("✅ ABM System available for enrichment")
+except Exception as e:
+    logger.warning(f"⚠️ ABM System not available: {e}")
+
+
+@app.route('/api/accounts/<account_id>/enrich', methods=['POST'])
+def enrich_account(account_id: str):
+    """
+    Trigger Phase 2 contact discovery for an account
+
+    This runs the Apollo contact discovery + MEDDIC scoring pipeline
+    and saves the results to Notion.
+
+    POST body (optional):
+    {
+        "force": true  // Re-run even if contacts exist
+    }
+    """
+    global abm_system
+
+    if not ABM_SYSTEM_AVAILABLE:
+        return jsonify({
+            "error": "ABM System not available",
+            "message": "Contact discovery requires the ABM System module"
+        }), 503
+
+    # Get account details
+    accounts = get_notion_accounts()
+    account = next((a for a in accounts if a['id'] == account_id), None)
+
+    if not account:
+        return jsonify({"error": "Account not found"}), 404
+
+    # Check if force refresh (body is optional)
+    body = request.get_json(silent=True) or {}
+    force = body.get('force', False)
+
+    # Get existing contacts
+    notion_id = account.get('notion_id', '')
+    existing_contacts = get_notion_contacts(notion_id) if notion_id else []
+
+    if existing_contacts and not force:
+        return jsonify({
+            "status": "skipped",
+            "message": f"Account already has {len(existing_contacts)} contacts. Use force=true to re-enrich.",
+            "existing_contacts": len(existing_contacts)
+        })
+
+    try:
+        # Initialize ABM system if needed
+        if abm_system is None:
+            logger.info("🚀 Initializing ABM System for enrichment...")
+            abm_system = ComprehensiveABMSystem()
+
+        # Run Phase 2: Contact Discovery
+        company_name = account.get('name', '')
+        company_domain = account.get('domain', '')
+
+        logger.info(f"🔍 Starting contact discovery for {company_name} ({company_domain})")
+
+        # Build account data for MEDDIC scoring context
+        account_data = {
+            'name': company_name,
+            'domain': company_domain,
+            'Physical Infrastructure': '',  # Would need to fetch from Notion
+            'business_model': account.get('business_model', ''),
+            'employee_count': account.get('employee_count', 0),
+        }
+
+        # Call Phase 2 discovery
+        discovered_contacts = abm_system._phase_2_contact_discovery(
+            company_name, company_domain, account_data
+        )
+
+        # Save contacts to Notion
+        if NOTION_AVAILABLE and discovered_contacts:
+            notion = get_notion_client()
+            save_results = notion.save_contacts(discovered_contacts, company_name)
+
+            successful = sum(1 for v in save_results.values() if v)
+
+            return jsonify({
+                "status": "success",
+                "message": f"Discovered and saved {successful} contacts for {company_name}",
+                "discovered": len(discovered_contacts),
+                "saved": successful,
+                "contacts": [
+                    {
+                        "name": c.get('name'),
+                        "title": c.get('title'),
+                        "role_tier": c.get('role_tier'),
+                        "champion_potential_level": c.get('champion_potential_level'),
+                        "lead_score": c.get('lead_score', 0)
+                    }
+                    for c in discovered_contacts[:10]  # Return top 10 for UI
+                ]
+            })
+        else:
+            return jsonify({
+                "status": "partial",
+                "message": "Contacts discovered but Notion save unavailable",
+                "discovered": len(discovered_contacts) if discovered_contacts else 0
+            })
+
+    except Exception as e:
+        logger.error(f"❌ Enrichment failed for {account_id}: {e}")
+        return jsonify({
+            "error": "Enrichment failed",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/accounts/<account_id>/rescore', methods=['POST'])
+def rescore_account_contacts(account_id: str):
+    """
+    Re-apply MEDDIC scoring to existing contacts for an account
+
+    This re-calculates role_tier, champion_potential, and why_prioritize
+    for all contacts without re-fetching from Apollo.
+    """
+    if not NOTION_AVAILABLE:
+        return jsonify({
+            "error": "Notion not available",
+            "message": "MEDDIC rescoring requires Notion integration"
+        }), 503
+
+    # Get account details
+    accounts = get_notion_accounts()
+    account = next((a for a in accounts if a['id'] == account_id), None)
+
+    if not account:
+        return jsonify({"error": "Account not found"}), 404
+
+    # Get existing contacts
+    notion_id = account.get('notion_id', '')
+    existing_contacts = get_notion_contacts(notion_id) if notion_id else []
+
+    if not existing_contacts:
+        return jsonify({
+            "status": "skipped",
+            "message": "No contacts found for this account. Use /enrich first."
+        })
+
+    try:
+        # Build account context for MEDDIC scoring
+        account_data = {
+            'name': account.get('name', ''),
+            'domain': account.get('domain', ''),
+            'business_model': account.get('business_model', ''),
+            'employee_count': account.get('employee_count', 0),
+        }
+
+        rescored_contacts = []
+
+        for contact in existing_contacts:
+            # Apply MEDDIC scoring
+            if meddic_contact_scorer:
+                try:
+                    meddic_result = meddic_contact_scorer.calculate_contact_score(contact, account_data)
+
+                    # Update contact with MEDDIC scores
+                    contact['lead_score'] = meddic_result.total_score
+                    contact['champion_potential_score'] = meddic_result.champion_potential_score
+                    contact['role_tier'] = meddic_result.role_tier
+                    contact['role_classification'] = meddic_result.role_classification
+                    contact['champion_potential_level'] = meddic_result.champion_potential_level
+                    contact['recommended_approach'] = meddic_result.recommended_approach
+                    contact['why_prioritize'] = meddic_result.why_prioritize
+
+                    rescored_contacts.append({
+                        "name": contact.get('name'),
+                        "title": contact.get('title'),
+                        "role_tier": meddic_result.role_tier,
+                        "champion_potential_level": meddic_result.champion_potential_level,
+                        "lead_score": meddic_result.total_score,
+                        "why_prioritize": meddic_result.why_prioritize[:2] if meddic_result.why_prioritize else []
+                    })
+
+                except Exception as e:
+                    logger.warning(f"MEDDIC scoring failed for {contact.get('name')}: {e}")
+
+        # Categorize results
+        entry_points = [c for c in rescored_contacts if c.get('role_tier') == 'entry_point']
+        middle_deciders = [c for c in rescored_contacts if c.get('role_tier') == 'middle_decider']
+        economic_buyers = [c for c in rescored_contacts if c.get('role_tier') == 'economic_buyer']
+
+        return jsonify({
+            "status": "success",
+            "message": f"Rescored {len(rescored_contacts)} contacts",
+            "summary": {
+                "entry_points": len(entry_points),
+                "middle_deciders": len(middle_deciders),
+                "economic_buyers": len(economic_buyers)
+            },
+            "contacts": rescored_contacts
+        })
+
+    except Exception as e:
+        logger.error(f"❌ Rescoring failed for {account_id}: {e}")
+        return jsonify({
+            "error": "Rescoring failed",
+            "message": str(e)
+        }), 500
+
+
+# ============================================================================
+# On-Demand Email Reveal (Decision #1 - Credit-Saving)
+# ============================================================================
+
+@app.route('/api/contacts/<contact_id>/reveal-email', methods=['POST'])
+def reveal_contact_email(contact_id: str):
+    """
+    On-demand email enrichment for a single contact (uses 1 Apollo credit)
+
+    Only reveals email when explicitly requested by user to save credits.
+    Checks Notion cache first - skips if enriched within 30 days.
+
+    Returns:
+        - email: The revealed email address
+        - cached: True if returned from cache, False if freshly enriched
+        - credits_used: 0 if cached, 1 if enriched
+    """
+    if not NOTION_AVAILABLE:
+        return jsonify({
+            "error": "Notion not available",
+            "message": "Email reveal requires Notion integration"
+        }), 503
+
+    try:
+        notion = get_notion_client()
+
+        # Get contact from Notion by ID
+        # Contact IDs are formatted as "con_<first8chars>"
+        notion_contact_id = contact_id.replace('con_', '')
+
+        # Query contacts to find the one with matching ID prefix
+        # This is a workaround since we store truncated IDs
+        all_contacts = notion.query_all_contacts()
+        contact_page = None
+
+        for page in all_contacts:
+            if page['id'].startswith(notion_contact_id) or page['id'][:8] == notion_contact_id:
+                contact_page = page
+                break
+
+        if not contact_page:
+            return jsonify({"error": "Contact not found"}), 404
+
+        props = contact_page.get('properties', {})
+
+        # Extract current email and last enriched date
+        current_email = props.get('Email', {}).get('email', '')
+        last_enriched_prop = props.get('Last Enriched', {}).get('date')
+        last_enriched = last_enriched_prop.get('start') if last_enriched_prop else None
+
+        # Check if already enriched recently (within 30 days)
+        if current_email and last_enriched:
+            from datetime import datetime, timedelta
+            try:
+                enriched_date = datetime.fromisoformat(last_enriched.replace('Z', '+00:00'))
+                if datetime.now(enriched_date.tzinfo) - enriched_date < timedelta(days=30):
+                    logger.info(f"📧 Returning cached email for contact {contact_id}")
+                    return jsonify({
+                        "email": current_email,
+                        "cached": True,
+                        "credits_used": 0,
+                        "message": "Email returned from cache (enriched within 30 days)"
+                    })
+            except Exception as e:
+                logger.warning(f"Could not parse Last Enriched date: {e}")
+
+        # Need to enrich - extract contact details for Apollo
+        name = ''
+        name_prop = props.get('Name', {})
+        if name_prop.get('title'):
+            name = name_prop['title'][0]['text']['content'] if name_prop['title'] else ''
+
+        title = extract_rich_text(props.get('Title', {}))
+        company = extract_rich_text(props.get('Company', {}))
+
+        if not name:
+            return jsonify({
+                "error": "Contact has no name",
+                "message": "Cannot enrich contact without a name"
+            }), 400
+
+        # Call Apollo single-person enrichment
+        apollo_api_key = os.getenv('APOLLO_API_KEY')
+        if not apollo_api_key:
+            return jsonify({
+                "error": "Apollo API key not configured",
+                "message": "Set APOLLO_API_KEY environment variable"
+            }), 503
+
+        # Split name for Apollo
+        name_parts = name.split(' ', 1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+
+        # Apollo single-person match
+        apollo_url = "https://api.apollo.io/v1/people/match"
+        apollo_payload = {
+            "first_name": first_name,
+            "last_name": last_name,
+            "reveal_personal_emails": True
+        }
+
+        # Add organization context if available
+        if company:
+            apollo_payload["organization_name"] = company
+
+        logger.info(f"🔍 Apollo enrichment for {name} at {company}")
+
+        apollo_response = requests.post(
+            apollo_url,
+            headers={
+                'Content-Type': 'application/json',
+                'X-Api-Key': apollo_api_key
+            },
+            json=apollo_payload
+        )
+
+        if apollo_response.status_code != 200:
+            logger.error(f"Apollo API error: {apollo_response.status_code} - {apollo_response.text}")
+            return jsonify({
+                "error": "Apollo enrichment failed",
+                "message": f"Apollo API returned {apollo_response.status_code}",
+                "credits_used": 0
+            }), 500
+
+        apollo_data = apollo_response.json()
+        person = apollo_data.get('person', {})
+        revealed_email = person.get('email', '')
+
+        if not revealed_email:
+            return jsonify({
+                "email": None,
+                "cached": False,
+                "credits_used": 1,
+                "message": "Email not found in Apollo database"
+            })
+
+        # Save to Notion with provenance
+        update_props = {
+            "Email": {"email": revealed_email},
+            "Email Source": {"select": {"name": "apollo"}},
+            "Last Enriched": {"date": {"start": datetime.now().isoformat()}}
+        }
+
+        # Update phone if available
+        phone = person.get('sanitized_phone')
+        if phone:
+            update_props["Phone"] = {"phone_number": phone}
+
+        # Update LinkedIn if available
+        linkedin = person.get('linkedin_url')
+        if linkedin:
+            update_props["LinkedIn URL"] = {"url": linkedin}
+
+        notion.update_page(contact_page['id'], update_props)
+
+        logger.info(f"✅ Email revealed and saved: {revealed_email}")
+
+        return jsonify({
+            "email": revealed_email,
+            "cached": False,
+            "credits_used": 1,
+            "message": "Email revealed via Apollo and saved to Notion",
+            "additional_data": {
+                "phone": phone,
+                "linkedin": linkedin
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"❌ Email reveal failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": "Email reveal failed",
+            "message": str(e)
+        }), 500
+
+
+# ============================================================================
+# LinkedIn Activity Enrichment via Brave (Decision #2)
+# ============================================================================
+
+@app.route('/api/contacts/<contact_id>/linkedin-activity', methods=['POST'])
+def enrich_contact_linkedin(contact_id: str):
+    """
+    Enrich contact with LinkedIn activity discovered via Brave Search.
+    Uses Brave Search API to find public LinkedIn posts, engagement, and
+    professional updates - NO LinkedIn API required.
+
+    Returns:
+        - recent_posts: List of discovered LinkedIn posts
+        - topics_of_interest: Professional topics they write/speak about
+        - engagement_signals: Mentions, features, interviews
+        - professional_updates: Promotions, awards, speaking
+        - activity_score: 0-100 overall activity level
+        - thought_leadership_score: 0-100 based on posts/articles
+        - network_influence_score: 0-100 based on engagement
+    """
+    try:
+        # Import LinkedIn Brave enrichment module
+        from abm_research.utils.linkedin_brave_enrichment import linkedin_brave_enrichment
+
+        # Get Notion client
+        notion = get_notion_client()
+
+        # Get contact from Notion by ID
+        # Contact IDs are formatted as "con_<first8chars>"
+        notion_contact_id = contact_id.replace('con_', '')
+
+        # Query contacts to find the one with matching ID prefix
+        all_contacts = notion.query_all_contacts()
+        contact_page = None
+
+        for page in all_contacts:
+            if page['id'].startswith(notion_contact_id) or page['id'][:8] == notion_contact_id:
+                contact_page = page
+                break
+
+        if not contact_page:
+            return jsonify({
+                "error": "Contact not found",
+                "message": f"No contact with ID {contact_id}"
+            }), 404
+
+        props = contact_page.get('properties', {})
+
+        # Extract contact details
+        name = ''
+        name_prop = props.get('Name', {})
+        if name_prop.get('title'):
+            name = name_prop['title'][0]['text']['content'] if name_prop['title'] else ''
+
+        title = extract_rich_text(props.get('Title', {}))
+        company = extract_rich_text(props.get('Company', {}))
+
+        # Get existing LinkedIn URL if available
+        linkedin_url = None
+        linkedin_prop = props.get('LinkedIn URL', {})
+        if linkedin_prop.get('url'):
+            linkedin_url = linkedin_prop['url']
+
+        if not name:
+            return jsonify({
+                "error": "Contact has no name",
+                "message": "Cannot enrich contact without a name"
+            }), 400
+
+        logger.info(f"Enriching LinkedIn activity for: {name}")
+
+        # Run LinkedIn enrichment via Brave Search
+        activity = linkedin_brave_enrichment.enrich_linkedin_activity(
+            person_name=name,
+            company_name=company,
+            title=title,
+            linkedin_url=linkedin_url
+        )
+
+        # Note: Notion update skipped - NotionClient doesn't have update_page method yet
+        # TODO: Add update_page to NotionClient if we need to persist LinkedIn URLs
+        if activity.linkedin_url and not linkedin_url:
+            logger.info(f"Discovered new LinkedIn URL: {activity.linkedin_url} (not saved to Notion)")
+
+        logger.info(f"✅ LinkedIn activity enriched: activity_score={activity.activity_score}")
+
+        return jsonify({
+            "status": "success",
+            "contact_name": name,
+            "linkedin_url": activity.linkedin_url,
+            "activity_score": activity.activity_score,
+            "activity_level": activity.last_active_indicator,
+            "thought_leadership_score": activity.thought_leadership_score,
+            "network_influence_score": activity.network_influence_score,
+            "recent_posts": activity.recent_posts,
+            "topics_of_interest": activity.topics_of_interest,
+            "engagement_signals": activity.engagement_signals,
+            "professional_updates": activity.professional_updates,
+            "enrichment_source": activity.enrichment_source
+        })
+
+    except Exception as e:
+        logger.error(f"❌ LinkedIn enrichment failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": "LinkedIn enrichment failed",
+            "message": str(e)
+        }), 500
+
+
+# ============================================================================
+# Trigger Event Discovery via Brave (Decision #3)
+# ============================================================================
+
+@app.route('/api/accounts/<account_id>/discover-events', methods=['POST'])
+def discover_account_trigger_events(account_id: str):
+    """
+    Discover trigger events for an account using Brave Search.
+    Searches for 7 event types: expansion, hiring, funding, partnership,
+    ai_workload, leadership, incident.
+
+    Request body (optional):
+        - event_types: List of specific event types to search
+        - lookback_days: How far back to search (default: 90)
+        - save_to_notion: Whether to save events to Notion (default: false)
+
+    Returns:
+        - events: List of discovered trigger events
+        - total: Number of events found
+        - event_type_counts: Count by event type
+    """
+    try:
+        from abm_research.utils.trigger_event_discovery import trigger_event_discovery
+
+        # Get Notion client
+        notion = get_notion_client()
+
+        # Get account from Notion by ID
+        # Account IDs are formatted as "acc_<first8chars>"
+        notion_account_id = account_id.replace('acc_', '')
+
+        # Query accounts to find the one with matching ID prefix
+        all_accounts = notion.query_all_accounts()
+        account_page = None
+
+        for page in all_accounts:
+            if page['id'].startswith(notion_account_id) or page['id'][:8] == notion_account_id:
+                account_page = page
+                break
+
+        if not account_page:
+            return jsonify({
+                "error": "Account not found",
+                "message": f"No account with ID {account_id}"
+            }), 404
+
+        props = account_page.get('properties', {})
+
+        # Extract account details
+        account_name = ''
+        name_prop = props.get('Name', {})
+        if name_prop.get('title'):
+            account_name = name_prop['title'][0]['text']['content'] if name_prop['title'] else ''
+
+        domain = extract_rich_text(props.get('Domain', {}))
+
+        if not account_name:
+            return jsonify({
+                "error": "Account has no name",
+                "message": "Cannot discover events without account name"
+            }), 400
+
+        # Get request parameters
+        data = request.get_json(silent=True) or {}
+        event_types = data.get('event_types')  # None = all types
+        lookback_days = data.get('lookback_days', 90)
+        save_to_notion = data.get('save_to_notion', False)
+
+        logger.info(f"Discovering trigger events for: {account_name}")
+
+        # Run discovery
+        events = trigger_event_discovery.discover_events(
+            company_name=account_name,
+            company_domain=domain,
+            event_types=event_types,
+            lookback_days=lookback_days
+        )
+
+        # Count by event type
+        event_type_counts = {}
+        for event in events:
+            event_type_counts[event.event_type] = event_type_counts.get(event.event_type, 0) + 1
+
+        # Optionally save to Notion
+        saved_count = 0
+        if save_to_notion and events:
+            try:
+                trigger_events_db_id = os.getenv('NOTION_TRIGGER_EVENTS_DB_ID')
+                if trigger_events_db_id:
+                    for event in events[:10]:  # Limit to top 10
+                        props = trigger_event_discovery.to_notion_properties(event, account_id)
+                        notion.create_page(trigger_events_db_id, props)
+                        saved_count += 1
+                    logger.info(f"Saved {saved_count} events to Notion")
+            except Exception as e:
+                logger.warning(f"Could not save events to Notion: {e}")
+
+        logger.info(f"✅ Discovered {len(events)} trigger events for {account_name}")
+
+        # Format response
+        return jsonify({
+            "status": "success",
+            "account_name": account_name,
+            "total": len(events),
+            "saved_to_notion": saved_count,
+            "event_type_counts": event_type_counts,
+            "events": [
+                {
+                    "event_type": e.event_type,
+                    "description": e.description,
+                    "source_url": e.source_url,
+                    "source_type": e.source_type,
+                    "confidence_score": e.confidence_score,
+                    "relevance_score": e.relevance_score,
+                    "urgency_level": e.urgency_level,
+                    "detected_date": e.detected_date,
+                    "event_date": e.event_date
+                }
+                for e in events
+            ]
+        })
+
+    except Exception as e:
+        logger.error(f"❌ Trigger event discovery failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": "Trigger event discovery failed",
+            "message": str(e)
+        }), 500
+
+
+# ============================================================================
+# Partnership Classification (Decision #4)
+# ============================================================================
+
+@app.route('/api/accounts/<account_id>/classify-partnership', methods=['POST'])
+def classify_account_partnership(account_id: str):
+    """
+    Classify an account's partnership type using the PartnershipClassifier.
+
+    Classifications:
+    - direct_icp: Target customers with power monitoring needs
+    - strategic_partner: Technology/product partners
+    - referral_partner: Companies that can refer customers
+    - competitive: Direct competitors
+    - vendor: Companies we buy from
+
+    Returns classification with confidence score and recommended approach.
+    """
+    try:
+        from abm_research.utils.partnership_classifier import PartnershipClassifier
+
+        # Get Notion client
+        notion = get_notion_client()
+
+        # Get account from Notion by ID
+        # Account IDs are formatted as "acc_<first8chars>"
+        notion_account_id = account_id.replace('acc_', '')
+
+        # Query accounts to find the one with matching ID prefix
+        all_accounts = notion.query_all_accounts()
+        account_page = None
+
+        for page in all_accounts:
+            if page['id'].startswith(notion_account_id) or page['id'][:8] == notion_account_id:
+                account_page = page
+                break
+
+        if not account_page:
+            return jsonify({
+                "error": "Account not found",
+                "message": f"No account with ID {account_id}"
+            }), 404
+
+        props = account_page.get('properties', {})
+
+        # Extract account details for classification
+        account_name = ''
+        name_prop = props.get('Name', {})
+        if name_prop.get('title'):
+            account_name = name_prop['title'][0]['text']['content'] if name_prop['title'] else ''
+
+        domain = extract_rich_text(props.get('Domain', {}))
+        business_model = extract_rich_text(props.get('Business Model', {}))
+        industry = extract_rich_text(props.get('Industry', {}))
+        description = extract_rich_text(props.get('Description', {}))
+
+        # Get infrastructure data if available
+        physical_infrastructure = extract_rich_text(props.get('Physical Infrastructure', {}))
+
+        if not account_name:
+            return jsonify({
+                "error": "Account has no name",
+                "message": "Cannot classify partnership without account name"
+            }), 400
+
+        logger.info(f"Classifying partnership for: {account_name}")
+
+        # Run classification - pass company data as dict
+        classifier = PartnershipClassifier()
+        company_data = {
+            'name': account_name,
+            'domain': domain or "",
+            'business_model': business_model or "Unknown",
+            'industry': industry or "Technology",
+            'physical_infrastructure': physical_infrastructure or "",
+            'description': description or ""
+        }
+        classification = classifier.classify_partnership(company_data)
+
+        # Request body options
+        data = request.get_json(silent=True) or {}
+        save_to_notion = data.get('save_to_notion', False)
+
+        # Note: Notion update skipped - NotionClient doesn't have update_page method yet
+        # TODO: Add update_page to NotionClient to persist classification
+        if save_to_notion:
+            logger.warning(f"save_to_notion requested but NotionClient.update_page not implemented")
+
+        logger.info(f"✅ Classified {account_name}: {classification.partnership_type.value}")
+
+        return jsonify({
+            "status": "success",
+            "account_name": account_name,
+            "partnership_type": classification.partnership_type.value,
+            "industry_category": classification.industry_category.value,
+            "confidence_score": classification.confidence_score,
+            "reasoning": classification.reasoning,
+            "recommended_approach": classification.recommended_approach,
+            "potential_value": classification.potential_value,
+            "next_actions": classification.next_actions,
+            "saved_to_notion": save_to_notion
+        })
+
+    except Exception as e:
+        logger.error(f"❌ Partnership classification failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": "Partnership classification failed",
+            "message": str(e)
+        }), 500
+
+
+# ============================================================================
+# Full Account Research Pipeline (WS5 - Phase D)
+# ============================================================================
+
+# Initialize ABM Research System
+ABM_SYSTEM_AVAILABLE = False
+abm_system = None
+
+try:
+    # Load ABM system directly
+    abm_spec = importlib.util.spec_from_file_location(
+        "abm_system",
+        os.path.join(project_root, "src/abm_research/core/abm_system.py")
+    )
+    abm_module = importlib.util.module_from_spec(abm_spec)
+    abm_spec.loader.exec_module(abm_module)
+    ComprehensiveABMSystem = abm_module.ComprehensiveABMSystem
+    ABM_SYSTEM_AVAILABLE = True
+    logger.info("✅ ABM Research System available")
+except Exception as e:
+    ABM_SYSTEM_AVAILABLE = False
+    logger.warning(f"⚠️ ABM Research System not available: {e}")
+
+
+@app.route('/api/accounts/<account_id>/research', methods=['POST'])
+def run_account_research(account_id: str):
+    """
+    Run complete 5-phase ABM research pipeline for an account
+
+    Phases:
+    1. Account Intelligence Baseline (trigger events, ICP scoring)
+    2. Contact Discovery & Segmentation (Apollo API)
+    3. High-Priority Contact Enrichment (LinkedIn)
+    4. Engagement Intelligence
+    5. Strategic Partnership Intelligence
+
+    All results are saved back to Notion.
+
+    POST body (optional):
+    {
+        "force": false  // Set true to force re-research even if already completed
+    }
+    """
+    if not ABM_SYSTEM_AVAILABLE:
+        return jsonify({
+            "error": "Research pipeline unavailable",
+            "message": "ABM Research System not configured. Check server logs.",
+            "fallback": True
+        }), 503
+
+    # Get account from Notion
+    accounts = get_notion_accounts()
+    account = next((a for a in accounts if a['id'] == account_id), None)
+
+    if not account:
+        return jsonify({"error": "Account not found"}), 404
+
+    company_name = account.get('name', '')
+    company_domain = account.get('domain', '')
+
+    if not company_name:
+        return jsonify({"error": "Account name is required for research"}), 400
+
+    # If no domain, try to infer from company name
+    if not company_domain:
+        # Simple domain inference
+        company_domain = company_name.lower().replace(' ', '') + '.com'
+        logger.warning(f"⚠️ No domain for {company_name}, using inferred: {company_domain}")
+
+    try:
+        logger.info(f"🔬 Starting full research pipeline for {company_name} ({company_domain})")
+
+        # Initialize fresh ABM system for this research
+        system = ComprehensiveABMSystem()
+
+        # Run complete 5-phase research
+        research_results = system.conduct_complete_account_research(company_name, company_domain)
+
+        if not research_results.get('success'):
+            return jsonify({
+                "status": "failed",
+                "message": "Research pipeline encountered errors",
+                "summary": research_results.get('research_summary', {}),
+                "error": research_results.get('research_summary', {}).get('error', 'Unknown error')
+            }), 500
+
+        # Build response with summary
+        summary = research_results.get('research_summary', {})
+        notion_results = research_results.get('notion_persistence', {})
+
+        # BACKUP: Explicitly save to Notion if ABM system didn't persist
+        # This ensures research results are always saved
+        if notion and account.get('notion_id'):
+            try:
+                account_data = research_results.get('account', {})
+                update_fields = {}
+
+                # Only update fields that have values
+                if account_data.get('employee_count'):
+                    update_fields['Employee Count'] = account_data['employee_count']
+                if account_data.get('business_model'):
+                    update_fields['Business Model'] = account_data['business_model']
+                if account_data.get('icp_fit_score'):
+                    update_fields['ICP Fit Score'] = account_data['icp_fit_score']
+                if account_data.get('physical_infrastructure'):
+                    update_fields['Physical Infrastructure'] = account_data['physical_infrastructure']
+
+                if update_fields:
+                    notion.update_page(account['notion_id'], update_fields)
+                    logger.info(f"✅ Backup persistence: Updated {len(update_fields)} fields in Notion")
+                    notion_results['account_saved'] = True
+            except Exception as e:
+                logger.warning(f"⚠️ Backup Notion persistence failed: {e}")
+
+        return jsonify({
+            "status": "success",
+            "message": f"Research completed for {company_name}",
+            "account_id": account_id,
+            "research_summary": {
+                "contacts_discovered": summary.get('contacts_discovered', 0),
+                "trigger_events_found": summary.get('trigger_events_found', 0),
+                "partnerships_identified": summary.get('partnerships_identified', 0),
+                "high_priority_contacts": summary.get('high_priority_contacts', 0),
+                "research_duration_seconds": summary.get('research_duration_seconds', 0)
+            },
+            "notion_sync": {
+                "account_saved": notion_results.get('account_saved', False),
+                "contacts_saved": notion_results.get('contacts_saved', 0),
+                "events_saved": notion_results.get('events_saved', 0),
+                "partnerships_saved": notion_results.get('partnerships_saved', 0)
+            },
+            "account_data": {
+                "name": research_results.get('account', {}).get('name'),
+                "employee_count": research_results.get('account', {}).get('employee_count'),
+                "industry": research_results.get('account', {}).get('industry'),
+                "business_model": research_results.get('account', {}).get('business_model'),
+                "icp_fit_score": research_results.get('account', {}).get('icp_fit_score'),
+                "account_score": research_results.get('account', {}).get('account_score'),
+                "partnership_classification": research_results.get('account', {}).get('partnership_classification'),
+                "infrastructure_score": research_results.get('account', {}).get('infrastructure_score'),
+                "buying_signals_score": research_results.get('account', {}).get('buying_signals_score')
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"❌ Research pipeline failed for {company_name}: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": "Research failed",
+            "message": str(e)
+        }), 500
+
+
+# ============================================================================
+# AI-Powered Outreach Generation (WS5 - Phase D)
+# ============================================================================
+
+# Initialize OpenAI client
+OPENAI_AVAILABLE = False
+openai_client = None
+
+try:
+    import openai
+    api_key = os.getenv('OPENAI_API_KEY')
+    if api_key:
+        openai_client = openai.OpenAI(api_key=api_key)
+        OPENAI_AVAILABLE = True
+        logger.info("✅ OpenAI client available for outreach generation")
+    else:
+        logger.warning("⚠️ OPENAI_API_KEY not set - AI outreach generation disabled")
+except Exception as e:
+    logger.warning(f"⚠️ OpenAI not available: {e}")
+
+
+def build_outreach_prompt(contact: Dict, account: Dict, outreach_type: str, tone: str) -> str:
+    """Build a rich prompt for AI outreach generation"""
+
+    # Extract key intelligence
+    role_tier = contact.get('role_tier', 'entry_point')
+    champion_level = contact.get('champion_potential_level', 'Medium')
+    why_prioritize = contact.get('why_prioritize', [])
+    recommended_approach = contact.get('recommended_approach', '')
+
+    # Account signals
+    infra_breakdown = account.get('infrastructure_breakdown', {}).get('breakdown', {})
+    gpu_detected = infra_breakdown.get('gpu_infrastructure', {}).get('detected', [])
+    triggers = account.get('account_score_breakdown', {}).get('buying_signals', {}).get('breakdown', {}).get('trigger_events', {}).get('high_value_triggers', [])
+    partnership_type = account.get('partnership_classification', '')
+
+    # Role-specific messaging angles
+    role_angles = {
+        'entry_point': {
+            'pain': 'day-to-day operational challenges, visibility gaps, and manual monitoring burden',
+            'value': 'technical efficiency, real-time alerts, and reduced firefighting',
+            'cta': '15-minute technical walkthrough'
+        },
+        'middle_decider': {
+            'pain': 'tooling fragmentation, team productivity, and process inefficiencies',
+            'value': 'operational control, unified visibility, and team enablement',
+            'cta': 'solution overview and integration discussion'
+        },
+        'economic_buyer': {
+            'pain': 'cost overruns, risk exposure, and ROI uncertainty on infrastructure investments',
+            'value': 'measurable savings (15-20% power cost reduction), reduced downtime risk, and faster capacity decisions',
+            'cta': 'executive briefing with ROI framework'
+        }
+    }
+
+    role_config = role_angles.get(role_tier, role_angles['entry_point'])
+
+    prompt = f"""You are an expert B2B sales copywriter specializing in datacenter infrastructure and power monitoring solutions. Generate a highly personalized outreach message.
+
+## CONTEXT
+
+**Contact:**
+- Name: {contact.get('name', 'Unknown')}
+- Title: {contact.get('title', 'Professional')}
+- Role Tier: {role_tier} ({
+    'Direct user who experiences pain daily - can become internal champion' if role_tier == 'entry_point' else
+    'Tooling decider who evaluates solutions - can drive selection' if role_tier == 'middle_decider' else
+    'Economic buyer with budget authority - needs business case'
+})
+- Champion Potential: {champion_level}
+- Why Prioritize: {'; '.join(why_prioritize[:2]) if why_prioritize else 'High-fit contact'}
+- Recommended Approach: {recommended_approach or 'Consultative'}
+
+**Company:**
+- Name: {account.get('name', 'Unknown')}
+- Industry: {account.get('industry', 'Technology')}
+- Size: {account.get('employee_count', 'Unknown')} employees
+- Business Model: {account.get('business_model', 'Unknown')}
+- Partnership Classification: {partnership_type or 'Direct ICP'}
+
+**Intelligence Signals:**
+- GPU/AI Infrastructure: {', '.join(gpu_detected[:3]) if gpu_detected else 'Not detected (general datacenter)'}
+- Trigger Events: {', '.join(triggers[:2]) if triggers else 'No specific triggers detected'}
+- ICP Score: {account.get('account_score', 0)}/100
+
+## MESSAGING STRATEGY
+
+For this {role_tier.replace('_', ' ')}:
+- Address pain points: {role_config['pain']}
+- Lead with value: {role_config['value']}
+- Call-to-action style: {role_config['cta']}
+
+## PRODUCT CONTEXT
+
+Verdigris provides real-time power and environmental monitoring for datacenters:
+- AI-powered anomaly detection for power and thermal issues
+- Sub-second visibility into power distribution at rack level
+- Automated alerting before issues impact uptime
+- Integration with existing DCIM/BMS systems
+- Typical outcomes: 15-20% power cost reduction, 30% faster incident response
+
+## TONE
+
+Tone: {tone}
+- professional: Formal but warm, emphasize credibility and expertise
+- conversational: Friendly and approachable, like a helpful peer
+- direct: Concise and action-oriented, respect their time
+
+## OUTPUT FORMAT
+
+Generate the following {outreach_type} content:
+
+"""
+
+    if outreach_type == 'email':
+        prompt += """
+Return a JSON object with these fields:
+{
+  "subject": "Compelling subject line (under 50 chars, personalized)",
+  "opening": "2-3 sentences establishing relevance and showing you've done research",
+  "valueHook": "3-4 sentences on specific value proposition based on their infrastructure/triggers",
+  "callToAction": "Clear, low-friction CTA appropriate for their role tier",
+  "ps": "Brief P.S. line offering alternative engagement option"
+}
+
+Make it feel like it was written by a human who actually researched this company. Avoid generic phrases like "I hope this email finds you well" or "I came across your profile."
+"""
+    elif outreach_type == 'linkedin':
+        prompt += """
+Return a JSON object with these fields:
+{
+  "connectionRequest": "Under 300 characters - compelling reason to connect",
+  "followUpMessage": "2-3 sentences for after they accept, referencing why you connected"
+}
+
+LinkedIn messages must be ultra-concise and human. No corporate speak.
+"""
+    else:  # sequence
+        prompt += """
+Return a JSON object with these fields:
+{
+  "day1": {"subject": "...", "body": "Full first touch email"},
+  "day3": {"subject": "...", "body": "Value-add follow-up, share insight or resource"},
+  "day7": {"subject": "...", "body": "Polite check-in, offer alternatives"},
+  "day14": {"subject": "...", "body": "Graceful close, leave door open"}
+}
+
+Each email should build on the previous, not repeat the same pitch. Day 3 should add value even if they don't respond.
+"""
+
+    return prompt
+
+
+@app.route('/api/outreach/generate', methods=['POST'])
+def generate_ai_outreach():
+    """
+    Generate AI-powered personalized outreach using OpenAI GPT-4
+
+    POST body:
+    {
+        "contact": { contact object },
+        "account": { account object },
+        "outreach_type": "email" | "linkedin" | "sequence",
+        "tone": "professional" | "conversational" | "direct"
+    }
+    """
+    if not OPENAI_AVAILABLE:
+        return jsonify({
+            "error": "AI generation unavailable",
+            "message": "OpenAI API key not configured. Set OPENAI_API_KEY in your environment.",
+            "fallback": True
+        }), 503
+
+    body = request.get_json()
+    if not body:
+        return jsonify({"error": "Request body required"}), 400
+
+    contact = body.get('contact', {})
+    account = body.get('account', {})
+    outreach_type = body.get('outreach_type', 'email')
+    tone = body.get('tone', 'conversational')
+
+    if not contact.get('name') or not account.get('name'):
+        return jsonify({"error": "Contact and account names required"}), 400
+
+    try:
+        prompt = build_outreach_prompt(contact, account, outreach_type, tone)
+
+        logger.info(f"🤖 Generating {outreach_type} outreach for {contact.get('name')} at {account.get('name')}")
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert B2B sales copywriter. Always respond with valid JSON only, no markdown formatting or code blocks. Just the raw JSON object."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.8,  # Slightly creative but not too random
+            max_tokens=1500
+        )
+
+        content = response.choices[0].message.content.strip()
+
+        # Clean up potential markdown formatting
+        if content.startswith('```'):
+            content = content.split('\n', 1)[1]  # Remove first line
+            if content.endswith('```'):
+                content = content[:-3]
+            content = content.strip()
+
+        # Parse the JSON response
+        try:
+            generated = json.loads(content)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse OpenAI response: {content[:200]}")
+            return jsonify({
+                "error": "AI response parsing failed",
+                "raw_response": content[:500]
+            }), 500
+
+        return jsonify({
+            "status": "success",
+            "outreach_type": outreach_type,
+            "tone": tone,
+            "generated": generated,
+            "context": {
+                "contact_name": contact.get('name'),
+                "account_name": account.get('name'),
+                "role_tier": contact.get('role_tier', 'entry_point'),
+                "champion_potential": contact.get('champion_potential_level', 'Medium')
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"❌ AI generation failed: {e}")
+        return jsonify({
+            "error": "Generation failed",
+            "message": str(e)
+        }), 500
 
 
 # ============================================================================

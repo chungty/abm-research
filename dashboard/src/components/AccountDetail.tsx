@@ -2,31 +2,46 @@ import type { Account, Contact } from '../types';
 import { ScoreBadge } from './ScoreBadge';
 import { InfrastructureBreakdown } from './InfrastructureBreakdown';
 import { ContactList } from './ContactCard';
+import { EnrichmentButton } from './EnrichmentButton';
+import { ResearchButton } from './ResearchButton';
 
 interface Props {
   account: Account;
   contacts: Contact[];
   onClose?: () => void;
+  onRefresh?: () => void;
 }
 
-export function AccountDetail({ account, contacts, onClose }: Props) {
+export function AccountDetail({ account, contacts, onClose, onRefresh }: Props) {
   const hasGpu = account.infrastructure_breakdown?.breakdown?.gpu_infrastructure?.detected?.length > 0;
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div
+      className="h-full flex flex-col"
+      style={{ backgroundColor: 'var(--color-bg-base)' }}
+    >
       {/* Header */}
-      <div className="border-b border-gray-200 p-4">
+      <div
+        className="p-5"
+        style={{
+          backgroundColor: 'var(--color-bg-elevated)',
+          borderBottom: '1px solid var(--color-border-subtle)'
+        }}
+      >
         <div className="flex items-start justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-bold text-gray-900">{account.name}</h2>
+            <div className="flex items-center gap-3">
+              <h2
+                className="text-2xl font-heading"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                {account.name}
+              </h2>
               {hasGpu && (
-                <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-sm font-medium">
-                  🎯 TARGET ICP
-                </span>
+                <span className="badge badge-target">TARGET ICP</span>
               )}
             </div>
-            <p className="text-gray-500">{account.domain}</p>
+            <p style={{ color: 'var(--color-text-tertiary)' }}>{account.domain}</p>
           </div>
           <div className="flex flex-col items-end gap-2">
             <ScoreBadge
@@ -37,9 +52,12 @@ export function AccountDetail({ account, contacts, onClose }: Props) {
             {onClose && (
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 text-sm"
+                className="text-sm transition-colors"
+                style={{ color: 'var(--color-text-muted)' }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-muted)'}
               >
-                ✕ Close
+                Close
               </button>
             )}
           </div>
@@ -47,9 +65,9 @@ export function AccountDetail({ account, contacts, onClose }: Props) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="flex-1 overflow-y-auto p-5 space-y-6 animate-fade-in">
         {/* Score Overview */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-4 gap-3">
           <ScoreCard
             label="Account Score"
             score={account.account_score}
@@ -79,9 +97,14 @@ export function AccountDetail({ account, contacts, onClose }: Props) {
         )}
 
         {/* Business Fit Details */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Business Fit</h3>
-          <div className="grid grid-cols-3 gap-4">
+        <div className="card-surface p-4">
+          <h3
+            className="text-base font-heading mb-4"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
+            Business Fit
+          </h3>
+          <div className="grid grid-cols-3 gap-3">
             <BusinessFitItem
               label="Industry"
               value={account.business_model || 'Unknown'}
@@ -102,9 +125,14 @@ export function AccountDetail({ account, contacts, onClose }: Props) {
 
         {/* Buying Signals */}
         {account.account_score_breakdown?.buying_signals && (
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Buying Signals</h3>
-            <div className="space-y-3">
+          <div className="card-surface p-4">
+            <h3
+              className="text-base font-heading mb-4"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
+              Buying Signals
+            </h3>
+            <div className="space-y-4">
               <SignalSection
                 label="Trigger Events"
                 items={account.account_score_breakdown.buying_signals.breakdown?.trigger_events?.high_value_triggers || []}
@@ -126,21 +154,49 @@ export function AccountDetail({ account, contacts, onClose }: Props) {
 
         {/* Partnership Classification */}
         {account.partnership_classification && (
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Partnership Classification</h3>
+          <div className="card-surface p-4">
+            <h3
+              className="text-base font-heading mb-3"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
+              Partnership Classification
+            </h3>
             <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+              <span
+                className="px-3 py-1 rounded-full font-medium text-sm"
+                style={{
+                  color: 'var(--color-priority-high)',
+                  backgroundColor: 'var(--color-priority-high-bg)',
+                  border: '1px solid var(--color-priority-high-border)'
+                }}
+              >
                 {account.partnership_classification}
               </span>
-              <span className="text-sm text-gray-500">
+              <span
+                className="text-sm font-data"
+                style={{ color: 'var(--color-text-tertiary)' }}
+              >
                 {account.classification_confidence?.toFixed(0)}% confidence
               </span>
             </div>
           </div>
         )}
 
+        {/* Deep Research - Run full 5-phase ABM pipeline */}
+        <ResearchButton
+          account={account}
+          onResearchComplete={onRefresh}
+        />
+
+        {/* Contact Intelligence & Enrichment */}
+        <EnrichmentButton
+          account={account}
+          contactsCount={contacts.length}
+          onEnrichmentComplete={onRefresh}
+        />
+
         {/* Contacts */}
-        <ContactList contacts={contacts} title={`Contacts at ${account.name}`} />
+        <ContactList contacts={contacts} account={account} title={`Contacts at ${account.name}`} />
       </div>
     </div>
   );
@@ -158,21 +214,40 @@ function ScoreCard({
   primary?: boolean;
 }) {
   const getColor = (s: number) => {
-    if (s >= 80) return 'text-emerald-600';
-    if (s >= 60) return 'text-blue-600';
-    if (s >= 40) return 'text-amber-600';
-    return 'text-gray-500';
+    if (s >= 80) return 'var(--color-priority-very-high)';
+    if (s >= 60) return 'var(--color-priority-high)';
+    if (s >= 40) return 'var(--color-priority-medium)';
+    return 'var(--color-text-tertiary)';
   };
 
   return (
     <div
-      className={`rounded-lg p-4 ${
-        primary ? 'bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200' : 'bg-gray-50'
-      }`}
+      className="rounded-lg p-4"
+      style={{
+        backgroundColor: primary ? 'var(--color-accent-primary-muted)' : 'var(--color-bg-card)',
+        border: primary
+          ? '1px solid var(--color-accent-primary)'
+          : '1px solid var(--color-border-default)'
+      }}
     >
-      <div className={`text-3xl font-bold ${getColor(score)}`}>{Math.round(score)}</div>
-      <div className="text-sm font-medium text-gray-900">{label}</div>
-      <div className="text-xs text-gray-500">{subtitle}</div>
+      <div
+        className="score-value text-2xl animate-count"
+        style={{ color: getColor(score) }}
+      >
+        {Math.round(score)}
+      </div>
+      <div
+        className="text-sm font-medium"
+        style={{ color: 'var(--color-text-primary)' }}
+      >
+        {label}
+      </div>
+      <div
+        className="text-xs"
+        style={{ color: 'var(--color-text-muted)' }}
+      >
+        {subtitle}
+      </div>
     </div>
   );
 }
@@ -187,11 +262,24 @@ function BusinessFitItem({
   score?: number;
 }) {
   return (
-    <div className="p-3 bg-gray-50 rounded-lg">
-      <div className="text-xs text-gray-500 mb-1">{label}</div>
-      <div className="font-medium text-gray-900">{value}</div>
+    <div
+      className="p-3 rounded-md"
+      style={{ backgroundColor: 'var(--color-bg-elevated)' }}
+    >
+      <div className="score-label mb-1">{label}</div>
+      <div
+        className="font-medium text-sm"
+        style={{ color: 'var(--color-text-primary)' }}
+      >
+        {value}
+      </div>
       {score !== undefined && (
-        <div className="text-xs text-gray-500 mt-1">Score: {Math.round(score)}</div>
+        <div
+          className="text-xs font-data mt-1"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
+          Score: {Math.round(score)}
+        </div>
       )}
     </div>
   );
@@ -209,21 +297,44 @@ function SignalSection({
   return (
     <div className="flex items-start justify-between">
       <div>
-        <div className="text-sm font-medium text-gray-700">{label}</div>
+        <div
+          className="text-sm font-medium mb-1"
+          style={{ color: 'var(--color-text-secondary)' }}
+        >
+          {label}
+        </div>
         {items.length > 0 ? (
-          <div className="flex flex-wrap gap-1 mt-1">
+          <div className="flex flex-wrap gap-1.5">
             {items.map((item, i) => (
-              <span key={i} className="px-2 py-0.5 bg-blue-50 text-blue-700 text-xs rounded">
+              <span
+                key={i}
+                className="px-2 py-0.5 rounded text-xs font-medium"
+                style={{
+                  color: 'var(--color-priority-high)',
+                  backgroundColor: 'var(--color-priority-high-bg)',
+                  border: '1px solid var(--color-priority-high-border)'
+                }}
+              >
                 {item}
               </span>
             ))}
           </div>
         ) : (
-          <span className="text-xs text-gray-400">None detected</span>
+          <span
+            className="text-xs"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            None detected
+          </span>
         )}
       </div>
       {score !== undefined && (
-        <span className="text-sm font-medium text-gray-600">{Math.round(score)}</span>
+        <span
+          className="font-data font-medium text-sm"
+          style={{ color: 'var(--color-text-secondary)' }}
+        >
+          {Math.round(score)}
+        </span>
       )}
     </div>
   );
