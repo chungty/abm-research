@@ -710,23 +710,35 @@ class ApolloContactDiscovery:
         return 'Technical Influencer'  # Default for technical roles
 
 
-# Export singleton instance for easy importing
-apollo_discovery = ApolloContactDiscovery()
+# Lazy singleton - only instantiate when needed (and when API key is available)
+_apollo_discovery = None
+
+def get_apollo_discovery():
+    """Get Apollo discovery instance (lazy initialization)"""
+    global _apollo_discovery
+    if _apollo_discovery is None:
+        _apollo_discovery = ApolloContactDiscovery()
+    return _apollo_discovery
+
+# For backward compatibility - will fail if used without API key
+apollo_discovery = None  # Set to None, use get_apollo_discovery() instead
 
 # Backward compatibility function for existing code
 def discover_contacts(company_name: str, company_domain: str) -> List[Dict]:
     """
     Backward compatibility wrapper for existing ABM system
     """
-    contacts = apollo_discovery.discover_contacts(company_name, company_domain)
-    return apollo_discovery.convert_to_notion_format(contacts)
+    discovery = get_apollo_discovery()
+    contacts = discovery.discover_contacts(company_name, company_domain)
+    return discovery.convert_to_notion_format(contacts)
 
 if __name__ == "__main__":
     # Test the system
     print("🧪 Testing Apollo Contact Discovery...")
 
     # Check credits first
-    credits = apollo_discovery.get_api_credits_remaining()
+    discovery = get_apollo_discovery()
+    credits = discovery.get_api_credits_remaining()
     if credits:
         print(f"💰 Available credits: {credits['remaining_credits']}")
 
