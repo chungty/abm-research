@@ -5,7 +5,7 @@
 
 import type { Account, Contact, AccountsResponse, AccountDetailResponse } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -57,6 +57,17 @@ export const api = {
     return fetchJson<{ contacts: Contact[] }>(`/accounts/${accountId}/contacts`);
   },
 
+  // Partnerships
+  async getPartnerships(): Promise<{ partnerships: any[]; total: number }> {
+    return fetchJson<{ partnerships: any[]; total: number }>('/partnerships');
+  },
+
+  // Trigger Events
+  async getTriggerEvents(accountId?: string): Promise<{ trigger_events: any[]; total: number }> {
+    const query = accountId ? `?account_id=${accountId}` : '';
+    return fetchJson<{ trigger_events: any[]; total: number }>(`/trigger-events${query}`);
+  },
+
   // Health check
   async healthCheck(): Promise<{ status: string; version: string }> {
     return fetchJson<{ status: string; version: string }>('/health');
@@ -96,27 +107,76 @@ export function useAccountDetail(accountId: string | null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
     if (!accountId) {
       setData(null);
       return;
     }
-
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const response = await api.getAccount(accountId);
-        setData(response);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch account'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    try {
+      setLoading(true);
+      const response = await api.getAccount(accountId);
+      setData(response);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch account'));
+    } finally {
+      setLoading(false);
+    }
   }, [accountId]);
 
-  return { data, loading, error };
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { data, loading, error, refetch: fetchData };
+}
+
+export function usePartnerships() {
+  const [data, setData] = useState<{ partnerships: any[]; total: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await api.getPartnerships();
+      setData(response);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch partnerships'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { partnerships: data?.partnerships || [], total: data?.total || 0, loading, error, refetch: fetchData };
+}
+
+export function useTriggerEvents(accountId?: string) {
+  const [data, setData] = useState<{ trigger_events: any[]; total: number } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await api.getTriggerEvents(accountId);
+      setData(response);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch trigger events'));
+    } finally {
+      setLoading(false);
+    }
+  }, [accountId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return { events: data?.trigger_events || [], total: data?.total || 0, loading, error, refetch: fetchData };
 }

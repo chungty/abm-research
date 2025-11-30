@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, type ReactNode } from 'react';
 import type { Contact, Account } from '../types';
+import { API_BASE } from '../api/client';
 import {
   generateOutreach,
   generateLinkedInMessage,
@@ -97,7 +98,7 @@ export function OutreachPanel({ contact, account, onClose }: Props) {
     const outreachType = activeTab === 'sequence' ? 'sequence' : activeTab;
 
     try {
-      const response = await fetch('http://localhost:5001/api/outreach/generate', {
+      const response = await fetch(`${API_BASE}/outreach/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

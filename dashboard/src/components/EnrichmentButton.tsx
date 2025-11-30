@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Account } from '../types';
+import { API_BASE } from '../api/client';
 
 interface Props {
   account: Account;
@@ -41,7 +42,7 @@ export function EnrichmentButton({ account, contactsCount, onEnrichmentComplete 
     setResult(null);
 
     try {
-      const response = await fetch(`http://localhost:5001/api/accounts/${account.id}/enrich`, {
+      const response = await fetch(`${API_BASE}/accounts/${account.id}/enrich`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ force: false })
@@ -68,7 +69,7 @@ export function EnrichmentButton({ account, contactsCount, onEnrichmentComplete 
     setResult(null);
 
     try {
-      const response = await fetch(`http://localhost:5001/api/accounts/${account.id}/rescore`, {
+      const response = await fetch(`${API_BASE}/accounts/${account.id}/rescore`, {
         method: 'POST'
       });
 

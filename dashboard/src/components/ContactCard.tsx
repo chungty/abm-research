@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Contact, Account, RoleTier, ChampionPotentialLevel } from '../types';
 import { ScoreBadge, RoleTierBadge } from './ScoreBadge';
 import { OutreachPanel } from './OutreachPanel';
+import { API_BASE } from '../api/client';
 
 interface Props {
   contact: Contact;
@@ -67,7 +68,7 @@ export function ContactCard({ contact, account, expanded = false, onToggleExpand
     setRevealError(null);
 
     try {
-      const response = await fetch(`http://localhost:5001/api/contacts/${contact.id}/reveal-email`, {
+      const response = await fetch(`${API_BASE}/contacts/${contact.id}/reveal-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });

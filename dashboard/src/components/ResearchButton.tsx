@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Account } from '../types';
+import { API_BASE } from '../api/client';
 
 interface Props {
   account: Account;
@@ -69,7 +70,7 @@ export function ResearchButton({ account, onResearchComplete }: Props) {
         }
       }, 2000);
 
-      const response = await fetch(`http://localhost:5001/api/accounts/${account.id}/research`, {
+      const response = await fetch(`${API_BASE}/accounts/${account.id}/research`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ force: false })

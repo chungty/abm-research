@@ -8,3 +8,5 @@ export { ContactCard, ContactList } from './ContactCard';
 export { CollapsibleSection } from './CollapsibleSection';
 export { CopyButton } from './CopyButton';
 export { OutreachPanel } from './OutreachPanel';
+export { PartnershipsList } from './PartnershipsList';
+export { TriggerEventsList } from './TriggerEventsList';

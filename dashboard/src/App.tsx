@@ -1,13 +1,18 @@
 import { useState } from 'react';
-import { AccountList, AccountDetail } from './components';
-import { useAccounts, useAccountDetail } from './api/client';
+import { AccountList, AccountDetail, PartnershipsList, TriggerEventsList } from './components';
+import { useAccounts, useAccountDetail, usePartnerships, useTriggerEvents } from './api/client';
 import type { Account } from './types';
 import './App.css';
 
+type TabType = 'accounts' | 'partnerships' | 'events';
+
 function App() {
-  const { accounts, loading: accountsLoading, error: accountsError } = useAccounts();
+  const [activeTab, setActiveTab] = useState<TabType>('accounts');
+  const { accounts, loading: accountsLoading, error: accountsError, refetch: refetchAccounts } = useAccounts();
+  const { total: partnershipsTotal } = usePartnerships();
+  const { total: eventsTotal } = useTriggerEvents();
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const { data: accountDetail, loading: detailLoading } = useAccountDetail(
+  const { data: accountDetail, loading: detailLoading, refetch: refetchDetail } = useAccountDetail(
     selectedAccount?.id || null
   );
 
@@ -39,95 +44,113 @@ function App() {
               Account-First Scoring with Infrastructure & MEDDIC Analysis
             </p>
           </div>
-          <div className="flex items-center gap-6">
-            <div
-              className="font-data text-sm tabular-nums"
-              style={{ color: 'var(--color-text-secondary)' }}
-            >
-              <span className="font-semibold" style={{ color: 'var(--color-accent-primary)' }}>
-                {accounts.length}
-              </span>
-              <span className="ml-1.5">accounts</span>
-            </div>
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm transition-colors"
-              style={{ color: 'var(--color-text-tertiary)' }}
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-accent-primary)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-tertiary)'}
-            >
-              Docs
-            </a>
+          {/* Tab Navigation */}
+          <div className="flex items-center gap-1">
+            <TabButton
+              active={activeTab === 'accounts'}
+              onClick={() => { setActiveTab('accounts'); setSelectedAccount(null); }}
+              label="Accounts"
+              count={accounts.length}
+            />
+            <TabButton
+              active={activeTab === 'partnerships'}
+              onClick={() => { setActiveTab('partnerships'); setSelectedAccount(null); }}
+              label="Partnerships"
+              count={partnershipsTotal}
+            />
+            <TabButton
+              active={activeTab === 'events'}
+              onClick={() => { setActiveTab('events'); setSelectedAccount(null); }}
+              label="Trigger Events"
+              count={eventsTotal}
+            />
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="flex-1 flex overflow-hidden">
-        {/* Account List - Left Panel */}
-        <div
-          className="w-[420px] flex flex-col"
-          style={{
-            backgroundColor: 'var(--color-bg-elevated)',
-            borderRight: '1px solid var(--color-border-subtle)'
-          }}
-        >
-          {accountsError ? (
-            <div className="p-4" style={{ color: 'var(--color-target-hot)' }}>
-              <p className="font-medium">Error loading accounts</p>
-              <p className="text-sm opacity-80">{accountsError.message}</p>
-              <p
-                className="text-xs mt-2"
-                style={{ color: 'var(--color-text-tertiary)' }}
-              >
-                Make sure the Flask API is running at http://localhost:5001
-              </p>
-            </div>
-          ) : (
-            <AccountList
-              accounts={accounts}
-              selectedAccountId={selectedAccount?.id}
-              onSelectAccount={setSelectedAccount}
-              loading={accountsLoading}
-            />
-          )}
-        </div>
-
-        {/* Account Detail - Right Panel */}
-        <div
-          className="flex-1 overflow-hidden"
-          style={{ backgroundColor: 'var(--color-bg-base)' }}
-        >
-          {selectedAccount ? (
-            detailLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <div
-                  className="animate-spin rounded-full h-8 w-8 border-2"
-                  style={{
-                    borderColor: 'var(--color-border-default)',
-                    borderTopColor: 'var(--color-accent-primary)'
-                  }}
+        {activeTab === 'accounts' ? (
+          <>
+            {/* Account List - Left Panel */}
+            <div
+              className="w-[420px] flex flex-col"
+              style={{
+                backgroundColor: 'var(--color-bg-elevated)',
+                borderRight: '1px solid var(--color-border-subtle)'
+              }}
+            >
+              {accountsError ? (
+                <div className="p-4" style={{ color: 'var(--color-target-hot)' }}>
+                  <p className="font-medium">Error loading accounts</p>
+                  <p className="text-sm opacity-80">{accountsError.message}</p>
+                  <p
+                    className="text-xs mt-2"
+                    style={{ color: 'var(--color-text-tertiary)' }}
+                  >
+                    Make sure the Flask API is running at http://localhost:5001
+                  </p>
+                </div>
+              ) : (
+                <AccountList
+                  accounts={accounts}
+                  selectedAccountId={selectedAccount?.id}
+                  onSelectAccount={setSelectedAccount}
+                  loading={accountsLoading}
                 />
-              </div>
-            ) : accountDetail ? (
-              <AccountDetail
-                account={accountDetail.account}
-                contacts={accountDetail.contacts}
-                onClose={() => setSelectedAccount(null)}
-              />
-            ) : (
-              <AccountDetail
-                account={selectedAccount}
-                contacts={[]}
-                onClose={() => setSelectedAccount(null)}
-              />
-            )
-          ) : (
-            <EmptyState />
-          )}
-        </div>
+              )}
+            </div>
+
+            {/* Account Detail - Right Panel */}
+            <div
+              className="flex-1 overflow-hidden"
+              style={{ backgroundColor: 'var(--color-bg-base)' }}
+            >
+              {selectedAccount ? (
+                detailLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div
+                      className="animate-spin rounded-full h-8 w-8 border-2"
+                      style={{
+                        borderColor: 'var(--color-border-default)',
+                        borderTopColor: 'var(--color-accent-primary)'
+                      }}
+                    />
+                  </div>
+                ) : accountDetail ? (
+                  <AccountDetail
+                    account={accountDetail.account}
+                    contacts={accountDetail.contacts}
+                    onClose={() => setSelectedAccount(null)}
+                    onRefresh={() => { refetchDetail(); refetchAccounts(); }}
+                  />
+                ) : (
+                  <AccountDetail
+                    account={selectedAccount}
+                    contacts={[]}
+                    onClose={() => setSelectedAccount(null)}
+                  />
+                )
+              ) : (
+                <EmptyState />
+              )}
+            </div>
+          </>
+        ) : activeTab === 'partnerships' ? (
+          <div
+            className="flex-1 overflow-y-auto"
+            style={{ backgroundColor: 'var(--color-bg-base)' }}
+          >
+            <PartnershipsList />
+          </div>
+        ) : (
+          <div
+            className="flex-1 overflow-y-auto"
+            style={{ backgroundColor: 'var(--color-bg-base)' }}
+          >
+            <TriggerEventsList />
+          </div>
+        )}
       </main>
 
       {/* Footer */}
@@ -293,6 +316,41 @@ function RoleCard({
         {sublabel}
       </div>
     </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  label,
+  count
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2"
+      style={{
+        backgroundColor: active ? 'var(--color-accent-primary-muted)' : 'transparent',
+        color: active ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)',
+        border: active ? '1px solid var(--color-accent-primary)' : '1px solid transparent',
+      }}
+    >
+      {label}
+      <span
+        className="px-1.5 py-0.5 rounded text-xs font-data"
+        style={{
+          backgroundColor: active ? 'var(--color-accent-primary)' : 'var(--color-bg-card)',
+          color: active ? 'white' : 'var(--color-text-muted)',
+        }}
+      >
+        {count}
+      </span>
+    </button>
   );
 }
 
