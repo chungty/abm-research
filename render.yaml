@@ -1,0 +1,28 @@
+# Render Blueprint - ABM Research API
+# Deploy with: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: abm-research-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT src.abm_research.api.server:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: NOTION_API_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: NOTION_ACCOUNTS_DB
+        sync: false
+      - key: NOTION_CONTACTS_DB
+        sync: false
+      - key: NOTION_TRIGGER_EVENTS_DB
+        sync: false
+      - key: NOTION_PARTNERSHIPS_DB
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: BRAVE_API_KEY
+        sync: false
+    autoDeploy: true
