@@ -2746,9 +2746,12 @@ try:
     )
     discovery_module = importlib.util.module_from_spec(discovery_spec)
     discovery_spec.loader.exec_module(discovery_module)
-    vendor_discovery = discovery_module.vendor_relationship_discovery
+    # Create instance with notion_client for Notion persistence support
+    # Previously used module singleton without notion_client, causing save_to_notion to silently fail
+    VendorRelationshipDiscovery = discovery_module.VendorRelationshipDiscovery
+    vendor_discovery = VendorRelationshipDiscovery(notion_client=get_notion_client())
     VENDOR_DISCOVERY_AVAILABLE = True
-    logger.info("✅ Vendor Relationship Discovery module available")
+    logger.info("✅ Vendor Relationship Discovery module available (with Notion persistence)")
 except Exception as e:
     logger.warning(f"⚠️ Vendor Relationship Discovery not available: {e}")
 

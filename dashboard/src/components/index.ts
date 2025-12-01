@@ -13,3 +13,5 @@ export { PartnerRankings } from './PartnerRankings';
 export { TriggerEventsList } from './TriggerEventsList';
 export { TriggerEventsSection } from './TriggerEventsSection';
 export { AddAccountModal } from './AddAccountModal';
+export { ChangelogModal } from './ChangelogModal';
+export { Tooltip, InfoTooltip, LabelWithTooltip } from './Tooltip';

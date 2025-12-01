@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { AccountList, AccountDetail, PartnerRankings, AddAccountModal } from './components';
+import { AccountList, AccountDetail, PartnerRankings, AddAccountModal, ChangelogModal } from './components';
 import { useAccounts, useAccountDetail, usePartnerships } from './api/client';
+import { CURRENT_VERSION } from './data/changelog';
 import type { Account } from './types';
 import './App.css';
 
@@ -15,6 +16,7 @@ function App() {
     selectedAccount?.id || null
   );
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showChangelog, setShowChangelog] = useState(false);
 
   // Handle new account creation
   const handleAccountCreated = async (accountId: string) => {
@@ -60,19 +62,59 @@ function App() {
             </p>
           </div>
           {/* Tab Navigation */}
-          <div className="flex items-center gap-1">
-            <TabButton
-              active={activeTab === 'accounts'}
-              onClick={() => { setActiveTab('accounts'); setSelectedAccount(null); }}
-              label="Accounts"
-              count={accounts.length}
-            />
-            <TabButton
-              active={activeTab === 'partnerships'}
-              onClick={() => { setActiveTab('partnerships'); setSelectedAccount(null); }}
-              label="Partnerships"
-              count={partnershipsTotal}
-            />
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <TabButton
+                active={activeTab === 'accounts'}
+                onClick={() => { setActiveTab('accounts'); setSelectedAccount(null); }}
+                label="Accounts"
+                count={accounts.length}
+              />
+              <TabButton
+                active={activeTab === 'partnerships'}
+                onClick={() => { setActiveTab('partnerships'); setSelectedAccount(null); }}
+                label="Partnerships"
+                count={partnershipsTotal}
+              />
+            </div>
+            {/* What's New Button */}
+            <button
+              onClick={() => setShowChangelog(true)}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+              style={{
+                backgroundColor: 'var(--color-bg-card)',
+                color: 'var(--color-text-secondary)',
+                border: '1px solid var(--color-border-default)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--color-accent-primary-muted)';
+                e.currentTarget.style.color = 'var(--color-accent-primary)';
+                e.currentTarget.style.borderColor = 'var(--color-accent-primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--color-bg-card)';
+                e.currentTarget.style.color = 'var(--color-text-secondary)';
+                e.currentTarget.style.borderColor = 'var(--color-border-default)';
+              }}
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
+                />
+              </svg>
+              What's New
+              <span
+                className="px-1.5 py-0.5 rounded text-xs font-data"
+                style={{
+                  backgroundColor: 'var(--color-priority-high-bg)',
+                  color: 'var(--color-priority-high)'
+                }}
+              >
+                {CURRENT_VERSION}
+              </span>
+            </button>
           </div>
         </div>
       </header>
@@ -181,6 +223,12 @@ function App() {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAccountCreated={handleAccountCreated}
+      />
+
+      {/* Changelog Modal */}
+      <ChangelogModal
+        isOpen={showChangelog}
+        onClose={() => setShowChangelog(false)}
       />
     </div>
   );

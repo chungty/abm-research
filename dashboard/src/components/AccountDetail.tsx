@@ -5,6 +5,7 @@ import { InfrastructureBreakdown } from './InfrastructureBreakdown';
 import { ContactList } from './ContactCard';
 import { EnrichmentButton } from './EnrichmentButton';
 import { ResearchButton } from './ResearchButton';
+import { VendorDiscoveryButton } from './VendorDiscoveryButton';
 import { TriggerEventsSection } from './TriggerEventsSection';
 import { api } from '../api/client';
 
@@ -249,6 +250,12 @@ export function AccountDetail({ account, contacts, triggerEvents = [], onClose, 
           account={account}
           contactsCount={contacts.length}
           onEnrichmentComplete={onRefresh}
+        />
+
+        {/* Vendor Discovery - AI-powered vendor relationship discovery */}
+        <VendorDiscoveryButton
+          account={account}
+          onDiscoveryComplete={onRefresh}
         />
 
         {/* Contacts */}
