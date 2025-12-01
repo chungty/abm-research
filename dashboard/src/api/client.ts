@@ -3,7 +3,7 @@
  * Connects to Flask backend at /api/*
  */
 
-import type { Account, Contact, AccountsResponse, AccountDetailResponse } from '../types';
+import type { Account, Contact, AccountsResponse, AccountDetailResponse, PartnerRankingsResponse } from '../types';
 
 export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
@@ -68,9 +68,81 @@ export const api = {
     return fetchJson<{ trigger_events: any[]; total: number }>(`/trigger-events${query}`);
   },
 
+  // Create a new account (POST)
+  async createAccount(data: {
+    name: string;
+    domain: string;
+    industry?: string;
+    employee_count?: number;
+    business_model?: string;
+    physical_infrastructure?: string;
+  }): Promise<{
+    success: boolean;
+    id: string;
+    notion_id: string;
+    name: string;
+    domain: string;
+    message: string;
+  }> {
+    return fetchJson('/accounts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Run research pipeline for an account (POST)
+  async runResearch(accountId: string, options?: {
+    phases?: string[];
+    force?: boolean;
+  }): Promise<{
+    status: string;
+    account_id: string;
+    phases_completed: string[];
+    message: string;
+  }> {
+    return fetchJson(`/accounts/${accountId}/research`, {
+      method: 'POST',
+      body: JSON.stringify(options || {}),
+    });
+  },
+
+  // Discover trigger events for an account (POST)
+  async discoverEvents(accountId: string, options?: {
+    event_types?: string[];
+    lookback_days?: number;
+    save_to_notion?: boolean;
+  }): Promise<{
+    status: string;
+    account_name: string;
+    total: number;
+    saved_to_notion: number;
+    event_type_counts: Record<string, number>;
+    events: Array<{
+      event_type: string;
+      description: string;
+      source_url: string;
+      source_type: string;
+      confidence_score: number;
+      relevance_score: number;
+      urgency_level: string;
+      detected_date: string;
+      event_date: string | null;
+    }>;
+  }> {
+    return fetchJson(`/accounts/${accountId}/discover-events`, {
+      method: 'POST',
+      body: JSON.stringify(options || {}),
+    });
+  },
+
   // Health check
   async healthCheck(): Promise<{ status: string; version: string }> {
     return fetchJson<{ status: string; version: string }>('/health');
+  },
+
+  // Partner Rankings (strategic value scoring)
+  async getPartnerRankings(): Promise<PartnerRankingsResponse> {
+    return fetchJson<PartnerRankingsResponse>('/partner-rankings');
   },
 };
 
@@ -179,4 +251,37 @@ export function useTriggerEvents(accountId?: string) {
   }, [fetchData]);
 
   return { events: data?.trigger_events || [], total: data?.total || 0, loading, error, refetch: fetchData };
+}
+
+export function usePartnerRankings() {
+  const [data, setData] = useState<PartnerRankingsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await api.getPartnerRankings();
+      setData(response);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch partner rankings'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  return {
+    rankings: data?.partner_rankings || [],
+    total: data?.total || 0,
+    totalAccounts: data?.total_accounts || 0,
+    methodology: data?.scoring_methodology || null,
+    loading,
+    error,
+    refetch: fetchData
+  };
 }

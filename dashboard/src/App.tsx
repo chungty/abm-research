@@ -1,20 +1,35 @@
 import { useState } from 'react';
-import { AccountList, AccountDetail, PartnershipsList, TriggerEventsList } from './components';
-import { useAccounts, useAccountDetail, usePartnerships, useTriggerEvents } from './api/client';
+import { AccountList, AccountDetail, PartnerRankings, AddAccountModal } from './components';
+import { useAccounts, useAccountDetail, usePartnerships } from './api/client';
 import type { Account } from './types';
 import './App.css';
 
-type TabType = 'accounts' | 'partnerships' | 'events';
+type TabType = 'accounts' | 'partnerships';
 
 function App() {
   const [activeTab, setActiveTab] = useState<TabType>('accounts');
   const { accounts, loading: accountsLoading, error: accountsError, refetch: refetchAccounts } = useAccounts();
   const { total: partnershipsTotal } = usePartnerships();
-  const { total: eventsTotal } = useTriggerEvents();
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const { data: accountDetail, loading: detailLoading, refetch: refetchDetail } = useAccountDetail(
     selectedAccount?.id || null
   );
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  // Handle new account creation
+  const handleAccountCreated = async (accountId: string) => {
+    // Refresh the accounts list to include the new account
+    await refetchAccounts();
+
+    // Find and select the newly created account
+    // Small delay to ensure the refetch has completed
+    setTimeout(() => {
+      const newAccount = accounts.find(a => a.id === accountId);
+      if (newAccount) {
+        setSelectedAccount(newAccount);
+      }
+    }, 500);
+  };
 
   return (
     <div className="h-screen flex flex-col" style={{ backgroundColor: 'var(--color-bg-base)' }}>
@@ -58,12 +73,6 @@ function App() {
               label="Partnerships"
               count={partnershipsTotal}
             />
-            <TabButton
-              active={activeTab === 'events'}
-              onClick={() => { setActiveTab('events'); setSelectedAccount(null); }}
-              label="Trigger Events"
-              count={eventsTotal}
-            />
           </div>
         </div>
       </header>
@@ -96,6 +105,7 @@ function App() {
                   accounts={accounts}
                   selectedAccountId={selectedAccount?.id}
                   onSelectAccount={setSelectedAccount}
+                  onAddAccount={() => setShowAddModal(true)}
                   loading={accountsLoading}
                 />
               )}
@@ -121,6 +131,7 @@ function App() {
                   <AccountDetail
                     account={accountDetail.account}
                     contacts={accountDetail.contacts}
+                    triggerEvents={accountDetail.trigger_events}
                     onClose={() => setSelectedAccount(null)}
                     onRefresh={() => { refetchDetail(); refetchAccounts(); }}
                   />
@@ -136,19 +147,12 @@ function App() {
               )}
             </div>
           </>
-        ) : activeTab === 'partnerships' ? (
-          <div
-            className="flex-1 overflow-y-auto"
-            style={{ backgroundColor: 'var(--color-bg-base)' }}
-          >
-            <PartnershipsList />
-          </div>
         ) : (
           <div
             className="flex-1 overflow-y-auto"
             style={{ backgroundColor: 'var(--color-bg-base)' }}
           >
-            <TriggerEventsList />
+            <PartnerRankings />
           </div>
         )}
       </main>
@@ -171,6 +175,13 @@ function App() {
           </span>
         </div>
       </footer>
+
+      {/* Add Account Modal */}
+      <AddAccountModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAccountCreated={handleAccountCreated}
+      />
     </div>
   );
 }

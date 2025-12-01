@@ -6,6 +6,7 @@ interface Props {
   accounts: Account[];
   selectedAccountId?: string;
   onSelectAccount: (account: Account) => void;
+  onAddAccount?: () => void;
   loading?: boolean;
 }
 
@@ -13,6 +14,7 @@ export function AccountList({
   accounts,
   selectedAccountId,
   onSelectAccount,
+  onAddAccount,
   loading = false,
 }: Props) {
   const [sortField, setSortField] = useState<SortField>('account_score');
@@ -126,18 +128,35 @@ export function AccountList({
         }}
       >
         <div className="flex items-center justify-between">
-          <h2
-            className="text-lg font-semibold"
-            style={{ color: 'var(--color-text-primary)' }}
-          >
-            Accounts
-            <span
-              className="ml-2 text-sm font-normal font-data"
-              style={{ color: 'var(--color-text-tertiary)' }}
+          <div className="flex items-center gap-2">
+            <h2
+              className="text-lg font-semibold"
+              style={{ color: 'var(--color-text-primary)' }}
             >
-              ({sortedAccounts.length})
-            </span>
-          </h2>
+              Accounts
+              <span
+                className="ml-2 text-sm font-normal font-data"
+                style={{ color: 'var(--color-text-tertiary)' }}
+              >
+                ({sortedAccounts.length})
+              </span>
+            </h2>
+            {onAddAccount && (
+              <button
+                onClick={onAddAccount}
+                className="p-1.5 rounded-lg transition-all"
+                style={{
+                  backgroundColor: 'var(--color-accent-primary)',
+                  color: 'white',
+                }}
+                title="Add new account"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            )}
+          </div>
           <label className="flex items-center gap-2 text-sm cursor-pointer group">
             <input
               type="checkbox"

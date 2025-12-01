@@ -742,9 +742,25 @@ class NotionClient:
         return response.json().get('id')
 
     def _create_partnership(self, partnership: Dict, account_name: str = "") -> Optional[str]:
-        """Create new partnership record with enhanced strategic intelligence using production field names"""
+        """Create new partnership record with enhanced strategic intelligence and Account relation.
+
+        Supports two types of records:
+        1. Account Vendor Relationships: Discovered vendors that an account uses (has Account relation)
+        2. Verdigris Partners: Companies Verdigris works with (is_verdigris_partner=True, no Account)
+
+        The "trusted path" is when both exist for the same vendor.
+        """
         # Get source URL and ensure it's either a valid URL or null (not empty string)
         source_url = partnership.get('source_url', partnership.get('evidence_url', '')) or None
+
+        # TRUSTED PATHS: Find the account to create proper relation
+        account_id = None
+        if account_name:
+            account_id = self._find_existing_account(account_name)
+            if account_id:
+                logger.info(f"🔗 Linking partnership '{partnership.get('partner_name', 'Unknown')}' to account '{account_name}'")
+            else:
+                logger.warning(f"⚠️ Could not find account '{account_name}' for partnership relation")
 
         properties = {
             # Core fields (using ACTUAL production field names)
@@ -769,8 +785,18 @@ class NotionClient:
             "Best Approach": {"select": {"name": partnership.get('best_approach', 'Technical Discussion')}},
             "Decision Timeline": {"select": {"name": partnership.get('decision_timeline', 'Medium (months)')}},
             "Success Metrics": {"rich_text": [{"text": {"content": partnership.get('success_metrics', '')}}]},
-            "Recommended Next Steps": {"rich_text": [{"text": {"content": partnership.get('recommended_next_steps', partnership.get('next_actions', ''))}}]}
+            "Recommended Next Steps": {"rich_text": [{"text": {"content": partnership.get('recommended_next_steps', partnership.get('next_actions', ''))}}]},
+
+            # TRUSTED PATHS: Flag for Verdigris's own partners vs account vendors
+            "Is Verdigris Partner": {"checkbox": partnership.get('is_verdigris_partner', False)}
         }
+
+        # TRUSTED PATHS: Add Account relation for vendor relationships discovered during research
+        if account_id:
+            properties["Account"] = {"relation": [{"id": account_id}]}
+        elif account_name:
+            # Fallback: Add account name as rich_text for manual linking
+            properties["Account Name (Fallback)"] = {"rich_text": [{"text": {"content": account_name}}]}
 
         data = {
             "parent": {"database_id": self.database_ids['partnerships']},

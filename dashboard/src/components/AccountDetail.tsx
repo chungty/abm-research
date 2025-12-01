@@ -1,19 +1,54 @@
-import type { Account, Contact } from '../types';
+import { useState } from 'react';
+import type { Account, Contact, TriggerEvent } from '../types';
 import { ScoreBadge } from './ScoreBadge';
 import { InfrastructureBreakdown } from './InfrastructureBreakdown';
 import { ContactList } from './ContactCard';
 import { EnrichmentButton } from './EnrichmentButton';
 import { ResearchButton } from './ResearchButton';
+import { TriggerEventsSection } from './TriggerEventsSection';
+import { api } from '../api/client';
 
 interface Props {
   account: Account;
   contacts: Contact[];
+  triggerEvents?: TriggerEvent[];
   onClose?: () => void;
   onRefresh?: () => void;
 }
 
-export function AccountDetail({ account, contacts, onClose, onRefresh }: Props) {
+export function AccountDetail({ account, contacts, triggerEvents = [], onClose, onRefresh }: Props) {
   const hasGpu = account.infrastructure_breakdown?.breakdown?.gpu_infrastructure?.detected?.length > 0;
+  const [isRefreshingEvents, setIsRefreshingEvents] = useState(false);
+  const [discoveredEvents, setDiscoveredEvents] = useState<TriggerEvent[]>([]);
+
+  // Combine existing events with newly discovered ones
+  const allEvents = [...triggerEvents, ...discoveredEvents];
+
+  const handleRefreshEvents = async () => {
+    setIsRefreshingEvents(true);
+    try {
+      const result = await api.discoverEvents(account.id, {
+        lookback_days: 90,
+        save_to_notion: true,
+      });
+      // Transform API response to TriggerEvent format
+      const newEvents: TriggerEvent[] = result.events.map((e, idx) => ({
+        id: `discovered_${idx}_${Date.now()}`,
+        description: e.description,
+        event_type: e.event_type,
+        relevance_score: e.relevance_score,
+        source_url: e.source_url,
+        detected_date: e.detected_date,
+      }));
+      setDiscoveredEvents(newEvents);
+      // Also trigger parent refresh to update from Notion
+      onRefresh?.();
+    } catch (error) {
+      console.error('Failed to discover events:', error);
+    } finally {
+      setIsRefreshingEvents(false);
+    }
+  };
 
   return (
     <div
@@ -52,12 +87,24 @@ export function AccountDetail({ account, contacts, onClose, onRefresh }: Props) 
             {onClose && (
               <button
                 onClick={onClose}
-                className="text-sm transition-colors"
-                style={{ color: 'var(--color-text-muted)' }}
-                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}
-                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-muted)'}
+                className="p-2 rounded-lg transition-all"
+                style={{
+                  color: 'var(--color-text-muted)',
+                  backgroundColor: 'transparent'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--color-text-primary)';
+                  e.currentTarget.style.backgroundColor = 'var(--color-bg-card)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--color-text-muted)';
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+                title="Close panel"
               >
-                Close
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             )}
           </div>
@@ -112,7 +159,9 @@ export function AccountDetail({ account, contacts, onClose, onRefresh }: Props) 
             />
             <BusinessFitItem
               label="Company Size"
-              value={`${account.employee_count?.toLocaleString() || '?'} employees`}
+              value={account.employee_count && account.employee_count > 0
+                ? `${account.employee_count.toLocaleString()} employees`
+                : 'Unknown'}
               score={account.account_score_breakdown?.business_fit?.breakdown?.company_size_fit?.score}
             />
             <BusinessFitItem
@@ -151,6 +200,13 @@ export function AccountDetail({ account, contacts, onClose, onRefresh }: Props) 
             </div>
           </div>
         )}
+
+        {/* Trigger Events - Always visible */}
+        <TriggerEventsSection
+          events={allEvents}
+          onRefresh={handleRefreshEvents}
+          isRefreshing={isRefreshingEvents}
+        />
 
         {/* Partnership Classification */}
         {account.partnership_classification && (

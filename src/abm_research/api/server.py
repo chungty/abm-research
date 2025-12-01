@@ -394,27 +394,55 @@ def transform_notion_trigger_event(page: Dict) -> Optional[Dict]:
 
 
 def transform_notion_partnership(page: Dict) -> Optional[Dict]:
-    """Transform Notion partnership page to API format"""
+    """Transform Notion partnership page to API format
+
+    Field mappings (Notion field name -> API field name):
+    - Name (title) -> partner_name
+    - Category (select) -> partnership_type
+    - Priority Score (number) -> relevance_score
+    - Relationship Evidence (rich_text) -> context
+    - Source URL (url) -> source_url
+    - Detected Date (date) -> discovered_date
+    - Account (relation) -> account_notion_id (TRUSTED PATHS)
+    - Is Verdigris Partner (checkbox) -> is_verdigris_partner (TRUSTED PATHS)
+    """
     try:
         props = page.get('properties', {})
 
-        # Extract partner name (title field)
+        # Extract partner name (title field - stored as 'Name' in Notion)
         partner_name = ''
-        name_prop = props.get('Partner Name', {})
+        name_prop = props.get('Name', {})
         if name_prop.get('title'):
             partner_name = name_prop['title'][0]['text']['content'] if name_prop['title'] else ''
 
-        # Extract other fields
-        partnership_type = extract_select(props.get('Partnership Type', {}))
-        relevance_score = props.get('Relevance Score', {}).get('number', 0) or 0
-        context = extract_rich_text(props.get('Context', {}))
+        # Extract other fields using actual Notion field names
+        partnership_type = extract_select(props.get('Category', {}))
+        relevance_score = props.get('Priority Score', {}).get('number', 0) or 0
+        context = extract_rich_text(props.get('Relationship Evidence', {}))
         source_url = props.get('Source URL', {}).get('url', '')
 
-        # Get date
+        # Additional strategic fields
+        relationship_depth = extract_select(props.get('Relationship Depth', {}))
+        partnership_maturity = extract_select(props.get('Partnership Maturity', {}))
+        best_approach = extract_select(props.get('Best Approach', {}))
+
+        # Get date (stored as 'Detected Date' in Notion)
         discovered_date = ''
-        date_prop = props.get('Discovered Date', {}).get('date')
+        date_prop = props.get('Detected Date', {}).get('date')
         if date_prop:
             discovered_date = date_prop.get('start', '')
+
+        # TRUSTED PATHS: Extract Account relation (vendor -> account link)
+        account_notion_id = None
+        account_relation = props.get('Account', {}).get('relation', [])
+        if account_relation:
+            account_notion_id = account_relation[0].get('id')
+
+        # TRUSTED PATHS: Extract Is Verdigris Partner checkbox
+        is_verdigris_partner = props.get('Is Verdigris Partner', {}).get('checkbox', False)
+
+        # TRUSTED PATHS: Fallback account name if relation not set
+        account_name_fallback = extract_rich_text(props.get('Account Name (Fallback)', {}))
 
         return {
             "id": f"ptr_{page['id'][:8]}",
@@ -425,6 +453,14 @@ def transform_notion_partnership(page: Dict) -> Optional[Dict]:
             "context": context,
             "source_url": source_url,
             "discovered_date": discovered_date,
+            # Additional fields for partner scoring
+            "relationship_depth": relationship_depth or "Surface Integration",
+            "partnership_maturity": partnership_maturity or "Basic",
+            "best_approach": best_approach or "Technical Discussion",
+            # TRUSTED PATHS: Account linkage and Verdigris partner flag
+            "account_notion_id": account_notion_id,  # Notion ID of linked account
+            "account_name_fallback": account_name_fallback,  # Text fallback if no relation
+            "is_verdigris_partner": is_verdigris_partner,  # True = Verdigris partner, False = account vendor
         }
 
     except Exception as e:
@@ -847,6 +883,126 @@ def get_accounts():
     })
 
 
+@app.route('/api/accounts', methods=['POST'])
+def create_account():
+    """
+    Create a new account in Notion
+
+    Request body:
+        - name: Company name (required)
+        - domain: Company domain/website (required)
+        - industry: Industry/vertical (optional)
+        - employee_count: Number of employees (optional)
+        - business_model: Description of business (optional)
+        - physical_infrastructure: Infrastructure notes (optional)
+        - auto_research: Whether to trigger research pipeline (default: true)
+
+    Returns:
+        - id: New account ID
+        - notion_id: Notion page ID
+        - name: Account name
+        - success: Boolean indicating success
+    """
+    if not NOTION_AVAILABLE:
+        return jsonify({
+            "error": "Notion not available",
+            "message": "Account creation requires Notion integration"
+        }), 503
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Request body required"}), 400
+
+    # Validate required fields
+    name = data.get('name', '').strip()
+    domain = data.get('domain', '').strip()
+
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+    if not domain:
+        return jsonify({"error": "domain is required"}), 400
+
+    # Normalize domain (remove http/https prefix if present)
+    if domain.startswith('http://'):
+        domain = domain[7:]
+    elif domain.startswith('https://'):
+        domain = domain[8:]
+    domain = domain.rstrip('/')
+
+    try:
+        notion = get_notion_client()
+
+        # Get accounts database ID
+        accounts_db_id = os.getenv('NOTION_ACCOUNTS_DB_ID')
+        if not accounts_db_id:
+            return jsonify({
+                "error": "Configuration error",
+                "message": "NOTION_ACCOUNTS_DB_ID not configured"
+            }), 500
+
+        # Build Notion properties
+        properties = {
+            "Name": {"title": [{"text": {"content": name}}]},
+            "Domain": {"url": f"https://{domain}" if not domain.startswith('http') else domain}
+        }
+
+        # Optional fields
+        if data.get('industry'):
+            properties["Industry"] = {"select": {"name": data['industry']}}
+
+        if data.get('employee_count'):
+            try:
+                emp_count = int(data['employee_count'])
+                properties["Employee Count"] = {"number": emp_count}
+            except (ValueError, TypeError):
+                pass
+
+        if data.get('business_model'):
+            properties["Business Model"] = {
+                "rich_text": [{"text": {"content": data['business_model'][:2000]}}]
+            }
+
+        if data.get('physical_infrastructure'):
+            properties["Physical Infrastructure"] = {
+                "rich_text": [{"text": {"content": data['physical_infrastructure'][:2000]}}]
+            }
+
+        # Create page in Notion
+        new_page = notion.notion.pages.create(
+            parent={"database_id": accounts_db_id},
+            properties=properties
+        )
+
+        notion_id = new_page['id']
+        account_id = f"acc_{notion_id[:8]}"
+
+        logger.info(f"✅ Created new account: {name} (ID: {account_id})")
+
+        # Return response
+        response = {
+            "success": True,
+            "id": account_id,
+            "notion_id": notion_id,
+            "name": name,
+            "domain": domain,
+            "message": f"Account '{name}' created successfully"
+        }
+
+        # Note: Auto-research will be triggered by the frontend after creation
+        # This keeps the endpoint fast and responsive
+
+        return jsonify(response), 201
+
+    except Exception as e:
+        logger.error(f"❌ Failed to create account: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": "Failed to create account",
+            "message": str(e)
+        }), 500
+
+
 @app.route('/api/accounts/<account_id>', methods=['GET'])
 def get_account(account_id: str):
     """Get single account with contacts, events, and partnerships"""
@@ -942,6 +1098,478 @@ def get_all_partnerships():
     return jsonify({
         "partnerships": partnerships,
         "total": len(partnerships)
+    })
+
+
+# ============================================================================
+# Trusted Paths (Account Vendor ∩ Verdigris Partner)
+# ============================================================================
+
+@app.route('/api/trusted-paths', methods=['GET'])
+def get_trusted_paths():
+    """
+    Get trusted paths into accounts via shared vendor relationships.
+
+    A "trusted path" exists when:
+    1. An account uses a vendor (account_notion_id is set)
+    2. That vendor is also a Verdigris partner (is_verdigris_partner=True)
+
+    This endpoint finds the intersection and ranks accounts by
+    the number/quality of trusted paths available.
+
+    Returns:
+    - trusted_paths: List of accounts with their vendor connections
+    - verdigris_partners: List of Verdigris's partners
+    - account_vendors: Map of account_id -> vendors they use
+    """
+    partnerships = get_notion_partnerships()
+    accounts = get_notion_accounts()
+
+    # Build account ID -> name lookup
+    account_lookup = {acc.get('notion_id'): acc for acc in accounts}
+
+    # Separate partnerships into two categories:
+    # 1. Verdigris Partners (is_verdigris_partner=True)
+    # 2. Account Vendors (account_notion_id is set)
+    verdigris_partners = []
+    account_vendors = {}  # account_notion_id -> [vendors]
+
+    for p in partnerships:
+        partner_name = p.get('partner_name', '').lower()
+        is_verdigris = p.get('is_verdigris_partner', False)
+        account_notion_id = p.get('account_notion_id')
+
+        if is_verdigris:
+            verdigris_partners.append({
+                'partner_name': p.get('partner_name'),
+                'partnership_type': p.get('partnership_type'),
+                'relevance_score': p.get('relevance_score', 0),
+                'relationship_depth': p.get('relationship_depth'),
+                'best_approach': p.get('best_approach'),
+            })
+
+        if account_notion_id:
+            if account_notion_id not in account_vendors:
+                account_vendors[account_notion_id] = []
+            account_vendors[account_notion_id].append({
+                'vendor_name': p.get('partner_name'),
+                'category': p.get('partnership_type'),
+                'context': p.get('context', '')[:200],
+            })
+
+    # Build set of Verdigris partner names (normalized)
+    verdigris_partner_names = {p['partner_name'].lower() for p in verdigris_partners if p.get('partner_name')}
+
+    # Find trusted paths: accounts that use vendors we're partnered with
+    trusted_paths = []
+    for account_notion_id, vendors in account_vendors.items():
+        account = account_lookup.get(account_notion_id)
+        if not account:
+            continue
+
+        # Find vendors that are also Verdigris partners
+        shared_vendors = []
+        for v in vendors:
+            vendor_name = v.get('vendor_name', '').lower()
+            if vendor_name in verdigris_partner_names:
+                shared_vendors.append(v)
+
+        if shared_vendors:
+            trusted_paths.append({
+                'account_id': account.get('id'),
+                'account_notion_id': account_notion_id,
+                'account_name': account.get('name'),
+                'account_score': account.get('account_score', 0),
+                'priority_level': account.get('account_priority_level', 'Medium'),
+                'shared_vendors': shared_vendors,
+                'trusted_path_count': len(shared_vendors),
+            })
+
+    # Sort by trusted path count, then by account score
+    trusted_paths.sort(key=lambda x: (-x['trusted_path_count'], -x['account_score']))
+
+    return jsonify({
+        'trusted_paths': trusted_paths,
+        'total_accounts_with_paths': len(trusted_paths),
+        'total_accounts': len(accounts),
+        'verdigris_partners': verdigris_partners,
+        'total_verdigris_partners': len(verdigris_partners),
+        'note': 'Trusted paths require both: 1) Account vendors discovered via research, 2) Those vendors marked as is_verdigris_partner=True in Notion'
+    })
+
+
+# ============================================================================
+# Partner Rankings (Strategic Partnership Intelligence)
+# ============================================================================
+
+def calculate_partner_score(partnership: Dict, matched_accounts: List[Dict], all_accounts: List[Dict]) -> Dict:
+    """
+    Calculate a composite partner score based on observable/public data.
+
+    Scoring dimensions (optimized for prospective partners):
+
+    1. Account Reach Score (35%) - How many ICP accounts can this partner help reach?
+       - Number of matched accounts weighted by their ICP scores
+       - Higher scores for partners connected to high-value accounts
+
+    2. ICP Alignment Score (25%) - How well does this partner align with our ICP?
+       - Technology alignment (GPU/AI/infrastructure focus)
+       - Industry alignment with target accounts
+       - Business model compatibility
+
+    3. Entry Point Quality (25%) - How effective as a sales entry point?
+       - Partnership type effectiveness (Reseller > Strategic Alliance > Tech Integration)
+       - Relationship depth potential
+       - Best approach alignment
+
+    4. Trust Evidence Score (15%) - Observable signals of established relationship
+       - Documentation quality (context length, source URLs)
+       - Relationship depth indicators
+       - Partnership maturity level
+
+    Returns dict with score and breakdown.
+    """
+
+    # ===== 1. ACCOUNT REACH SCORE (35%) =====
+    # Measures how many valuable accounts this partner can help us reach
+    if matched_accounts and all_accounts:
+        # Weight matched accounts by their ICP scores
+        weighted_reach = sum(acc.get('account_score', 50) for acc in matched_accounts)
+        max_possible = len(all_accounts) * 100  # If all accounts at max score
+
+        # Normalize to 0-100, with bonus for high-value concentrations
+        reach_raw = min(100, (weighted_reach / max(max_possible * 0.3, 1)) * 100)
+
+        # Bonus for breadth: more accounts = more network value
+        breadth_multiplier = min(1.5, 1 + (len(matched_accounts) / max(len(all_accounts), 1)))
+        account_reach_score = min(100, reach_raw * breadth_multiplier)
+    else:
+        account_reach_score = 0
+
+    # ===== 2. ICP ALIGNMENT SCORE (25%) =====
+    # How well does this partner align with our ideal customer profile?
+    partner_name = partnership.get('partner_name', '').lower()
+    partner_type = partnership.get('partnership_type', '').lower()
+    context = partnership.get('context', '').lower()
+
+    icp_signals = 0
+
+    # Technology alignment (observable from partner name/context)
+    tech_keywords = {
+        'high_value': ['gpu', 'nvidia', 'ai', 'ml', 'inference', 'training', 'datacenter', 'hpc'],
+        'medium_value': ['cloud', 'kubernetes', 'infrastructure', 'compute', 'storage'],
+        'low_value': ['software', 'platform', 'service', 'solution']
+    }
+
+    for keyword in tech_keywords['high_value']:
+        if keyword in partner_name or keyword in context:
+            icp_signals += 25
+            break
+    for keyword in tech_keywords['medium_value']:
+        if keyword in partner_name or keyword in context:
+            icp_signals += 15
+            break
+    for keyword in tech_keywords['low_value']:
+        if keyword in partner_name or keyword in context:
+            icp_signals += 5
+            break
+
+    # Market segment alignment
+    if any(seg in partner_name or seg in context for seg in ['enterprise', 'hyperscale', 'startup']):
+        icp_signals += 20
+
+    # Infrastructure focus (our core ICP indicator)
+    if any(infra in partner_name or infra in context for infra in ['datacenter', 'data center', 'colocation', 'cooling', 'power']):
+        icp_signals += 30
+
+    icp_alignment_score = min(100, icp_signals)
+
+    # ===== 3. ENTRY POINT QUALITY (25%) =====
+    # How effective would this partner be for sales entry?
+    entry_point_score = 0
+
+    # Partnership type effectiveness for referrals
+    type_scores = {
+        'reseller': 100,           # Direct sales channel
+        'strategic alliance': 80,  # Joint go-to-market
+        'channel partner': 75,     # Sales channel
+        'technology integration': 50,  # Technical connection
+        'vendor relationship': 30,  # We're the buyer
+    }
+    for type_key, score in type_scores.items():
+        if type_key in partner_type:
+            entry_point_score = score
+            break
+
+    # Adjust based on relationship depth potential
+    depth = partnership.get('relationship_depth', '')
+    depth_multipliers = {
+        'Go-to-Market Alliance': 1.3,
+        'Strategic Alliance': 1.2,
+        'Deep Integration': 1.1,
+        'Basic Partnership': 1.0,
+        'Surface Integration': 0.8
+    }
+    entry_point_score *= depth_multipliers.get(depth, 1.0)
+
+    # Best approach alignment
+    best_approach = partnership.get('best_approach', '').lower()
+    if 'executive' in best_approach or 'referral' in best_approach:
+        entry_point_score = min(100, entry_point_score * 1.2)
+    elif 'technical' in best_approach:
+        entry_point_score = min(100, entry_point_score * 1.1)
+
+    entry_point_score = min(100, entry_point_score)
+
+    # ===== 4. TRUST EVIDENCE SCORE (15%) =====
+    # Observable signals of relationship strength
+    evidence_score = 0
+
+    # Documentation quality
+    context_text = partnership.get('context', '')
+    if context_text:
+        # More detailed context = more established relationship
+        word_count = len(context_text.split())
+        evidence_score += min(30, word_count / 2)  # Up to 30 points for 60+ words
+
+    # Source documentation
+    if partnership.get('source_url'):
+        evidence_score += 20  # Public documentation
+
+    # Relationship depth (observable maturity)
+    maturity = partnership.get('partnership_maturity', '')
+    maturity_scores = {
+        'Sophisticated': 40,
+        'Advanced': 30,
+        'Established': 20,
+        'Developing': 10,
+        'Basic': 5
+    }
+    evidence_score += maturity_scores.get(maturity, 0)
+
+    # Explicit relevance rating (if set)
+    relevance = partnership.get('relevance_score', 0) or 0
+    if relevance > 0:
+        evidence_score = min(100, evidence_score + (relevance * 0.2))
+
+    evidence_score = min(100, evidence_score)
+
+    # ===== COMPOSITE SCORE =====
+    composite = (
+        account_reach_score * 0.35 +
+        icp_alignment_score * 0.25 +
+        entry_point_score * 0.25 +
+        evidence_score * 0.15
+    )
+
+    return {
+        'total_score': round(composite, 1),
+        'breakdown': {
+            'account_reach': {
+                'score': round(account_reach_score, 1),
+                'weight': 0.35,
+                'contribution': round(account_reach_score * 0.35, 1),
+                'matched_count': len(matched_accounts),
+                'description': f'{len(matched_accounts)} accounts reachable via this partner'
+            },
+            'icp_alignment': {
+                'score': round(icp_alignment_score, 1),
+                'weight': 0.25,
+                'contribution': round(icp_alignment_score * 0.25, 1),
+                'description': 'Technology and market segment alignment with ICP'
+            },
+            'entry_point_quality': {
+                'score': round(entry_point_score, 1),
+                'weight': 0.25,
+                'contribution': round(entry_point_score * 0.25, 1),
+                'description': 'Effectiveness as a sales entry point'
+            },
+            'trust_evidence': {
+                'score': round(evidence_score, 1),
+                'weight': 0.15,
+                'contribution': round(evidence_score * 0.15, 1),
+                'description': 'Observable signals of relationship strength'
+            }
+        }
+    }
+
+
+def match_accounts_to_partner(partner_name: str, accounts: List[Dict]) -> List[Dict]:
+    """
+    Find accounts that could benefit from warm introductions via this partner.
+
+    Matching logic:
+    - Extract keywords from partner name (e.g., "NVIDIA" -> nvidia)
+    - Check account infrastructure for matches (GPU vendors, tech stack)
+    - Check account name/domain for technology indicators
+
+    Returns list of matched accounts with match reasons.
+    """
+    # Extract matching keywords from partner name
+    partner_lower = partner_name.lower()
+
+    # Define keyword mappings for common partners
+    keyword_patterns = {
+        'nvidia': ['nvidia', 'gpu', 'dgx', 'cuda', 'h100', 'a100', 'tensor'],
+        'kubernetes': ['kubernetes', 'k8s', 'container', 'docker', 'cloud-native'],
+        'aws': ['aws', 'amazon', 'ec2', 's3', 'lambda'],
+        'gcp': ['gcp', 'google cloud', 'gke'],
+        'azure': ['azure', 'microsoft'],
+        'intel': ['intel', 'xeon', 'cpu'],
+        'amd': ['amd', 'epyc', 'radeon'],
+    }
+
+    # Determine which keywords to match based on partner name
+    match_keywords = []
+    for key, keywords in keyword_patterns.items():
+        if key in partner_lower or any(kw in partner_lower for kw in keywords):
+            match_keywords.extend(keywords)
+
+    # If no specific keywords matched, use partner name words
+    if not match_keywords:
+        # Split on common separators and filter short words
+        words = partner_lower.replace('-', ' ').replace('_', ' ').split()
+        match_keywords = [w for w in words if len(w) > 2 and w not in ['the', 'and', 'for', 'partnership', 'strategic', 'integration']]
+
+    matched_accounts = []
+
+    for account in accounts:
+        match_reasons = []
+
+        # Check GPU infrastructure
+        infra_breakdown = account.get('infrastructure_breakdown', {})
+        breakdown = infra_breakdown.get('breakdown', {})
+        gpu_info = breakdown.get('gpu_infrastructure', {})
+        detected_gpus = gpu_info.get('detected', [])
+
+        # Check for keyword matches in GPU infrastructure
+        for gpu in detected_gpus:
+            gpu_lower = gpu.lower()
+            for keyword in match_keywords:
+                if keyword in gpu_lower:
+                    match_reasons.append(f"Uses {gpu}")
+                    break
+
+        # Check physical infrastructure field
+        physical_infra = account.get('physical_infrastructure', '').lower()
+        for keyword in match_keywords:
+            if keyword in physical_infra:
+                match_reasons.append(f"Physical infrastructure: {account.get('physical_infrastructure')}")
+                break
+
+        # Check business model / industry for technology alignment
+        business_model = account.get('business_model', '').lower()
+        industry = account.get('industry', '').lower()
+
+        # AI/ML companies likely use GPU partners
+        if any(kw in match_keywords for kw in ['nvidia', 'gpu', 'tensor']):
+            if 'ai' in business_model or 'ai' in industry or 'ml' in industry:
+                if 'AI/ML business model' not in match_reasons:
+                    match_reasons.append('AI/ML business model')
+
+        if match_reasons:
+            matched_accounts.append({
+                'id': account.get('id'),
+                'name': account.get('name'),
+                'domain': account.get('domain'),
+                'account_score': account.get('account_score', 0),
+                'priority_level': account.get('account_priority_level'),
+                'match_reasons': match_reasons
+            })
+
+    # Sort by account score (highest first)
+    matched_accounts.sort(key=lambda x: x.get('account_score', 0), reverse=True)
+
+    return matched_accounts
+
+
+@app.route('/api/partner-rankings', methods=['GET'])
+def get_partner_rankings():
+    """
+    Get partnerships ranked by strategic value with matched accounts.
+
+    Partners are scored based on observable/public data optimized for both
+    existing and prospective partnerships:
+
+    Scoring Dimensions:
+    - Account Reach (35%): How many ICP accounts can this partner help reach?
+    - ICP Alignment (25%): Technology and market segment alignment
+    - Entry Point Quality (25%): Effectiveness as a sales channel
+    - Trust Evidence (15%): Observable signals of relationship strength
+
+    Returns partnerships ordered by composite score, each with:
+    - Partner details
+    - Composite score breakdown with explanation
+    - Matched accounts that could benefit from warm introductions
+
+    Query params:
+    - min_score: Minimum partner score to include (default: 0)
+    - include_accounts: Whether to include matched accounts (default: true)
+    """
+    min_score = request.args.get('min_score', 0, type=float)
+    include_accounts = request.args.get('include_accounts', 'true').lower() == 'true'
+
+    # Get raw data
+    partnerships = get_notion_partnerships()
+    accounts = get_notion_accounts()  # Always needed for scoring
+
+    # Build ranked partnerships
+    ranked = []
+    for partnership in partnerships:
+        # First, find matched accounts (needed for scoring)
+        matched = match_accounts_to_partner(partnership.get('partner_name', ''), accounts)
+
+        # Calculate score with account context
+        score_data = calculate_partner_score(partnership, matched, accounts)
+
+        if score_data['total_score'] < min_score:
+            continue
+
+        ranked_partner = {
+            'id': partnership.get('id'),
+            'notion_id': partnership.get('notion_id'),
+            'partner_name': partnership.get('partner_name'),
+            'partnership_type': partnership.get('partnership_type'),
+            'relationship_depth': partnership.get('relationship_depth'),
+            'partnership_maturity': partnership.get('partnership_maturity'),
+            'best_approach': partnership.get('best_approach'),
+            'context': partnership.get('context'),
+            'source_url': partnership.get('source_url'),
+            'partner_score': score_data['total_score'],
+            'score_breakdown': score_data['breakdown'],
+            'account_coverage': len(matched)
+        }
+
+        if include_accounts:
+            ranked_partner['matched_accounts'] = matched
+
+        ranked.append(ranked_partner)
+
+    # Sort by score (highest first)
+    ranked.sort(key=lambda x: x['partner_score'], reverse=True)
+
+    return jsonify({
+        'partner_rankings': ranked,
+        'total': len(ranked),
+        'total_accounts': len(accounts),
+        'scoring_methodology': {
+            'account_reach': {
+                'weight': '35%',
+                'description': 'Number of ICP accounts reachable via this partner, weighted by account quality'
+            },
+            'icp_alignment': {
+                'weight': '25%',
+                'description': 'Technology and market segment alignment with ideal customer profile'
+            },
+            'entry_point_quality': {
+                'weight': '25%',
+                'description': 'Effectiveness as a sales entry point based on partnership type and approach'
+            },
+            'trust_evidence': {
+                'weight': '15%',
+                'description': 'Observable signals of relationship strength (documentation, maturity, sources)'
+            }
+        }
     })
 
 
@@ -2099,6 +2727,539 @@ def generate_ai_outreach():
         logger.error(f"❌ AI generation failed: {e}")
         return jsonify({
             "error": "Generation failed",
+            "message": str(e)
+        }), 500
+
+
+# ============================================================================
+# Vendor Relationship Discovery (Trusted Paths Intelligence)
+# ============================================================================
+
+# Initialize Vendor Relationship Discovery module
+VENDOR_DISCOVERY_AVAILABLE = False
+vendor_discovery = None
+
+try:
+    discovery_spec = importlib.util.spec_from_file_location(
+        "vendor_relationship_discovery",
+        os.path.join(project_root, "src/abm_research/intelligence/vendor_relationship_discovery.py")
+    )
+    discovery_module = importlib.util.module_from_spec(discovery_spec)
+    discovery_spec.loader.exec_module(discovery_module)
+    vendor_discovery = discovery_module.vendor_relationship_discovery
+    VENDOR_DISCOVERY_AVAILABLE = True
+    logger.info("✅ Vendor Relationship Discovery module available")
+except Exception as e:
+    logger.warning(f"⚠️ Vendor Relationship Discovery not available: {e}")
+
+
+@app.route('/api/accounts/<account_id>/discover-vendors', methods=['POST'])
+def discover_account_vendors(account_id: str):
+    """
+    Discover vendor relationships for a target account using public data.
+
+    Uses Brave Search to find publicly documented vendor-customer relationships:
+    - Case studies
+    - Joint press releases
+    - Integration listings
+    - Conference mentions
+    - Procurement records
+
+    Each signal is scored 1-5 per the strength rubric:
+    1: Logo/mention only
+    2: Customer referenced but not formal story
+    3: Named case study, webinar, or clear narrative
+    4: Joint PR, integration launch, multi-party collaboration
+    5: Multiple assets or contract award with details
+
+    POST body (optional):
+    {
+        "vendors": ["Schneider Electric", "Vertiv"],  // Custom vendor list (default: infrastructure vendors)
+        "save_to_notion": true  // Save discovered relationships to Notion
+    }
+
+    Returns:
+    - signals: List of VendorCustomerSignal objects
+    - vendor_scores: Vendors ranked by IntroPower score
+    - search_failures: Any searches that failed
+    """
+    if not VENDOR_DISCOVERY_AVAILABLE:
+        return jsonify({
+            "error": "Vendor discovery unavailable",
+            "message": "VendorRelationshipDiscovery module not configured. Check server logs."
+        }), 503
+
+    # Get account from Notion
+    accounts = get_notion_accounts()
+    account = next((a for a in accounts if a['id'] == account_id), None)
+
+    if not account:
+        return jsonify({"error": "Account not found"}), 404
+
+    account_name = account.get('name', '')
+    if not account_name:
+        return jsonify({"error": "Account name is required for vendor discovery"}), 400
+
+    # Parse request body
+    body = request.get_json(silent=True) or {}
+    custom_vendors = body.get('vendors', None)
+    save_to_notion = body.get('save_to_notion', False)
+
+    try:
+        logger.info(f"🔍 Discovering vendor relationships for {account_name}")
+
+        # Run discovery
+        results = vendor_discovery.discover_for_account(
+            account_name=account_name,
+            candidate_vendors=custom_vendors
+        )
+
+        signals = results.get('signals', [])
+        vendor_scores = results.get('vendor_scores', [])
+        search_failures = results.get('search_failures', [])
+
+        # Save to Notion if requested
+        saved_count = 0
+        if save_to_notion and signals and NOTION_AVAILABLE:
+            try:
+                notion = get_notion_client()
+                account_notion_id = account.get('notion_id')
+
+                for signal in signals[:20]:  # Limit to top 20 signals
+                    properties = vendor_discovery.to_partnership_properties(
+                        signal,
+                        account_page_id=account_notion_id,
+                        is_verdigris_partner=False  # These are account vendors
+                    )
+
+                    # Check if partnership already exists
+                    existing = notion._find_existing_partnership(signal.vendor)
+                    if not existing:
+                        notion.client.pages.create(
+                            parent={"database_id": notion.partnerships_db},
+                            properties=properties
+                        )
+                        saved_count += 1
+                        logger.info(f"✅ Saved vendor relationship: {signal.vendor}")
+
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to save some partnerships to Notion: {e}")
+
+        # Convert dataclasses to dicts for JSON response
+        signals_json = []
+        for s in signals:
+            signals_json.append({
+                "vendor": s.vendor,
+                "customer": s.customer,
+                "signal_type": s.signal_type,
+                "signal_strength": s.signal_strength,
+                "evidence_url": s.evidence_url,
+                "evidence_title": s.evidence_title,
+                "evidence_snippet": s.evidence_snippet[:200] if s.evidence_snippet else "",
+                "recency": s.recency,
+                "is_cobranded": s.is_cobranded,
+                "is_deployment_story": s.is_deployment_story,
+                "discovered_at": s.discovered_at
+            })
+
+        vendor_scores_json = []
+        for v in vendor_scores:
+            vendor_scores_json.append({
+                "vendor_name": v.vendor_name,
+                "intro_score": v.intro_score,
+                "coverage_count": v.coverage_count,
+                "avg_signal_strength": v.avg_signal_strength,
+                "fit_weight": v.fit_weight,
+                "intro_candidates": v.intro_candidates[:5]  # Top 5 candidates
+            })
+
+        return jsonify({
+            "status": "success",
+            "account_name": account_name,
+            "signals": signals_json,
+            "total_signals": len(signals_json),
+            "vendor_scores": vendor_scores_json,
+            "total_vendors_with_signals": len(vendor_scores_json),
+            "search_failures": search_failures,
+            "saved_to_notion": saved_count,
+            "scoring_rubric": {
+                1: "Logo/mention only",
+                2: "Customer referenced but not formal story",
+                3: "Named case study, webinar, or clear narrative",
+                4: "Joint PR, integration launch, multi-party collaboration",
+                5: "Multiple assets or contract award with details"
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"❌ Vendor discovery failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": "Vendor discovery failed",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/accounts/<account_id>/discover-unknown-vendors', methods=['POST'])
+def discover_unknown_vendors(account_id: str):
+    """
+    WORKFLOW 3: Discover NEW vendors not in KNOWN_VENDORS using LLM extraction.
+
+    This uses GPT-4o-mini to extract and classify vendors from search results that
+    aren't already in the known vendor database. Discovered vendors can be persisted
+    to Notion and added to the runtime vendor list.
+
+    POST body (optional):
+    {
+        "save_to_notion": true,    # Persist discovered vendors to Notion (default: true)
+        "min_confidence": 0.6      # Minimum confidence threshold 0-1 (default: 0.6)
+    }
+
+    Returns:
+    - discovered_vendors: List of newly discovered vendors with category classifications
+    - new_vendors_count: Number of new vendors found
+    - known_vendors_found: Number of known vendors confirmed in search results
+    - saved_to_notion: Number saved to Notion
+    - added_to_runtime: Number added to runtime vendor list
+    - category_summary: Count of vendors by category
+    """
+    if not VENDOR_DISCOVERY_AVAILABLE:
+        return jsonify({
+            "error": "Vendor discovery unavailable",
+            "message": "VendorRelationshipDiscovery module not configured. Check server logs."
+        }), 503
+
+    # Get account from Notion
+    accounts = get_notion_accounts()
+    account = next((a for a in accounts if a['id'] == account_id), None)
+
+    if not account:
+        return jsonify({"error": "Account not found"}), 404
+
+    account_name = account.get('name', '')
+    if not account_name:
+        return jsonify({"error": "Account name is required for vendor discovery"}), 400
+
+    # Parse request body
+    body = request.get_json(silent=True) or {}
+    save_to_notion = body.get('save_to_notion', True)
+    min_confidence = body.get('min_confidence', 0.6)
+
+    try:
+        logger.info(f"🔍 WORKFLOW 3: Discovering unknown vendors for {account_name}")
+
+        # Run LLM-powered discovery
+        results = vendor_discovery.discover_unknown_vendors(
+            account_name=account_name,
+            save_to_notion=save_to_notion,
+            min_confidence=min_confidence
+        )
+
+        # Check for errors
+        if 'error' in results:
+            return jsonify({
+                "status": "error",
+                "account_name": account_name,
+                "workflow": "discover_unknown_vendors",
+                "error": results['error']
+            }), 400
+
+        # Convert DiscoveredVendor objects to dicts for JSON response
+        discovered_vendors_json = []
+        for v in results.get('discovered_vendors', []):
+            discovered_vendors_json.append({
+                "vendor_name": v.vendor_name,
+                "category": v.category,
+                "strategic_purpose": v.strategic_purpose,
+                "recommended_action": v.recommended_action,
+                "mention_count": v.mention_count,
+                "confidence": v.confidence,
+                "relationship_type": v.relationship_type,
+                "evidence_urls": v.evidence_urls[:3],
+                "evidence_snippets": v.evidence_snippets[:2],
+                "discovered_at": v.discovered_at,
+                "is_new": True
+            })
+
+        return jsonify({
+            "status": "success",
+            "account_name": account_name,
+            "workflow": "discover_unknown_vendors",
+            "discovered_vendors": discovered_vendors_json,
+            "new_vendors_count": results.get('new_vendors_count', 0),
+            "known_vendors_found": results.get('known_vendors_found', 0),
+            "known_vendors_detail": results.get('known_vendors_detail', []),
+            "saved_to_notion": results.get('saved_to_notion', 0),
+            "added_to_runtime": results.get('added_to_runtime', 0),
+            "search_results_analyzed": results.get('search_results_analyzed', 0),
+            "category_summary": results.get('category_summary', {}),
+            "total_vendors_in_system": vendor_discovery.get_vendor_count(),
+            "llm_model": "gpt-4o-mini",
+            "cost_estimate": f"~${0.02 + (results.get('search_results_analyzed', 0) * 0.002):.3f}"
+        })
+
+    except Exception as e:
+        logger.error(f"❌ Unknown vendor discovery failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": "Unknown vendor discovery failed",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/vendor-intro-power', methods=['POST'])
+def calculate_vendor_intro_power():
+    """
+    Calculate Vendor Intro Power scores across multiple target accounts.
+
+    This endpoint finds which vendors have the strongest documented relationships
+    with your target accounts, helping prioritize vendors for partnership outreach.
+
+    POST body:
+    {
+        "vendors": ["Schneider Electric", "Vertiv", "NVIDIA"],
+        "accounts": ["CoreWeave", "Lambda Labs", "Together AI"],  // Optional, defaults to all accounts
+        "fit_weights": {"NVIDIA": 1.5, "Schneider Electric": 1.2}  // Optional vendor weights
+    }
+
+    Returns vendors ranked by IntroScore = CoverageCount * AvgSignalStrength * FitWeight
+    """
+    if not VENDOR_DISCOVERY_AVAILABLE:
+        return jsonify({
+            "error": "Vendor discovery unavailable",
+            "message": "VendorRelationshipDiscovery module not configured"
+        }), 503
+
+    body = request.get_json(silent=True) or {}
+
+    # Get vendors (required)
+    vendors = body.get('vendors', [])
+    if not vendors:
+        return jsonify({
+            "error": "vendors list is required",
+            "message": "Provide a list of vendor names to analyze"
+        }), 400
+
+    # Get accounts (default to all)
+    account_names = body.get('accounts', [])
+    if not account_names:
+        accounts = get_notion_accounts()
+        account_names = [a.get('name') for a in accounts if a.get('name')]
+
+    # Get fit weights
+    fit_weights = body.get('fit_weights', {})
+
+    try:
+        logger.info(f"🔍 Calculating intro power for {len(vendors)} vendors across {len(account_names)} accounts")
+
+        # Run discovery
+        results = vendor_discovery.discover_relationships(
+            vendors=vendors,
+            customers=account_names,
+            fit_weights=fit_weights
+        )
+
+        vendor_scores = results.get('vendor_scores', [])
+        total_signals = len(results.get('signals', []))
+
+        # Convert to JSON-serializable format
+        rankings = []
+        for v in vendor_scores:
+            # Get customer details
+            customers_with_signals = []
+            for customer, signals in v.customer_signals.items():
+                best_signal = max(signals, key=lambda s: s.signal_strength) if signals else None
+                customers_with_signals.append({
+                    "customer": customer,
+                    "signal_count": len(signals),
+                    "best_signal_type": best_signal.signal_type if best_signal else None,
+                    "best_signal_strength": best_signal.signal_strength if best_signal else 0,
+                    "evidence_url": best_signal.evidence_url if best_signal else None
+                })
+
+            rankings.append({
+                "vendor_name": v.vendor_name,
+                "intro_score": v.intro_score,
+                "coverage_count": v.coverage_count,
+                "avg_signal_strength": v.avg_signal_strength,
+                "fit_weight": v.fit_weight,
+                "customers_with_signals": customers_with_signals,
+                "intro_candidates": v.intro_candidates[:5]
+            })
+
+        return jsonify({
+            "status": "success",
+            "vendor_rankings": rankings,
+            "total_vendors_analyzed": len(vendors),
+            "total_accounts_analyzed": len(account_names),
+            "total_signals_found": total_signals,
+            "search_failures": results.get('search_failures', []),
+            "methodology": {
+                "formula": "IntroScore = CoverageCount * AvgSignalStrength * FitWeight",
+                "coverage_count": "Number of target accounts with documented relationships",
+                "avg_signal_strength": "Mean signal strength (1-5 scale)",
+                "fit_weight": "Optional vendor importance multiplier (default: 1.0)"
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"❌ Vendor intro power calculation failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": "Calculation failed",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/accounts/<account_id>/discover-unknown-vendors', methods=['POST'])
+def discover_unknown_vendors_for_account(account_id: str):
+    """
+    WORKFLOW 2: Discover vendors for an account WITHOUT a pre-known vendor list.
+
+    This is fundamentally different from /discover-vendors (Workflow 1):
+    - Workflow 1: "Does vendor X work with account Y?" (requires knowing vendors)
+    - Workflow 2: "Who are account Y's vendors?" (discovers vendors from scratch)
+
+    Use this when you want to identify partnership opportunities by finding
+    which vendors a target account is already working with.
+
+    POST body (optional):
+    {
+        "save_to_notion": true  // Save discovered vendors as potential partnerships
+    }
+
+    Returns:
+    - discovered_vendors: List of vendors found with confidence scores
+    - vendors_by_category: Vendors grouped by category (compute, power, cooling, etc.)
+    - search_results_analyzed: Number of search results processed
+    """
+    if not VENDOR_DISCOVERY_AVAILABLE:
+        return jsonify({
+            "error": "Vendor discovery unavailable",
+            "message": "VendorRelationshipDiscovery module not configured. Check server logs."
+        }), 503
+
+    # Get account from Notion
+    accounts = get_notion_accounts()
+    account = next((a for a in accounts if a['id'] == account_id), None)
+
+    if not account:
+        return jsonify({"error": "Account not found"}), 404
+
+    account_name = account.get('name', '')
+    if not account_name:
+        return jsonify({"error": "Account name is required for vendor discovery"}), 400
+
+    # Parse request body
+    body = request.get_json(silent=True) or {}
+    save_to_notion = body.get('save_to_notion', False)
+
+    try:
+        logger.info(f"🔍 [Workflow 2] Discovering unknown vendors for {account_name}")
+
+        # Run account-centric vendor discovery
+        results = vendor_discovery.discover_account_vendors(account_name)
+
+        discovered_vendors = results.get('discovered_vendors', [])
+        vendors_by_category = results.get('vendors_by_category', {})
+        search_results_analyzed = results.get('search_results_analyzed', 0)
+        raw_evidence = results.get('raw_evidence', [])
+
+        # Save to Notion if requested
+        saved_count = 0
+        if save_to_notion and discovered_vendors and NOTION_AVAILABLE:
+            try:
+                notion = get_notion_client()
+                account_notion_id = account.get('notion_id')
+
+                # Save top vendors as potential partnerships
+                for vendor in discovered_vendors[:10]:  # Top 10 vendors
+                    if vendor.confidence >= 0.5:  # Only save high-confidence discoveries
+                        properties = {
+                            "Name": {"title": [{"text": {"content": vendor.vendor_name}}]},
+                            "Partnership Type": {"select": {"name": "vendor"}},
+                            "Context": {"rich_text": [{"text": {"content": f"Auto-discovered vendor for {account_name}. Category: {vendor.category}. Relationship: {vendor.relationship_type}. Evidence: {', '.join(vendor.evidence_snippets[:2])[:500]}"}}]},
+                            "Relevance Score": {"number": int(vendor.confidence * 100)},
+                        }
+
+                        # Link to account if possible
+                        if account_notion_id:
+                            properties["Related Account"] = {"relation": [{"id": account_notion_id}]}
+
+                        # Check if partnership already exists
+                        existing = notion._find_existing_partnership(vendor.vendor_name)
+                        if not existing:
+                            notion.client.pages.create(
+                                parent={"database_id": notion.partnerships_db},
+                                properties=properties
+                            )
+                            saved_count += 1
+                            logger.info(f"✅ Saved discovered vendor: {vendor.vendor_name}")
+
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to save some vendors to Notion: {e}")
+
+        # Convert dataclasses to dicts for JSON response
+        vendors_json = []
+        for v in discovered_vendors:
+            vendors_json.append({
+                "vendor_name": v.vendor_name,
+                "category": v.category,
+                "mention_count": v.mention_count,
+                "evidence_urls": v.evidence_urls[:5],  # Top 5 URLs
+                "evidence_snippets": [s[:200] for s in v.evidence_snippets[:3]],  # Top 3 snippets, truncated
+                "relationship_type": v.relationship_type,
+                "confidence": round(v.confidence, 2),
+                "discovered_at": v.discovered_at
+            })
+
+        # Convert category groupings
+        category_json = {}
+        for category, vendors in vendors_by_category.items():
+            category_json[category] = [
+                {
+                    "vendor_name": v.vendor_name,
+                    "confidence": round(v.confidence, 2),
+                    "mention_count": v.mention_count
+                }
+                for v in vendors
+            ]
+
+        return jsonify({
+            "status": "success",
+            "account_name": account_name,
+            "workflow": "account_centric_discovery",
+            "discovered_vendors": vendors_json,
+            "total_vendors_discovered": len(vendors_json),
+            "vendors_by_category": category_json,
+            "category_summary": {cat: len(vendors) for cat, vendors in category_json.items()},
+            "search_results_analyzed": search_results_analyzed,
+            "saved_to_notion": saved_count,
+            "methodology": {
+                "description": "Account-centric search discovers partners mentioned in content about the target account",
+                "confidence_factors": [
+                    "Mention count across multiple sources",
+                    "URL diversity (more sources = higher confidence)",
+                    "Context quality (snippets with clear partner mentions)"
+                ],
+                "categories": {
+                    "infrastructure": ["compute", "power", "cooling", "networking", "colocation", "software", "cloud"],
+                    "services": ["professional_services", "system_integrators", "managed_services", "channel_partners"],
+                    "platform": ["platform_partners", "ai_ml_partners"],
+                    "financial": ["investors"]
+                }
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"❌ Account-centric vendor discovery failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": "Vendor discovery failed",
             "message": str(e)
         }), 500
 
