@@ -2438,6 +2438,7 @@ def run_account_research(account_id: str):
 
         # BACKUP: Explicitly save to Notion if ABM system didn't persist
         # This ensures research results are always saved
+        notion = get_notion_client() if NOTION_AVAILABLE else None
         if notion and account.get('notion_id'):
             try:
                 account_data = research_results.get('account', {})
