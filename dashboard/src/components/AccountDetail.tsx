@@ -6,6 +6,7 @@ import { ContactList } from './ContactCard';
 import { EnrichmentButton } from './EnrichmentButton';
 import { ResearchButton } from './ResearchButton';
 import { VendorDiscoveryButton } from './VendorDiscoveryButton';
+import { AccountFieldEnrichmentButton } from './AccountFieldEnrichmentButton';
 import { TriggerEventsSection } from './TriggerEventsSection';
 import { api } from '../api/client';
 
@@ -238,6 +239,12 @@ export function AccountDetail({ account, contacts, triggerEvents = [], onClose, 
             </div>
           </div>
         )}
+
+        {/* Account Field Enrichment - Populate Industry, Infrastructure, ICP Score */}
+        <AccountFieldEnrichmentButton
+          account={account}
+          onEnrichmentComplete={onRefresh}
+        />
 
         {/* Deep Research - Run full 5-phase ABM pipeline */}
         <ResearchButton

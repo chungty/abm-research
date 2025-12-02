@@ -285,6 +285,11 @@ body {
   color: var(--color-infra-vendor);
   border-color: rgba(217, 70, 239, 0.3);
 }
+.infra-chip.dc {
+  color: #f59e0b;  /* Amber/Gold for DC Power */
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.08);
+}
 
 /* Input Fields */
 .input-field {

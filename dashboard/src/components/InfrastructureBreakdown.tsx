@@ -8,6 +8,7 @@ interface Props {
 
 const categoryOrder = [
   'gpu_infrastructure',
+  'dc_rectifier_systems',
   'target_vendors',
   'power_systems',
   'cooling_systems',
@@ -16,6 +17,7 @@ const categoryOrder = [
 
 const categoryDescriptions: Record<string, string> = {
   gpu_infrastructure: 'GPU/AI Infrastructure - TARGET ICP (neocloud datacenter)',
+  dc_rectifier_systems: 'DC Rectifier/Power - TARGET ICP (48V/380V DC infrastructure)',
   target_vendors: 'Target Vendor (competitive displacement opportunity)',
   power_systems: 'Power infrastructure detected',
   cooling_systems: 'Cooling infrastructure (critical for GPU density)',

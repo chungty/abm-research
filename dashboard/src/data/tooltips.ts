@@ -87,6 +87,23 @@ Categories tracked:
 
 More infrastructure = more Verdigris opportunity.`,
 
+  dcRectifierSystems: `DC Rectifier Signals indicate power infrastructure interest.
+
+Why we care:
+Companies transitioning to DC power (48VDC/380VDC) are upgrading infrastructure and need visibility into per-rack efficiency.
+
+High-value signals:
+• Active RFP/procurement = IMMEDIATE outreach
+• 48VDC/380VDC mentions = architecture transition
+• Delta/ABB/Vertiv relationships = vendor engagement
+
+Target Contacts:
+• Critical Facilities Manager (Entry Point)
+• Power Engineers (Technical Champion)
+• VP of Data Center Operations (Economic Buyer)
+
+Talk Track: "As you transition to DC power, visibility into per-rack efficiency becomes critical for optimizing your investment..."`,
+
   // MEDDIC role tooltips
   entryPoint: `Entry Points are Technical Believers.
 

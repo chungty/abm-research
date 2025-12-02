@@ -115,6 +115,7 @@ interface InfraChipProps {
 
 const infraConfig: Record<string, { label: string; className: string }> = {
   gpu_infrastructure: { label: 'GPU/AI', className: 'gpu' },
+  dc_rectifier_systems: { label: 'DC Power', className: 'dc' },
   target_vendors: { label: 'Vendor', className: 'vendor' },
   power_systems: { label: 'Power', className: 'power' },
   cooling_systems: { label: 'Cooling', className: 'cooling' },

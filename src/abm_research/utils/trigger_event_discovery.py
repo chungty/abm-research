@@ -91,6 +91,15 @@ class TriggerEventDiscovery:
                         "issue", "problem", "blackout"],
             "weight": 1.6,  # High urgency signals
             "source_priority": ["News Article", "Social Media"]
+        },
+        "dc_power_project": {
+            # DC Rectifier ICP - Companies investing in DC power infrastructure
+            "keywords": ["DC power", "rectifier", "48V", "380V", "48VDC", "380VDC",
+                        "power conversion", "AC-to-DC", "DC infrastructure",
+                        "rectifier upgrade", "DC deployment", "DC distribution",
+                        "busbar", "power shelf"],
+            "weight": 1.8,  # High relevance - power infrastructure target ICP
+            "source_priority": ["Press Release", "News Article", "Company Website"]
         }
     }
 

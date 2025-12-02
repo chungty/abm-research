@@ -189,6 +189,12 @@ class VendorRelationshipDiscovery:
         '"{account}" infrastructure vendors partners',
         '"{account}" datacenter infrastructure',
         '"{account}" powered by deploys',
+        # DC Rectifier specific searches
+        '"{account}" DC rectifier deployment',
+        '"{account}" "48V DC" infrastructure',
+        '"{account}" power conversion system',
+        '"{account}" rectifier upgrade',
+        '"{account}" Delta Electronics OR Eltek OR "Huawei Digital Power"',
     ]
 
     # ==========================================================================
@@ -277,6 +283,17 @@ class VendorRelationshipDiscovery:
         "complementary_networking": [
             "Cisco", "Arista", "Juniper", "Mellanox",
         ],
+        # DC Rectifier Vendors (TARGET ICP - DC power infrastructure)
+        "dc_rectifier_vendors": [
+            "Delta Electronics",
+            "ABB Power",
+            "Vertiv",
+            "Eltek",
+            "Huawei Digital Power",
+            "ZTE Power",
+            "Emerson Network Power",
+            "Rectifier Technologies",
+        ],
     }
 
     # Strategic purpose metadata for each category
@@ -321,6 +338,11 @@ class VendorRelationshipDiscovery:
             "action": "Ask for warm introduction",
             "description": "Networking vendors with shared customers",
         },
+        "dc_rectifier_vendors": {
+            "strategic_purpose": "intro_path",
+            "action": "Ask for warm introduction - DC power focus",
+            "description": "DC rectifier/power conversion vendors - TARGET ICP for power infrastructure",
+        },
     }
 
     def __init__(self, notion_client=None):
@@ -332,7 +354,7 @@ class VendorRelationshipDiscovery:
 
         # Rate limiting
         self.last_request_time = 0
-        self.request_delay = 2.0  # 2 seconds between requests (conservative for Brave API)
+        self.request_delay = 0.5  # 0.5 seconds between requests (faster, with retry on 429)
         self.max_retries = 3  # Max retries on rate limit
 
         # Cache to avoid duplicate searches
@@ -506,6 +528,121 @@ Return JSON array only, no markdown:"""
             logger.warning(f"Error in LLM vendor extraction: {e}")
             return []
 
+    def extract_vendors_from_texts_batch(
+        self,
+        texts: List[Dict[str, str]],  # List of {text, url} dicts
+        account_name: str,
+        batch_size: int = 5
+    ) -> Dict[str, List[Dict]]:
+        """
+        Extract vendors from multiple texts in a single LLM call (batch processing).
+
+        This reduces API calls from N to N/batch_size, providing ~80% cost reduction.
+
+        Args:
+            texts: List of dicts with 'text' and 'url' keys
+            account_name: Target account name
+            batch_size: Number of texts per LLM call
+
+        Returns:
+            Dict mapping url -> List of extracted vendors
+        """
+        if not self.openai_client or not texts:
+            return {}
+
+        results: Dict[str, List[Dict]] = {}
+
+        # Build category descriptions once
+        category_descriptions = []
+        for cat, meta in self.CATEGORY_METADATA.items():
+            category_descriptions.append(f"- {cat}: {meta['description']}")
+        categories_text = chr(10).join(category_descriptions)
+
+        # Process in batches
+        for batch_start in range(0, len(texts), batch_size):
+            batch = texts[batch_start:batch_start + batch_size]
+
+            # Build numbered batch prompt
+            batch_texts = []
+            for i, item in enumerate(batch):
+                text_preview = item['text'][:1500]  # Smaller per item in batch
+                batch_texts.append(f"[TEXT_{i}]\n{text_preview}\n[/TEXT_{i}]")
+
+            combined = "\n\n".join(batch_texts)
+
+            prompt = f"""Extract company names from these {len(batch)} text snippets that are vendors, partners,
+or service providers related to {account_name}'s data center or IT infrastructure.
+
+Do NOT include:
+- {account_name} itself
+- Generic companies (Google, Microsoft, Amazon) unless clearly acting as a vendor
+- News sources or publishers
+
+For each company found, classify into ONE of these categories:
+{categories_text}
+- discovered_unknown: Cannot determine category
+
+Return a JSON object where keys are TEXT_0, TEXT_1, etc. and values are arrays of vendors.
+Each vendor must have: name, category, confidence (0-1), evidence (brief quote).
+
+Texts to analyze:
+---
+{combined}
+---
+
+Return JSON object only, no markdown:"""
+
+            try:
+                response = self.openai_client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "You are a B2B sales intelligence analyst extracting vendor relationships from text. Return only valid JSON objects."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.1,
+                    max_tokens=2000  # Larger for batch
+                )
+
+                content = response.choices[0].message.content.strip()
+
+                # Handle markdown code blocks
+                if content.startswith("```"):
+                    content = content.split("```")[1]
+                    if content.startswith("json"):
+                        content = content[4:]
+                    content = content.strip()
+
+                batch_results = json.loads(content)
+
+                # Map results back to URLs
+                for i, item in enumerate(batch):
+                    key = f"TEXT_{i}"
+                    vendors_raw = batch_results.get(key, [])
+
+                    validated = []
+                    for v in vendors_raw:
+                        if isinstance(v, dict) and 'name' in v:
+                            validated.append({
+                                'name': v.get('name', ''),
+                                'category': v.get('category', 'discovered_unknown'),
+                                'confidence': float(v.get('confidence', 0.5)),
+                                'evidence': v.get('evidence', '')[:200]
+                            })
+
+                    results[item['url']] = validated
+
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse batch LLM response as JSON: {e}")
+                # Fallback: mark all as empty
+                for item in batch:
+                    results[item['url']] = []
+            except Exception as e:
+                logger.warning(f"Error in batch LLM vendor extraction: {e}")
+                for item in batch:
+                    results[item['url']] = []
+
+        return results
+
     def discover_unknown_vendors(
         self,
         account_name: str,
@@ -556,6 +693,7 @@ Return JSON array only, no markdown:"""
 
         # Collect all search results
         all_results: List[Dict] = []
+        search_errors: List[Dict] = []  # Track any API errors
 
         # Run account-centric searches
         for template in self.VENDOR_DISCOVERY_TEMPLATES:
@@ -566,8 +704,17 @@ Return JSON array only, no markdown:"""
             if cache_key in self._search_cache:
                 results = self._search_cache[cache_key]
             else:
-                results = self._brave_search(query)
+                response = self._brave_search(query)
+                results = response.get('results', [])
                 self._search_cache[cache_key] = results
+                # Track errors for surfacing to dashboard
+                if response.get('error'):
+                    search_errors.append({
+                        'query': query,
+                        'error': response['error'],
+                        'error_code': response.get('error_code'),
+                        'retry_after': response.get('retry_after')
+                    })
 
             for r in results:
                 r['_search_query'] = query
@@ -580,10 +727,12 @@ Return JSON array only, no markdown:"""
                 known_vendor_names.add(v.lower())
                 known_vendor_names.add(self._normalize_company(v))
 
-        # Extract vendors via LLM from each result
+        # Extract vendors via LLM from each result (using BATCH processing)
         llm_extracted: Dict[str, Dict] = {}  # vendor_name -> {count, evidence, category, confidence}
         known_vendors_found: Dict[str, Dict] = {}
 
+        # Step 1: Collect all texts that pass the account name filter
+        texts_to_process: List[Dict[str, str]] = []
         for result in all_results:
             title = result.get('title', '')
             description = result.get('description', '')
@@ -595,9 +744,17 @@ Return JSON array only, no markdown:"""
             if account_lower not in text.lower():
                 continue
 
-            # Extract vendors via LLM
-            extracted = self.extract_vendors_from_text(text, account_name)
+            texts_to_process.append({'text': text, 'url': url})
 
+        # Step 2: Extract vendors via BATCH LLM call (reduces 20 calls to 4)
+        batch_results = self.extract_vendors_from_texts_batch(
+            texts=texts_to_process,
+            account_name=account_name,
+            batch_size=5
+        )
+
+        # Step 3: Process batched results
+        for url, extracted in batch_results.items():
             for vendor in extracted:
                 vendor_name = vendor['name']
                 vendor_lower = vendor_name.lower()
@@ -772,8 +929,17 @@ Return JSON array only, no markdown:"""
         for vendor in vendors:
             for customer in customers:
                 try:
-                    signals = self._search_vendor_customer(vendor, customer)
-                    all_signals.extend(signals)
+                    result = self._search_vendor_customer(vendor, customer)
+                    all_signals.extend(result.get('signals', []))
+                    # Track any Brave API errors
+                    for err in result.get('errors', []):
+                        search_failures.append({
+                            "vendor": vendor,
+                            "customer": customer,
+                            "error": err.get('error'),
+                            "error_code": err.get('error_code'),
+                            "retry_after": err.get('retry_after')
+                        })
                 except Exception as e:
                     logger.warning(f"Search failed for {vendor}/{customer}: {e}")
                     search_failures.append({
@@ -855,6 +1021,7 @@ Return JSON array only, no markdown:"""
 
         # Collect all search results
         all_results: List[Dict] = []
+        search_errors: List[Dict] = []  # Track any API errors
 
         # Run account-centric searches
         for template in self.VENDOR_DISCOVERY_TEMPLATES:
@@ -865,8 +1032,17 @@ Return JSON array only, no markdown:"""
             if cache_key in self._search_cache:
                 results = self._search_cache[cache_key]
             else:
-                results = self._brave_search(query)
+                response = self._brave_search(query)
+                results = response.get('results', [])
                 self._search_cache[cache_key] = results
+                # Track errors for surfacing to dashboard
+                if response.get('error'):
+                    search_errors.append({
+                        'query': query,
+                        'error': response['error'],
+                        'error_code': response.get('error_code'),
+                        'retry_after': response.get('retry_after')
+                    })
 
             # Tag results with the search query
             for r in results:
@@ -1091,9 +1267,17 @@ Return JSON array only, no markdown:"""
         self,
         vendor: str,
         customer: str
-    ) -> List[VendorCustomerSignal]:
-        """Search for relationship signals between a vendor and customer."""
+    ) -> Dict:
+        """
+        Search for relationship signals between a vendor and customer.
+
+        Returns:
+            Dict with:
+                - 'signals': List[VendorCustomerSignal] - discovered signals
+                - 'errors': List[Dict] - any search errors encountered
+        """
         signals = []
+        search_errors = []
 
         # Try multiple search templates
         templates_to_try = self.SEARCH_TEMPLATES[:4]  # Limit to avoid rate limiting
@@ -1106,8 +1290,17 @@ Return JSON array only, no markdown:"""
             if cache_key in self._search_cache:
                 results = self._search_cache[cache_key]
             else:
-                results = self._brave_search(query)
+                response = self._brave_search(query)
+                results = response.get('results', [])
                 self._search_cache[cache_key] = results
+                # Track errors
+                if response.get('error'):
+                    search_errors.append({
+                        'query': query,
+                        'error': response['error'],
+                        'error_code': response.get('error_code'),
+                        'retry_after': response.get('retry_after')
+                    })
 
             # Parse results into signals
             for result in results:
@@ -1115,14 +1308,24 @@ Return JSON array only, no markdown:"""
                 if signal:
                     signals.append(signal)
 
-        return signals
+        return {'signals': signals, 'errors': search_errors}
 
-    def _brave_search(self, query: str) -> List[Dict]:
+    def _brave_search(self, query: str) -> Dict:
         """
         Execute Brave Search API request with retry logic for rate limiting.
 
         Uses exponential backoff when rate limited (429 errors).
+
+        Returns:
+            Dict with keys:
+                - 'results': List[Dict] - search results (empty if error)
+                - 'error': Optional[str] - error message if failed
+                - 'error_code': Optional[str] - error code for dashboard display
+                - 'retry_after': Optional[int] - seconds to wait before retry (for rate limits)
         """
+        last_error = None
+        last_error_code = None
+
         for attempt in range(self.max_retries):
             self._apply_rate_limit()
 
@@ -1145,12 +1348,18 @@ Return JSON array only, no markdown:"""
                     # Rate limited - apply exponential backoff
                     backoff_time = (2 ** attempt) * 3  # 3s, 6s, 12s
                     logger.warning(f"Brave API rate limited (429). Waiting {backoff_time}s before retry {attempt + 1}/{self.max_retries}")
+                    last_error = f"Rate limited by Brave API. Retried {attempt + 1}/{self.max_retries} times."
+                    last_error_code = "BRAVE_RATE_LIMITED"
                     time.sleep(backoff_time)
                     continue
 
                 if response.status_code != 200:
                     logger.warning(f"Brave search failed: {response.status_code}")
-                    return []
+                    return {
+                        'results': [],
+                        'error': f"Brave API returned status {response.status_code}",
+                        'error_code': f"BRAVE_HTTP_{response.status_code}"
+                    }
 
                 data = response.json()
 
@@ -1159,15 +1368,38 @@ Return JSON array only, no markdown:"""
                 results.extend(data.get('news', {}).get('results', []))
                 results.extend(data.get('web', {}).get('results', []))
 
-                return results
+                return {'results': results, 'error': None, 'error_code': None}
 
+            except requests.exceptions.Timeout:
+                logger.warning(f"Brave search timeout for query: {query[:50]}...")
+                return {
+                    'results': [],
+                    'error': "Brave API request timed out after 15 seconds",
+                    'error_code': "BRAVE_TIMEOUT"
+                }
+            except requests.exceptions.ConnectionError as e:
+                logger.warning(f"Brave search connection error: {e}")
+                return {
+                    'results': [],
+                    'error': "Could not connect to Brave API",
+                    'error_code': "BRAVE_CONNECTION_ERROR"
+                }
             except Exception as e:
                 logger.warning(f"Brave search error: {e}")
-                return []
+                return {
+                    'results': [],
+                    'error': f"Unexpected error: {str(e)}",
+                    'error_code': "BRAVE_UNKNOWN_ERROR"
+                }
 
         # If we exhausted all retries due to rate limiting
         logger.warning(f"Brave search failed after {self.max_retries} retries due to rate limiting")
-        return []
+        return {
+            'results': [],
+            'error': last_error or f"Search failed after {self.max_retries} retries",
+            'error_code': last_error_code or "BRAVE_MAX_RETRIES",
+            'retry_after': 60  # Suggest waiting 60 seconds before trying again
+        }
 
     def _parse_result_to_signal(
         self,

@@ -261,7 +261,7 @@ class StrategicPartnershipIntelligence:
             """
 
             response = self.openai_client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=400,
                 temperature=0.3
@@ -312,7 +312,7 @@ class StrategicPartnershipIntelligence:
             """
 
             response = self.openai_client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=300,
                 temperature=0.3

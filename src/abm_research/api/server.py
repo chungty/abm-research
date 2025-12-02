@@ -409,9 +409,10 @@ def transform_notion_partnership(page: Dict) -> Optional[Dict]:
     try:
         props = page.get('properties', {})
 
-        # Extract partner name (title field - stored as 'Name' in Notion)
+        # Extract partner name (title field - stored as 'Partner Name' in Notion)
         partner_name = ''
-        name_prop = props.get('Name', {})
+        # Try both field names for compatibility
+        name_prop = props.get('Partner Name', {}) or props.get('Name', {})
         if name_prop.get('title'):
             partner_name = name_prop['title'][0]['text']['content'] if name_prop['title'] else ''
 
@@ -2676,7 +2677,7 @@ def generate_ai_outreach():
         logger.info(f"🤖 Generating {outreach_type} outreach for {contact.get('name')} at {account.get('name')}")
 
         response = openai_client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
@@ -3265,6 +3266,576 @@ def discover_unknown_vendors_for_account(account_id: str):
             "error": "Vendor discovery failed",
             "message": str(e)
         }), 500
+
+
+# ============================================================================
+# DC Rectifier Signal Detection (New ICP Vertical)
+# ============================================================================
+
+@app.route('/api/accounts/<account_id>/detect-dc-signals', methods=['POST'])
+def detect_dc_signals(account_id: str):
+    """
+    Detect DC rectifier/power infrastructure signals via Brave Search.
+
+    This endpoint identifies prospects interested in DC power systems:
+    - 48VDC/380VDC infrastructure
+    - Rectifier equipment and upgrades
+    - DC power conversion projects
+    - DC rectifier vendor relationships (Delta, ABB, Vertiv, Eltek, etc.)
+
+    POST body (optional):
+    {
+        "save_to_notion": false  // Save as trigger events (default: false)
+    }
+
+    Returns:
+    - dc_fit_score: 0-100 score indicating DC rectifier ICP fit
+    - signals: List of detected DC power signals with urgency levels
+    - vendor_mentions: DC rectifier vendors found in search results
+    - urgency_breakdown: Signals grouped by urgency (Critical, High, Medium)
+    """
+    # Get account from Notion
+    accounts = get_notion_accounts()
+    account = next((a for a in accounts if a['id'] == account_id), None)
+
+    if not account:
+        return jsonify({"error": "Account not found"}), 404
+
+    account_name = account.get('name', '')
+    if not account_name:
+        return jsonify({"error": "Account name is required for DC signal detection"}), 400
+
+    # Parse request body
+    body = request.get_json(silent=True) or {}
+    save_to_notion = body.get('save_to_notion', False)
+
+    # Check for Brave API key
+    brave_api_key = os.getenv('BRAVE_API_KEY')
+    if not brave_api_key:
+        return jsonify({
+            "error": "Brave API key not configured",
+            "message": "Set BRAVE_API_KEY environment variable"
+        }), 503
+
+    try:
+        logger.info(f"⚡ Detecting DC rectifier signals for {account_name}")
+
+        # DC-specific search queries (from the plan)
+        dc_queries = [
+            f'"{account_name}" DC rectifier deployment',
+            f'"{account_name}" 48V DC infrastructure OR "48VDC"',
+            f'"{account_name}" power conversion system rectifier',
+            f'"{account_name}" Delta Electronics OR Eltek OR "Huawei Digital Power" OR ABB',
+        ]
+
+        # DC rectifier keywords to look for in results
+        dc_keywords = {
+            'critical': ['RFP', 'procurement', 'bid', 'contract', 'rectifier upgrade', 'DC deployment'],
+            'high': ['48vdc', '48v dc', '380vdc', '380v dc', 'dc power', 'rectifier', 'busbar',
+                    'power conversion', 'dc infrastructure', 'dc distribution'],
+            'medium': ['power efficiency', 'PUE', 'ac-to-dc', 'conversion efficiency',
+                      'delta electronics', 'eltek', 'vertiv', 'abb power', 'huawei digital power']
+        }
+
+        # Brave Search base URL
+        brave_url = "https://api.search.brave.com/res/v1/web/search"
+
+        all_signals = []
+        vendor_mentions = set()
+        search_results_count = 0
+
+        # DC rectifier vendors to detect
+        dc_vendors = ['Delta Electronics', 'ABB', 'Vertiv', 'Eltek', 'Huawei Digital Power',
+                     'ZTE Power', 'Emerson Network Power', 'Rectifier Technologies']
+
+        for query in dc_queries:
+            try:
+                # Rate limit
+                import time
+                time.sleep(1.0)
+
+                response = requests.get(
+                    brave_url,
+                    params={'q': query, 'count': 10, 'freshness': 'pm'},
+                    headers={
+                        'X-Subscription-Token': brave_api_key,
+                        'Accept': 'application/json'
+                    },
+                    timeout=15
+                )
+
+                if response.status_code != 200:
+                    logger.warning(f"Brave search failed for query: {query[:50]}...")
+                    continue
+
+                data = response.json()
+                web_results = data.get('web', {}).get('results', [])
+                news_results = data.get('news', {}).get('results', [])
+
+                search_results_count += len(web_results) + len(news_results)
+
+                # Process results
+                for result in web_results + news_results:
+                    title = result.get('title', '').lower()
+                    description = result.get('description', '').lower()
+                    url = result.get('url', '')
+                    combined_text = f"{title} {description}"
+
+                    # Determine urgency level
+                    urgency = None
+                    matched_keywords = []
+
+                    for kw in dc_keywords['critical']:
+                        if kw.lower() in combined_text:
+                            urgency = 'Critical'
+                            matched_keywords.append(kw)
+
+                    if not urgency:
+                        for kw in dc_keywords['high']:
+                            if kw.lower() in combined_text:
+                                urgency = 'High'
+                                matched_keywords.append(kw)
+
+                    if not urgency:
+                        for kw in dc_keywords['medium']:
+                            if kw.lower() in combined_text:
+                                urgency = 'Medium'
+                                matched_keywords.append(kw)
+
+                    if urgency:
+                        signal = {
+                            'title': result.get('title', ''),
+                            'description': result.get('description', '')[:300],
+                            'url': url,
+                            'urgency': urgency,
+                            'matched_keywords': matched_keywords[:5],
+                            'source_type': 'News' if 'age' in result else 'Web'
+                        }
+                        all_signals.append(signal)
+
+                    # Check for vendor mentions
+                    for vendor in dc_vendors:
+                        if vendor.lower() in combined_text:
+                            vendor_mentions.add(vendor)
+
+            except Exception as e:
+                logger.warning(f"Error searching: {e}")
+                continue
+
+        # Deduplicate signals by URL
+        seen_urls = set()
+        unique_signals = []
+        for signal in all_signals:
+            if signal['url'] not in seen_urls:
+                seen_urls.add(signal['url'])
+                unique_signals.append(signal)
+
+        # Calculate DC fit score
+        # Score based on signal count and urgency levels
+        urgency_counts = {'Critical': 0, 'High': 0, 'Medium': 0}
+        for signal in unique_signals:
+            urgency_counts[signal['urgency']] += 1
+
+        dc_fit_score = min(100,
+            urgency_counts['Critical'] * 30 +
+            urgency_counts['High'] * 15 +
+            urgency_counts['Medium'] * 5 +
+            len(vendor_mentions) * 10
+        )
+
+        # Save to Notion as trigger events if requested
+        saved_count = 0
+        if save_to_notion and unique_signals and NOTION_AVAILABLE:
+            try:
+                notion = get_notion_client()
+                account_notion_id = account.get('notion_id')
+
+                for signal in unique_signals[:10]:  # Top 10 signals
+                    properties = {
+                        "Event Description": {
+                            "title": [{"text": {"content": f"DC Signal: {signal['title'][:150]}"}}]
+                        },
+                        "Event Type": {
+                            "select": {"name": "DC Power Project"}
+                        },
+                        "Confidence": {
+                            "select": {"name": signal['urgency']}
+                        },
+                        "Source URL": {
+                            "url": signal['url']
+                        },
+                        "Detected Date": {
+                            "date": {"start": datetime.now().strftime('%Y-%m-%d')}
+                        },
+                        "Urgency Level": {
+                            "select": {"name": signal['urgency']}
+                        }
+                    }
+
+                    if account_notion_id:
+                        properties["Account"] = {"relation": [{"id": account_notion_id}]}
+
+                    notion.client.pages.create(
+                        parent={"database_id": notion.trigger_events_db},
+                        properties=properties
+                    )
+                    saved_count += 1
+
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to save DC signals to Notion: {e}")
+
+        logger.info(f"⚡ Found {len(unique_signals)} DC signals, score: {dc_fit_score}")
+
+        return jsonify({
+            "status": "success",
+            "account_name": account_name,
+            "dc_fit_score": dc_fit_score,
+            "signals": unique_signals[:20],
+            "total_signals": len(unique_signals),
+            "vendor_mentions": list(vendor_mentions),
+            "urgency_breakdown": urgency_counts,
+            "search_results_analyzed": search_results_count,
+            "saved_to_notion": saved_count,
+            "sales_guidance": {
+                "critical": "IMMEDIATE outreach - active procurement/RFP detected",
+                "high": "Strong signal - architecture transition in progress",
+                "medium": "Monitoring signal - vendor engagement detected",
+                "target_contacts": [
+                    "Critical Facilities Manager (Entry Point)",
+                    "Power Engineers (Technical Champion)",
+                    "VP of Data Center Operations (Economic Buyer)"
+                ],
+                "talk_track": "As you transition to DC power, visibility into per-rack efficiency becomes critical..."
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"❌ DC signal detection failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": "DC signal detection failed",
+            "message": str(e)
+        }), 500
+
+
+# ============================================================================
+# Account Field Enrichment (Lightweight alternative to full research)
+# ============================================================================
+
+@app.route('/api/accounts/<account_id>/enrich-fields', methods=['POST'])
+def enrich_account_fields(account_id: str):
+    """
+    Enrich account fields using web search + AI extraction.
+
+    This is a LIGHTWEIGHT alternative to full 5-phase research.
+    It populates:
+    - Physical Infrastructure (datacenter, GPU, power systems)
+    - Industry classification
+    - ICP Fit Score
+
+    Much faster than /research endpoint - uses only Brave Search + GPT-4o-mini.
+
+    POST body (optional):
+    {
+        "force": false  // Force re-enrichment even if fields already populated
+    }
+    """
+    # Get account from Notion
+    # Support both synthetic IDs (acc_xxxx) and full Notion UUIDs
+    accounts = get_notion_accounts()
+    account = next((a for a in accounts if a['id'] == account_id or a.get('notion_id') == account_id), None)
+
+    if not account:
+        return jsonify({"error": "Account not found"}), 404
+
+    account_name = account.get('name', '')
+    notion_id = account.get('notion_id')
+
+    if not account_name:
+        return jsonify({"error": "Account name is required"}), 400
+
+    if not notion_id:
+        return jsonify({"error": "Account not linked to Notion"}), 400
+
+    # Parse request body
+    body = request.get_json(silent=True) or {}
+    force = body.get('force', False)
+
+    # Check if already enriched (unless force=True)
+    current_infra = account.get('infrastructure_breakdown', {}).get('raw_text', '')
+    current_icp = account.get('icp_fit_score', 0)
+
+    if not force and current_infra and current_icp > 60:
+        return jsonify({
+            "status": "already_enriched",
+            "message": f"Account already has infrastructure data and ICP score ({current_icp}). Use force=true to re-enrich.",
+            "account_name": account_name,
+            "current_icp_score": current_icp
+        })
+
+    # Check for required API keys
+    brave_api_key = os.getenv('BRAVE_API_KEY')
+    openai_api_key = os.getenv('OPENAI_API_KEY')
+
+    if not brave_api_key:
+        return jsonify({"error": "BRAVE_API_KEY not configured"}), 503
+    if not openai_api_key:
+        return jsonify({"error": "OPENAI_API_KEY not configured"}), 503
+
+    try:
+        logger.info(f"🔬 Enriching account fields for {account_name}")
+        import time
+        start_time = time.time()
+
+        # Step 1: Search for infrastructure information
+        brave_url = "https://api.search.brave.com/res/v1/web/search"
+        search_queries = [
+            f'"{account_name}" datacenter infrastructure GPU',
+            f'"{account_name}" cloud computing hardware servers',
+            f'"{account_name}" data center power cooling',
+        ]
+
+        all_results = []
+        for query in search_queries:
+            try:
+                time.sleep(0.5)  # Rate limit
+                response = requests.get(
+                    brave_url,
+                    params={'q': query, 'count': 10},
+                    headers={
+                        'X-Subscription-Token': brave_api_key,
+                        'Accept': 'application/json'
+                    },
+                    timeout=15
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    web_results = data.get('web', {}).get('results', [])
+                    for r in web_results:
+                        all_results.append({
+                            'title': r.get('title', ''),
+                            'description': r.get('description', ''),
+                            'url': r.get('url', '')
+                        })
+            except Exception as e:
+                logger.warning(f"Search failed for query: {query[:50]}... - {e}")
+
+        # Step 2: Use GPT-4o-mini to extract infrastructure details
+        search_context = "\n".join([
+            f"- {r['title']}: {r['description']}"
+            for r in all_results[:15]
+        ])
+
+        extraction_prompt = f"""Analyze these search results about {account_name} and extract infrastructure information.
+
+SEARCH RESULTS:
+{search_context}
+
+Based on these results, provide a JSON response with:
+1. physical_infrastructure: A detailed description of their datacenter/cloud infrastructure (GPUs, servers, power systems, cooling). Include specific hardware models if mentioned (NVIDIA H100, A100, etc.)
+2. industry: The primary industry classification (e.g., "Cloud GPU Provider", "AI Infrastructure", "Data Center Services", "Colocation Provider")
+3. icp_fit_score: A score from 0-100 indicating how well they match ICP criteria:
+   - GPU/AI infrastructure: +30 points
+   - Datacenter operations: +25 points
+   - Power/cooling focus: +25 points
+   - High-growth indicators: +20 points
+
+Respond ONLY with valid JSON:
+{{"physical_infrastructure": "...", "industry": "...", "icp_fit_score": 75, "reasoning": "..."}}
+"""
+
+        try:
+            ai_response = openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": extraction_prompt}],
+                max_tokens=500,
+                temperature=0.3
+            )
+            content = ai_response.choices[0].message.content.strip()
+
+            # Clean up JSON if wrapped in markdown
+            if content.startswith('```'):
+                content = content.split('\n', 1)[1] if '\n' in content else content[3:]
+            if content.endswith('```'):
+                content = content[:-3]
+            content = content.strip()
+
+            extracted = json.loads(content)
+        except Exception as e:
+            logger.warning(f"AI extraction failed: {e}")
+            extracted = {
+                "physical_infrastructure": f"Cloud/datacenter infrastructure provider (search returned {len(all_results)} results)",
+                "industry": "Technology",
+                "icp_fit_score": 65,
+                "reasoning": "Default score - AI extraction failed"
+            }
+
+        # Step 3: Update Notion with enriched data
+        physical_infra = extracted.get('physical_infrastructure', '')[:2000]
+        industry = extracted.get('industry', 'Technology')
+        icp_score = min(100, max(0, extracted.get('icp_fit_score', 60)))
+
+        try:
+            notion = get_notion_client()
+
+            # Build update properties
+            update_properties = {
+                "Physical Infrastructure": {"rich_text": [{"text": {"content": physical_infra}}]},
+                "ICP Fit Score": {"number": icp_score},
+                "Last Updated": {"date": {"start": datetime.now().isoformat()}}
+            }
+
+            # Add Industry if the field exists (select type)
+            try:
+                update_properties["Industry"] = {"select": {"name": industry}}
+            except Exception:
+                pass
+
+            # Update via Notion API
+            url = f"https://api.notion.com/v1/pages/{notion_id}"
+            headers = {
+                'Authorization': f'Bearer {notion.api_key}',
+                'Notion-Version': '2022-06-28',
+                'Content-Type': 'application/json'
+            }
+            response = requests.patch(url, headers=headers, json={"properties": update_properties})
+
+            if response.status_code != 200:
+                logger.warning(f"Notion update warning: {response.text[:200]}")
+            else:
+                logger.info(f"✅ Updated Notion: {account_name} - ICP={icp_score}")
+
+        except Exception as e:
+            logger.error(f"Notion update failed: {e}")
+
+        duration = time.time() - start_time
+
+        return jsonify({
+            "status": "success",
+            "account_name": account_name,
+            "account_id": account_id,
+            "enrichment_results": {
+                "physical_infrastructure": physical_infra,
+                "industry": industry,
+                "icp_fit_score": icp_score,
+                "reasoning": extracted.get('reasoning', '')
+            },
+            "search_results_analyzed": len(all_results),
+            "duration_seconds": round(duration, 2),
+            "notion_updated": True
+        })
+
+    except Exception as e:
+        logger.error(f"❌ Account enrichment failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "error": "Enrichment failed",
+            "message": str(e)
+        }), 500
+
+
+@app.route('/api/accounts/enrich-all', methods=['POST'])
+def enrich_all_accounts():
+    """
+    Bulk enrich all accounts that have missing/default field values.
+
+    This is useful for initial data population after adding accounts.
+    Skips accounts that already have populated fields (unless force=true).
+
+    POST body (optional):
+    {
+        "force": false,  // Force re-enrichment of all accounts
+        "max_accounts": 10  // Limit number of accounts to enrich (default: all)
+    }
+    """
+    body = request.get_json(silent=True) or {}
+    force = body.get('force', False)
+    max_accounts = body.get('max_accounts', 100)
+
+    # Get all accounts
+    accounts = get_notion_accounts()
+
+    # Filter to accounts needing enrichment
+    accounts_to_enrich = []
+    for acc in accounts:
+        current_icp = acc.get('icp_fit_score', 0)
+        current_infra = acc.get('infrastructure_breakdown', {}).get('raw_text', '')
+
+        # Needs enrichment if ICP is default (60) or no infrastructure data
+        needs_enrichment = force or (current_icp <= 60 and not current_infra)
+
+        if needs_enrichment and acc.get('notion_id'):
+            accounts_to_enrich.append({
+                'id': acc['id'],
+                'name': acc['name'],
+                'notion_id': acc['notion_id'],
+                'current_icp': current_icp
+            })
+
+    # Limit accounts
+    accounts_to_enrich = accounts_to_enrich[:max_accounts]
+
+    if not accounts_to_enrich:
+        return jsonify({
+            "status": "no_action",
+            "message": "All accounts already enriched. Use force=true to re-enrich.",
+            "total_accounts": len(accounts),
+            "accounts_needing_enrichment": 0
+        })
+
+    logger.info(f"🔬 Bulk enriching {len(accounts_to_enrich)} accounts")
+
+    results = []
+    success_count = 0
+    error_count = 0
+
+    for acc in accounts_to_enrich:
+        try:
+            # Make internal request to enrich-fields endpoint
+            with app.test_client() as client:
+                response = client.post(
+                    f'/api/accounts/{acc["id"]}/enrich-fields',
+                    json={'force': force},
+                    content_type='application/json'
+                )
+
+                if response.status_code == 200:
+                    data = response.get_json()
+                    success_count += 1
+                    results.append({
+                        'account_name': acc['name'],
+                        'status': 'success',
+                        'new_icp_score': data.get('enrichment_results', {}).get('icp_fit_score', 0)
+                    })
+                else:
+                    error_count += 1
+                    results.append({
+                        'account_name': acc['name'],
+                        'status': 'error',
+                        'error': response.get_json().get('error', 'Unknown error')
+                    })
+
+        except Exception as e:
+            error_count += 1
+            results.append({
+                'account_name': acc['name'],
+                'status': 'error',
+                'error': str(e)
+            })
+
+        # Rate limit between accounts
+        import time
+        time.sleep(2)
+
+    return jsonify({
+        "status": "completed",
+        "total_accounts": len(accounts),
+        "accounts_enriched": success_count,
+        "accounts_failed": error_count,
+        "results": results
+    })
 
 
 # ============================================================================

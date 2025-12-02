@@ -18,6 +18,7 @@ export interface InfrastructureBreakdown {
   score: number;
   breakdown: {
     gpu_infrastructure: InfrastructureCategory;
+    dc_rectifier_systems: InfrastructureCategory;
     target_vendors: InfrastructureCategory;
     power_systems: InfrastructureCategory;
     cooling_systems: InfrastructureCategory;
@@ -62,6 +63,7 @@ export interface AccountScoreBreakdown {
 
 export interface Account {
   id: string;
+  notion_id?: string; // Full Notion UUID for API calls
   name: string;
   domain: string;
   employee_count: number;

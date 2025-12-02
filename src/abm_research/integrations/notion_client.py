@@ -623,16 +623,10 @@ class NotionClient:
             "Account Research Status": {"select": {"name": "Research Complete"}},
             "Last Updated": {"date": {"start": datetime.now().isoformat()}},
 
-            # Enhanced Intelligence Fields (using exact field names)
-            "Recent Leadership Changes": {"rich_text": [{"text": {"content": account.get('Recent Leadership Changes', '')}}]},
-            "Recent Funding": {"rich_text": [{"text": {"content": account.get('Recent Funding', '')}}]},
-            "Growth Stage": {"select": {"name": account.get('Growth Stage', 'Unknown')}},
-            "Physical Infrastructure": {"rich_text": [{"text": {"content": account.get('Physical Infrastructure', '')}}]},
-            "Recent Announcements": {"rich_text": [{"text": {"content": account.get('Recent Announcements', '')}}]},
-            "Hiring Velocity": {"rich_text": [{"text": {"content": account.get('Hiring Velocity', '')}}]},
-            "Conversation Triggers": {"rich_text": [{"text": {"content": account.get('Conversation Triggers', '')}}]},
-            "Key Decision Makers": {"rich_text": [{"text": {"content": account.get('Key Decision Makers', '')}}]},
-            "Competitor Tools": {"rich_text": [{"text": {"content": account.get('Competitor Tools', '')}}]}
+            # Physical Infrastructure - key field for ICP scoring (displayed in dashboard)
+            "Physical Infrastructure": {"rich_text": [{"text": {"content": account.get('Physical Infrastructure', '')[:2000]}}]}
+            # REMOVED per schema cleanup: Recent Leadership Changes, Recent Funding, Growth Stage,
+            # Recent Announcements, Hiring Velocity, Conversation Triggers, Key Decision Makers, Competitor Tools
         }
 
         data = {
@@ -763,40 +757,25 @@ class NotionClient:
                 logger.warning(f"⚠️ Could not find account '{account_name}' for partnership relation")
 
         properties = {
-            # Core fields (using ACTUAL production field names)
-            "Name": {"title": [{"text": {"content": partnership.get('account_name', partnership.get('partner_name', 'Unknown Partner'))}}]},
+            # Core fields - FIX: Use "Partner Name" as Notion title field
+            "Partner Name": {"title": [{"text": {"content": partnership.get('partner_name', partnership.get('account_name', 'Unknown Partner'))}}]},
             "Category": {"select": {"name": partnership.get('partnership_type', partnership.get('category', 'Strategic Alliance'))}},
             "Priority Score": {"number": partnership.get('confidence_score', partnership.get('relevance_score', partnership.get('priority_score', 0)))},
-            "Relationship Evidence": {"rich_text": [{"text": {"content": partnership.get('reasoning', partnership.get('context', partnership.get('relationship_evidence', '')))}}]},
-            "Evidence URL": {"url": source_url},
+            "Relationship Evidence": {"rich_text": [{"text": {"content": partnership.get('reasoning', partnership.get('context', partnership.get('relationship_evidence', '')))[:2000]}}]},
             "Detected Date": {"date": {"start": partnership.get('detected_date', datetime.now().strftime('%Y-%m-%d'))}},
 
-            # Enhanced Strategic Partnership Intelligence Fields
-            # Partnership Depth & Strategy
+            # Partnership Depth & Strategy (KEEP - displayed in dashboard)
             "Relationship Depth": {"select": {"name": partnership.get('relationship_depth', 'Surface Integration')}},
             "Partnership Maturity": {"select": {"name": partnership.get('partnership_maturity', 'Basic')}},
-
-            # Entry Vector Intelligence
-            "Warm Introduction Path": {"rich_text": [{"text": {"content": partnership.get('warm_introduction_path', '')}}]},
-            "Common Partners": {"rich_text": [{"text": {"content": partnership.get('common_partners', '')}}]},
-            "Competitive Overlap": {"select": {"name": partnership.get('competitive_overlap', 'None')}},
-
-            # Action Intelligence
             "Best Approach": {"select": {"name": partnership.get('best_approach', 'Technical Discussion')}},
-            "Decision Timeline": {"select": {"name": partnership.get('decision_timeline', 'Medium (months)')}},
-            "Success Metrics": {"rich_text": [{"text": {"content": partnership.get('success_metrics', '')}}]},
-            "Recommended Next Steps": {"rich_text": [{"text": {"content": partnership.get('recommended_next_steps', partnership.get('next_actions', ''))}}]},
 
             # TRUSTED PATHS: Flag for Verdigris's own partners vs account vendors
             "Is Verdigris Partner": {"checkbox": partnership.get('is_verdigris_partner', False)}
         }
 
-        # TRUSTED PATHS: Add Account relation for vendor relationships discovered during research
+        # Account relation is required - no fallback (removed aspirational fields)
         if account_id:
             properties["Account"] = {"relation": [{"id": account_id}]}
-        elif account_name:
-            # Fallback: Add account name as rich_text for manual linking
-            properties["Account Name (Fallback)"] = {"rich_text": [{"text": {"content": account_name}}]}
 
         data = {
             "parent": {"database_id": self.database_ids['partnerships']},
@@ -822,16 +801,10 @@ class NotionClient:
                 "Account Research Status": {"select": {"name": "Research Complete"}},
                 "Last Updated": {"date": {"start": datetime.now().isoformat()}},
 
-                # Enhanced Intelligence Fields (using exact field names and types from schema)
-                "Recent Leadership Changes": {"rich_text": [{"text": {"content": account.get('Recent Leadership Changes', '')}}]},
-                "Recent Funding": {"rich_text": [{"text": {"content": account.get('Recent Funding', '')}}]},
-                "Growth Stage": {"select": {"name": account.get('Growth Stage', 'Unknown')[:100] or 'Unknown'}},  # Select field
-                "Physical Infrastructure": {"rich_text": [{"text": {"content": account.get('Physical Infrastructure', '')}}]},
-                "Recent Announcements": {"rich_text": [{"text": {"content": account.get('Recent Announcements', '')}}]},
-                "Hiring Velocity": {"rich_text": [{"text": {"content": account.get('Hiring Velocity', '')}}]},
-                "Conversation Triggers": {"rich_text": [{"text": {"content": account.get('Conversation Triggers', '')}}]},
-                "Key Decision Makers": {"rich_text": [{"text": {"content": account.get('Key Decision Makers', '')}}]},
-                "Competitor Tools": {"rich_text": [{"text": {"content": account.get('Competitor Tools', '')}}]}
+                # Physical Infrastructure - key field for ICP scoring (displayed in dashboard)
+                "Physical Infrastructure": {"rich_text": [{"text": {"content": account.get('Physical Infrastructure', '')[:2000]}}]}
+                # REMOVED per schema cleanup: Recent Leadership Changes, Recent Funding, Growth Stage,
+                # Recent Announcements, Hiring Velocity, Conversation Triggers, Key Decision Makers, Competitor Tools
             }
 
             url = f"https://api.notion.com/v1/pages/{page_id}"

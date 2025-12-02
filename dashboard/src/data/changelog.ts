@@ -16,9 +16,46 @@ export interface ChangelogEntry {
   }[];
 }
 
-export const CURRENT_VERSION = 'v0.9.0';
+export const CURRENT_VERSION = 'v0.10.0';
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: 'v0.10.0',
+    date: '2025-12-02',
+    title: 'Account Enrichment UI & Release Process',
+    highlights: [
+      'One-click account field enrichment from dashboard',
+      'Formalized release process with What\'s New integration',
+      'Account ID lookup improvements for Notion sync'
+    ],
+    features: [
+      {
+        category: 'ui',
+        items: [
+          'AccountFieldEnrichmentButton for on-demand Industry, Infrastructure & ICP scoring',
+          'Progress indicators and success states for enrichment operations',
+          'Force refresh option for re-enriching accounts',
+          'Results display with infrastructure summary and ICP reasoning'
+        ]
+      },
+      {
+        category: 'infrastructure',
+        items: [
+          'Release process documentation and workflow',
+          'Retrospective templates for continuous improvement',
+          'CI/CD integration with automated deployment verification'
+        ]
+      },
+      {
+        category: 'integration',
+        items: [
+          'Account ID lookup now supports both synthetic and Notion UUIDs',
+          'Improved error handling in enrichment endpoints',
+          'Notion field updates for Industry, Physical Infrastructure, ICP Fit Score'
+        ]
+      }
+    ]
+  },
   {
     version: 'v0.9.0',
     date: '2025-11-30',

@@ -202,6 +202,23 @@ class AccountScorer:
             'keywords': ['dcim', 'struxureware', 'trellis', 'nlyte', 'sunbird', 'device42'],
             'max_points': 15,
             'description': 'DCIM software detected'
+        },
+        'dc_rectifier_systems': {
+            # DC Rectifier ICP - Companies interested in DC power infrastructure
+            'keywords': [
+                # Core DC Power terms
+                '48vdc', '48v dc', '380vdc', '380v dc', 'dc power', 'dc distribution',
+                'rectifier', 'ac-to-dc', 'ac to dc', 'power conversion',
+                # Equipment
+                'busbar', 'dc busbar', 'rectifier cabinet', 'power shelf',
+                # Efficiency terms
+                'rectifier efficiency', 'conversion efficiency', 'dc efficiency',
+                # Vendor signals (key DC rectifier vendors)
+                'eltek', 'delta electronics rectifier', 'huawei digital power',
+                'abb power', 'emerson network power', 'zte power'
+            ],
+            'max_points': 35,  # High priority - new ICP vertical (DC power infrastructure)
+            'description': 'DC rectifier/power infrastructure - TARGET ICP'
         }
     }
 
