@@ -12,19 +12,11 @@ type FormStatus = 'idle' | 'creating' | 'researching' | 'success' | 'error';
 interface FormData {
   name: string;
   domain: string;
-  industry: string;
-  employee_count: string;
-  business_model: string;
-  physical_infrastructure: string;
 }
 
 const initialFormData: FormData = {
   name: '',
   domain: '',
-  industry: '',
-  employee_count: '',
-  business_model: '',
-  physical_infrastructure: '',
 };
 
 export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
@@ -46,16 +38,12 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
     setProgress('Creating account in Notion...');
 
     try {
-      // Prepare data for API
+      // Prepare data for API - only name and domain required
+      // Other fields (Industry, Infrastructure, etc.) are populated by Deep Research
       const payload: Parameters<typeof api.createAccount>[0] = {
         name: formData.name.trim(),
         domain: formData.domain.trim(),
       };
-
-      if (formData.industry) payload.industry = formData.industry;
-      if (formData.employee_count) payload.employee_count = parseInt(formData.employee_count, 10);
-      if (formData.business_model) payload.business_model = formData.business_model;
-      if (formData.physical_infrastructure) payload.physical_infrastructure = formData.physical_infrastructure;
 
       // Create the account
       const result = await api.createAccount(payload);
@@ -139,7 +127,7 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
               className="text-sm"
               style={{ color: 'var(--color-text-tertiary)' }}
             >
-              Create a new account and run ABM research
+              Deep Research will auto-populate Industry, Infrastructure & ICP Score
             </p>
           </div>
           <button
@@ -198,108 +186,6 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
                 placeholder="acme.com"
                 className="input-field w-full"
               />
-            </div>
-          </div>
-
-          {/* Optional Fields */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label
-                className="block text-sm font-medium mb-1.5"
-                style={{ color: 'var(--color-text-secondary)' }}
-              >
-                Industry
-              </label>
-              <select
-                name="industry"
-                value={formData.industry}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                className="input-field w-full"
-              >
-                <option value="">Select industry...</option>
-                <option value="Technology">Technology</option>
-                <option value="Cloud Infrastructure">Cloud Infrastructure</option>
-                <option value="AI/ML">AI/ML</option>
-                <option value="Financial Services">Financial Services</option>
-                <option value="Healthcare">Healthcare</option>
-                <option value="E-commerce">E-commerce</option>
-                <option value="Gaming">Gaming</option>
-                <option value="Media & Entertainment">Media & Entertainment</option>
-                <option value="Telecommunications">Telecommunications</option>
-                <option value="Manufacturing">Manufacturing</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <div>
-              <label
-                className="block text-sm font-medium mb-1.5"
-                style={{ color: 'var(--color-text-secondary)' }}
-              >
-                Employee Count
-              </label>
-              <input
-                type="number"
-                name="employee_count"
-                value={formData.employee_count}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                placeholder="1000"
-                min="1"
-                className="input-field w-full"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label
-                className="block text-sm font-medium mb-1.5"
-                style={{ color: 'var(--color-text-secondary)' }}
-              >
-                Business Model
-              </label>
-              <select
-                name="business_model"
-                value={formData.business_model}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                className="input-field w-full"
-              >
-                <option value="">Select model...</option>
-                <option value="SaaS">SaaS</option>
-                <option value="Enterprise">Enterprise</option>
-                <option value="B2B">B2B</option>
-                <option value="B2C">B2C</option>
-                <option value="Marketplace">Marketplace</option>
-                <option value="Platform">Platform</option>
-                <option value="Hardware">Hardware</option>
-                <option value="Hybrid">Hybrid</option>
-              </select>
-            </div>
-            <div>
-              <label
-                className="block text-sm font-medium mb-1.5"
-                style={{ color: 'var(--color-text-secondary)' }}
-              >
-                Physical Infrastructure
-              </label>
-              <select
-                name="physical_infrastructure"
-                value={formData.physical_infrastructure}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                className="input-field w-full"
-              >
-                <option value="">Select type...</option>
-                <option value="GPU Clusters">GPU Clusters</option>
-                <option value="Data Centers">Data Centers</option>
-                <option value="Cloud-Native">Cloud-Native</option>
-                <option value="Hybrid Cloud">Hybrid Cloud</option>
-                <option value="Edge Computing">Edge Computing</option>
-                <option value="On-Premise">On-Premise</option>
-                <option value="Unknown">Unknown</option>
-              </select>
             </div>
           </div>
 
