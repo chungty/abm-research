@@ -90,9 +90,23 @@ def get_notion_accounts() -> List[Dict]:
         notion = get_notion_client()
         raw_accounts = notion.query_all_accounts()
 
+        # Build contact count map (query once, use for all accounts)
+        contact_counts: Dict[str, int] = {}
+        try:
+            all_contacts = notion.query_all_contacts()
+            for contact in all_contacts:
+                props = contact.get('properties', {})
+                account_rel = props.get('Account', {}).get('relation', [])
+                if account_rel:
+                    account_id = account_rel[0].get('id', '')
+                    contact_counts[account_id] = contact_counts.get(account_id, 0) + 1
+            logger.info(f"📊 Contact counts: {len(all_contacts)} contacts across {len(contact_counts)} accounts")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not fetch contact counts: {e}")
+
         accounts = []
         for idx, page in enumerate(raw_accounts):
-            account = transform_notion_account(page, idx)
+            account = transform_notion_account(page, idx, contact_counts)
             if account:
                 accounts.append(account)
 
@@ -104,7 +118,7 @@ def get_notion_accounts() -> List[Dict]:
         return get_mock_accounts()
 
 
-def transform_notion_account(page: Dict, idx: int = 0) -> Optional[Dict]:
+def transform_notion_account(page: Dict, idx: int = 0, contact_counts: Optional[Dict[str, int]] = None) -> Optional[Dict]:
     """Transform Notion page to API account format with full scoring"""
     try:
         props = page.get('properties', {})
@@ -204,7 +218,7 @@ def transform_notion_account(page: Dict, idx: int = 0) -> Optional[Dict]:
             "classification_confidence": min(95, total_score + 10),
             "icp_fit_score": icp_fit_score,
             "last_updated": datetime.now().isoformat(),
-            "contacts_count": 0  # Will be populated by separate query
+            "contacts_count": contact_counts.get(page['id'], 0) if contact_counts else 0
         }
 
     except Exception as e:
