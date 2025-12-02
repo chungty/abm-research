@@ -83,6 +83,14 @@ except ImportError:
     COMPANY_ENRICHMENT_AVAILABLE = False
     logging.warning("Company enrichment service not available")
 
+# Import vendor relationship discovery for Phase 5 partnership detection
+try:
+    from ..intelligence.vendor_relationship_discovery import VendorRelationshipDiscovery
+    VENDOR_DISCOVERY_AVAILABLE = True
+except ImportError:
+    VENDOR_DISCOVERY_AVAILABLE = False
+    logging.warning("Vendor relationship discovery not available")
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -114,6 +122,15 @@ class ComprehensiveABMSystem:
         self.account_intelligence = account_intelligence_engine if ENHANCED_INTELLIGENCE_AVAILABLE else None
         self.conflict_resolver = data_conflict_resolver if ENHANCED_INTELLIGENCE_AVAILABLE else None
         self.partnership_classifier = partnership_classifier if ENHANCED_INTELLIGENCE_AVAILABLE else None
+
+        # Initialize vendor discovery for Phase 5 (NEW)
+        self.vendor_discovery = None
+        if VENDOR_DISCOVERY_AVAILABLE:
+            try:
+                self.vendor_discovery = VendorRelationshipDiscovery()
+                logger.info("✅ Vendor discovery module initialized")
+            except Exception as e:
+                logger.warning(f"⚠️  Vendor discovery initialization failed: {e}")
 
         # Initialize consolidated Notion client (UPDATED)
         self.notion_client = None
@@ -203,7 +220,7 @@ class ComprehensiveABMSystem:
             # PHASE 5: Strategic Partnership Intelligence
             logger.info("\n🤝 PHASE 5: Strategic Partnership Intelligence")
             partnership_data = self._phase_5_partnership_intelligence(
-                company_name, company_domain
+                company_name, company_domain, trigger_events
             )
 
             # FIXED: Integrate account classification into account data
@@ -578,8 +595,14 @@ class ComprehensiveABMSystem:
         logger.info(f"✅ Generated intelligence for {intelligence_count}/{len(contacts)} contacts")
         return intelligence_contacts
 
-    def _phase_5_partnership_intelligence(self, company_name: str, company_domain: str) -> Dict[str, any]:
-        """Phase 5: Partnership Classification & Strategic Partnership Detection"""
+    def _phase_5_partnership_intelligence(self, company_name: str, company_domain: str, trigger_events: List[Dict] = None) -> Dict[str, any]:
+        """Phase 5: Partnership Classification & Strategic Partnership Detection
+
+        Args:
+            company_name: Target company name
+            company_domain: Company domain
+            trigger_events: Optional list of trigger events for partnership angle generation
+        """
         logger.info("🤝 Analyzing strategic partnership classification...")
 
         partnership_data = {
@@ -643,17 +666,316 @@ class ComprehensiveABMSystem:
             except Exception as e:
                 logger.warning(f"Account classification failed: {e}")
 
-        # PART B: Detect actual strategic partnerships (DCIM vendors, GPU providers, etc.)
-        # TODO: This would detect actual partner companies like "NVIDIA", "Schneider Electric"
-        if self.partnership_intelligence:
+        # PART B: Discover actual vendor relationships using AI-powered extraction
+        # Uses GPT-4o-mini to analyze search results and extract vendor names
+        if self.vendor_discovery:
             try:
-                partnerships = self.partnership_intelligence.analyze_partnerships(company_name, company_domain)
-                partnership_data['strategic_partnerships'] = partnerships
-                logger.info(f"✅ Found {len(partnerships)} strategic technology partnerships")
+                logger.info(f"🔍 Running vendor discovery for {company_name}...")
+
+                # Call the vendor discovery module (save_to_notion=False since we'll save via research pipeline)
+                discovery_result = self.vendor_discovery.discover_unknown_vendors(
+                    account_name=company_name,
+                    save_to_notion=False,  # We'll save via our own save method with account relation
+                    min_confidence=0.6
+                )
+
+                if discovery_result.get('status') == 'success' and discovery_result.get('discovered_vendors'):
+                    discovered = discovery_result['discovered_vendors']
+
+                    # Convert discovered vendors to partnership format for Notion
+                    partnerships = []
+                    for vendor in discovered:
+                        partnership = {
+                            'partner_name': vendor.get('vendor_name', ''),
+                            'partnership_type': self._map_vendor_category_to_partnership_type(vendor.get('category', 'evaluate')),
+                            'relevance_score': int(vendor.get('confidence', 0.5) * 100),
+                            'relationship_depth': self._calculate_relationship_depth(vendor),
+                            'relationship_evidence': self._format_evidence(vendor),
+                            'partnership_angle': self._generate_partnership_angle(vendor, company_name, trigger_events),
+                            'discovery_source': 'vendor_discovery_ai',
+                            'discovery_date': datetime.now().isoformat()
+                        }
+                        partnerships.append(partnership)
+
+                    partnership_data['strategic_partnerships'] = partnerships
+                    logger.info(f"✅ Discovered {len(partnerships)} vendor relationships")
+
+                    # Log category breakdown
+                    category_summary = discovery_result.get('category_summary', {})
+                    if category_summary:
+                        categories_str = ', '.join(f"{k}:{v}" for k, v in category_summary.items() if v > 0)
+                        logger.info(f"   Categories: {categories_str}")
+                else:
+                    logger.info("ℹ️  No new vendors discovered (may already be in known vendors list)")
+
             except Exception as e:
-                logger.warning(f"Strategic partnership detection failed: {e}")
+                logger.warning(f"Vendor discovery failed: {e}")
+        else:
+            logger.warning("⚠️  Vendor discovery module not available")
 
         return partnership_data
+
+    def _map_vendor_category_to_partnership_type(self, category: str) -> str:
+        """Map vendor discovery category to partnership type"""
+        mapping = {
+            'competitor': 'Competitive Intelligence',
+            'channel': 'Channel Partner',
+            'intro_path': 'Strategic Partner',
+            'evaluate': 'Technology Vendor',
+            'unknown': 'Technology Vendor'
+        }
+        return mapping.get(category, 'Technology Vendor')
+
+    def _calculate_relationship_depth(self, vendor: Dict) -> str:
+        """Calculate relationship depth based on mention count and evidence"""
+        mention_count = vendor.get('mention_count', 0)
+        confidence = vendor.get('confidence', 0)
+
+        if mention_count >= 5 and confidence >= 0.8:
+            return 'Deep Integration'
+        elif mention_count >= 3 or confidence >= 0.7:
+            return 'Active Partnership'
+        elif mention_count >= 2:
+            return 'Mentioned Relationship'
+        else:
+            return 'Potential Relationship'
+
+    def _format_evidence(self, vendor: Dict) -> str:
+        """Format evidence snippets into readable string"""
+        snippets = vendor.get('evidence_snippets', [])
+        if not snippets:
+            return f"Discovered via AI analysis ({vendor.get('relationship_type', 'unknown')} relationship)"
+
+        # Take first 2 snippets, truncate each
+        formatted = []
+        for snippet in snippets[:2]:
+            clean_snippet = snippet.strip()[:200]
+            if len(snippet) > 200:
+                clean_snippet += '...'
+            formatted.append(f"• {clean_snippet}")
+
+        return '\n'.join(formatted)
+
+    def _generate_partnership_angle(self, vendor: Dict, account_name: str, trigger_events: List[Dict] = None) -> str:
+        """
+        Generate AI-powered actionable partnership angle for BD professionals.
+
+        Uses Brave Search + OpenAI to research the relationship and formulate
+        specific, contextualized BD recommendations.
+
+        Args:
+            vendor: Vendor discovery data with name, category, evidence
+            account_name: The account we're researching partnerships for
+            trigger_events: Optional list of trigger events for timing context
+        """
+        vendor_name = vendor.get('vendor_name', 'Unknown')
+        category = vendor.get('category', 'evaluate')
+        relationship = vendor.get('relationship_type', 'uses')
+        confidence = vendor.get('confidence', 0.5)
+        evidence = vendor.get('evidence_snippets', [])
+
+        # Try AI-powered research first
+        try:
+            ai_angle = self._generate_ai_partnership_angle(
+                vendor_name=vendor_name,
+                account_name=account_name,
+                category=category,
+                relationship=relationship,
+                evidence=evidence,
+                trigger_events=trigger_events or []
+            )
+            if ai_angle:
+                return ai_angle
+        except Exception as e:
+            logger.warning(f"AI partnership angle generation failed: {e}")
+
+        # Fallback to template-based generation
+        return self._generate_template_partnership_angle(
+            vendor_name=vendor_name,
+            account_name=account_name,
+            category=category,
+            relationship=relationship,
+            confidence=confidence,
+            evidence=evidence
+        )
+
+    def _generate_ai_partnership_angle(
+        self,
+        vendor_name: str,
+        account_name: str,
+        category: str,
+        relationship: str,
+        evidence: List[str],
+        trigger_events: List[Dict]
+    ) -> Optional[str]:
+        """
+        Use Brave Search + OpenAI to generate research-backed partnership angle.
+        """
+        import os
+        import requests
+
+        # Step 1: Quick Brave search for recent context
+        search_context = []
+        brave_api_key = os.environ.get('BRAVE_API_KEY')
+
+        if brave_api_key:
+            try:
+                # Search for recent partnership/relationship news
+                query = f'"{account_name}" "{vendor_name}" partnership OR collaboration OR integration 2024'
+                headers = {
+                    'Accept': 'application/json',
+                    'X-Subscription-Token': brave_api_key
+                }
+                response = requests.get(
+                    'https://api.search.brave.com/res/v1/web/search',
+                    params={'q': query, 'count': 5},
+                    headers=headers,
+                    timeout=10
+                )
+
+                if response.status_code == 200:
+                    data = response.json()
+                    for result in data.get('web', {}).get('results', [])[:3]:
+                        search_context.append({
+                            'title': result.get('title', ''),
+                            'description': result.get('description', '')
+                        })
+            except Exception as e:
+                logger.debug(f"Brave search failed for partnership context: {e}")
+
+        # Step 2: Format trigger events as timing signals
+        timing_signals = []
+        for event in trigger_events[:3]:  # Top 3 most relevant
+            event_type = event.get('event_type', event.get('type', ''))
+            description = event.get('description', event.get('title', ''))
+            if event_type and description:
+                timing_signals.append(f"- {event_type}: {description[:100]}")
+
+        # Step 3: Use OpenAI to synthesize actionable BD approach
+        openai_api_key = os.environ.get('OPENAI_API_KEY')
+        if not openai_api_key:
+            return None
+
+        # Format evidence snippets
+        evidence_text = '\n'.join([f"- {e[:150]}" for e in evidence[:3]]) if evidence else "No specific evidence available"
+
+        # Format search context
+        search_text = '\n'.join([f"- {r['title']}: {r['description'][:100]}" for r in search_context]) if search_context else "No recent news found"
+
+        # Format timing signals
+        timing_text = '\n'.join(timing_signals) if timing_signals else "No recent trigger events"
+
+        # Category context
+        category_context = {
+            'competitor': 'They compete in overlapping markets',
+            'channel': 'They have a distribution/reseller relationship',
+            'intro_path': f'{account_name} uses/partners with {vendor_name}',
+            'evaluate': f'{account_name} has some relationship with {vendor_name}'
+        }.get(category, 'Unknown relationship type')
+
+        prompt = f"""You are a B2B sales strategist for Verdigris, an energy analytics and sustainability SaaS company that helps enterprises with GPU datacenters and physical infrastructure reduce energy costs and meet sustainability goals.
+
+Generate a specific, actionable partnership approach for a BD professional.
+
+CONTEXT:
+- Our Account: {account_name}
+- Target Partner: {vendor_name}
+- Relationship Type: {category_context}
+- Relationship Evidence: {relationship}
+
+EXISTING EVIDENCE:
+{evidence_text}
+
+RECENT NEWS/CONTEXT:
+{search_text}
+
+TIMING SIGNALS (Trigger Events for {account_name}):
+{timing_text}
+
+Write a 3-4 sentence partnership angle that includes:
+1. WHY this partnership matters (specific synergy or opportunity)
+2. HOW to engage (specific first step, who to contact, what to propose)
+3. TIMING consideration (based on trigger events if relevant)
+4. VALUE PROP (what Verdigris brings to the table)
+
+Be specific and actionable. Reference actual context from the evidence/news when possible.
+Format: Start with the partnership type in caps, then provide the actionable guidance."""
+
+        try:
+            response = requests.post(
+                'https://api.openai.com/v1/chat/completions',
+                headers={
+                    'Authorization': f'Bearer {openai_api_key}',
+                    'Content-Type': 'application/json'
+                },
+                json={
+                    'model': 'gpt-4o-mini',
+                    'messages': [{'role': 'user', 'content': prompt}],
+                    'max_tokens': 300,
+                    'temperature': 0.7
+                },
+                timeout=15
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                return result['choices'][0]['message']['content'].strip()
+        except Exception as e:
+            logger.warning(f"OpenAI partnership angle generation failed: {e}")
+
+        return None
+
+    def _generate_template_partnership_angle(
+        self,
+        vendor_name: str,
+        account_name: str,
+        category: str,
+        relationship: str,
+        confidence: float,
+        evidence: List[str]
+    ) -> str:
+        """
+        Fallback template-based partnership angle generation.
+        """
+        if category == 'competitor':
+            return (
+                f"COMPETITIVE INTEL: {account_name} and {vendor_name} compete in overlapping markets. "
+                f"BD APPROACH: (1) Research their customer base for accounts frustrated with {vendor_name}'s limitations. "
+                f"(2) Position Verdigris as complementary/alternative during {vendor_name} contract renewals. "
+                f"(3) Target mutual customers where consolidation pressure exists. "
+                f"VALUE PROP: Emphasize Verdigris differentiation vs {vendor_name} in energy analytics/sustainability."
+            )
+
+        elif category == 'channel':
+            return (
+                f"CHANNEL OPPORTUNITY: {vendor_name} distributes or resells for {account_name}. "
+                f"BD APPROACH: (1) Explore co-selling arrangement where {vendor_name} bundles Verdigris with their solution. "
+                f"(2) Request warm intro to their enterprise sales team. "
+                f"(3) Propose joint case study if they serve datacenter/infrastructure customers. "
+                f"ACCESS: {vendor_name} likely has established relationships with {account_name}'s customer base. "
+                f"VALUE PROP: Position Verdigris as add-on that increases {vendor_name}'s deal size."
+            )
+
+        elif category == 'intro_path':
+            confidence_str = "strong" if confidence >= 0.8 else "established" if confidence >= 0.6 else "emerging"
+            return (
+                f"WARM INTRO PATH: {account_name} has {confidence_str} relationship with {vendor_name} ({relationship}). "
+                f"BD APPROACH: (1) Ask {account_name} for intro to their {vendor_name} contact. "
+                f"(2) Propose joint pilot at {vendor_name}'s facilities using {account_name} as reference. "
+                f"(3) Explore if {vendor_name} is evaluating energy management solutions. "
+                f"ACCESS: {account_name} can provide credibility and context for {vendor_name} engagement. "
+                f"VALUE PROP: Leverage {account_name}'s results to demonstrate ROI to {vendor_name}."
+            )
+
+        else:  # 'evaluate' or unknown
+            return (
+                f"VENDOR RELATIONSHIP: {account_name} {relationship} {vendor_name}. "
+                f"BD APPROACH: (1) Understand what problems {vendor_name} solves for {account_name}. "
+                f"(2) Identify if Verdigris can integrate with or complement {vendor_name}'s solution. "
+                f"(3) Explore if {vendor_name} serves other accounts in our target list. "
+                f"NEXT STEP: Research {vendor_name}'s partner ecosystem and identify Verdigris fit. "
+                f"VALUE PROP: Energy visibility/sustainability data that enhances {vendor_name}'s infrastructure story."
+            )
 
     def _save_complete_research_to_notion(self, research_results: Dict) -> Dict:
         """Save complete research to Notion using consolidated client (UPDATED)"""
