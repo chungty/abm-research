@@ -85,6 +85,7 @@ class DiscoveredVendor:
     Now includes strategic purpose metadata for actionable intelligence:
     - strategic_purpose: competitor, channel, intro_path, evaluate
     - recommended_action: What to do when this vendor is discovered
+    - discovery_source: 'ai' for LLM-extracted, 'template' for pattern-matched
     """
     vendor_name: str
     category: str  # competitors_power, channel_electrical, complementary_compute, etc.
@@ -97,6 +98,9 @@ class DiscoveredVendor:
     # Strategic purpose fields (NEW)
     strategic_purpose: str = "unknown"  # competitor, channel, intro_path, evaluate
     recommended_action: str = ""  # What to do when this vendor is discovered
+    # AI/Template source tracking for transparency
+    discovery_source: str = "ai"  # 'ai' for LLM-extracted, 'template' for pattern-matched
+    discovery_source_label: str = "AI-Discovered"  # Human-readable label for UI
 
 
 class VendorRelationshipDiscovery:
@@ -1117,7 +1121,10 @@ Return JSON object only, no markdown:"""
                 relationship_type=relationship_type,
                 confidence=confidence,
                 strategic_purpose=category_meta.get('strategic_purpose', 'unknown'),
-                recommended_action=category_meta.get('action', '')
+                recommended_action=category_meta.get('action', ''),
+                # Workflow 2 uses pattern matching, not AI
+                discovery_source='template',
+                discovery_source_label='Pattern-Matched'
             )
 
             discovered_vendors.append(vendor)

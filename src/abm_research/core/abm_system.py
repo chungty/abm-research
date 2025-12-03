@@ -685,13 +685,18 @@ class ComprehensiveABMSystem:
                     # Convert discovered vendors to partnership format for Notion
                     partnerships = []
                     for vendor in discovered:
+                        # Generate partnership angle with AI/template source tracking
+                        angle_data = self._generate_partnership_angle(vendor, company_name, trigger_events)
+
                         partnership = {
                             'partner_name': vendor.get('vendor_name', ''),
                             'partnership_type': self._map_vendor_category_to_partnership_type(vendor.get('category', 'evaluate')),
                             'relevance_score': int(vendor.get('confidence', 0.5) * 100),
                             'relationship_depth': self._calculate_relationship_depth(vendor),
                             'relationship_evidence': self._format_evidence(vendor),
-                            'partnership_angle': self._generate_partnership_angle(vendor, company_name, trigger_events),
+                            'partnership_angle': angle_data.get('content', ''),
+                            'partnership_angle_source': angle_data.get('source', 'template'),
+                            'partnership_angle_source_label': angle_data.get('source_label', 'Template-Based'),
                             'discovery_source': 'vendor_discovery_ai',
                             'discovery_date': datetime.now().isoformat()
                         }
@@ -756,7 +761,7 @@ class ComprehensiveABMSystem:
 
         return '\n'.join(formatted)
 
-    def _generate_partnership_angle(self, vendor: Dict, account_name: str, trigger_events: List[Dict] = None) -> str:
+    def _generate_partnership_angle(self, vendor: Dict, account_name: str, trigger_events: List[Dict] = None) -> Dict[str, any]:
         """
         Generate AI-powered actionable partnership angle for BD professionals.
 
@@ -767,6 +772,9 @@ class ComprehensiveABMSystem:
             vendor: Vendor discovery data with name, category, evidence
             account_name: The account we're researching partnerships for
             trigger_events: Optional list of trigger events for timing context
+
+        Returns:
+            Dict with 'content' (the angle text) and 'source' ('ai' or 'template')
         """
         vendor_name = vendor.get('vendor_name', 'Unknown')
         category = vendor.get('category', 'evaluate')
@@ -785,12 +793,16 @@ class ComprehensiveABMSystem:
                 trigger_events=trigger_events or []
             )
             if ai_angle:
-                return ai_angle
+                return {
+                    'content': ai_angle,
+                    'source': 'ai',
+                    'source_label': 'AI-Researched'
+                }
         except Exception as e:
             logger.warning(f"AI partnership angle generation failed: {e}")
 
         # Fallback to template-based generation
-        return self._generate_template_partnership_angle(
+        template_angle = self._generate_template_partnership_angle(
             vendor_name=vendor_name,
             account_name=account_name,
             category=category,
@@ -798,6 +810,11 @@ class ComprehensiveABMSystem:
             confidence=confidence,
             evidence=evidence
         )
+        return {
+            'content': template_angle,
+            'source': 'template',
+            'source_label': 'Template-Based'
+        }
 
     def _generate_ai_partnership_angle(
         self,
