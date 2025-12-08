@@ -10,6 +10,7 @@ Provides unified interface for:
 - Complete ABM workspace creation with all 5 databases
 - Data persistence with deduplication and rate limiting
 - Comprehensive error handling and logging
+- EXPLICIT error propagation (no silent failures)
 """
 
 import os
@@ -17,9 +18,129 @@ import json
 import time
 import logging
 import requests
-from typing import Dict, List, Any, Optional
+import traceback
+from typing import Dict, List, Any, Optional, Union
 from datetime import datetime, date
 from dataclasses import asdict
+from enum import Enum
+
+
+# ═══════════════════════════════════════════════════════════════════════════════════
+# EXCEPTION HIERARCHY - No more silent failures!
+# ═══════════════════════════════════════════════════════════════════════════════════
+
+class NotionErrorCode(Enum):
+    """Error codes for categorizing Notion failures"""
+    CONFIG_ERROR = "CONFIG_ERROR"           # Missing API key, database ID, etc.
+    API_ERROR = "API_ERROR"                 # Notion API returned an error
+    VALIDATION_ERROR = "VALIDATION_ERROR"   # Invalid data format
+    NOT_FOUND = "NOT_FOUND"                 # Resource not found
+    PARSE_ERROR = "PARSE_ERROR"             # JSON/response parsing failed
+    RATE_LIMITED = "RATE_LIMITED"           # Too many requests
+    NETWORK_ERROR = "NETWORK_ERROR"         # Connection failed
+
+
+class NotionError(Exception):
+    """
+    Base exception for all Notion-related errors.
+    NEVER catch and swallow - always propagate with context.
+    """
+    def __init__(
+        self,
+        message: str,
+        code: NotionErrorCode = NotionErrorCode.API_ERROR,
+        operation: str = "unknown",
+        details: Optional[Dict[str, Any]] = None,
+        cause: Optional[Exception] = None
+    ):
+        self.message = message
+        self.code = code
+        self.operation = operation
+        self.details = details or {}
+        self.cause = cause
+        super().__init__(self._format_message())
+
+    def _format_message(self) -> str:
+        msg = f"[{self.code.value}] {self.operation}: {self.message}"
+        if self.details:
+            msg += f" | Details: {json.dumps(self.details, default=str)}"
+        if self.cause:
+            msg += f" | Caused by: {type(self.cause).__name__}: {self.cause}"
+        return msg
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary for API responses"""
+        return {
+            "error_type": "NotionError",
+            "code": self.code.value,
+            "operation": self.operation,
+            "message": self.message,
+            "details": self.details,
+            "cause": str(self.cause) if self.cause else None
+        }
+
+
+class NotionConfigError(NotionError):
+    """Raised when Notion is misconfigured (missing API key, database ID, etc.)"""
+    def __init__(self, message: str, missing_config: str, **kwargs):
+        super().__init__(
+            message,
+            code=NotionErrorCode.CONFIG_ERROR,
+            details={"missing_config": missing_config},
+            **kwargs
+        )
+
+
+class NotionAPIError(NotionError):
+    """Raised when Notion API returns an error"""
+    def __init__(
+        self,
+        message: str,
+        status_code: int,
+        response_text: str,
+        **kwargs
+    ):
+        super().__init__(
+            message,
+            code=NotionErrorCode.API_ERROR,
+            details={"status_code": status_code, "response": response_text[:500]},
+            **kwargs
+        )
+        self.status_code = status_code
+        self.response_text = response_text
+
+
+class NotionParseError(NotionError):
+    """Raised when response parsing fails"""
+    def __init__(self, message: str, raw_response: str, **kwargs):
+        super().__init__(
+            message,
+            code=NotionErrorCode.PARSE_ERROR,
+            details={"raw_response": raw_response[:500]},
+            **kwargs
+        )
+
+
+class NotionValidationError(NotionError):
+    """Raised when data validation fails before sending to Notion"""
+    def __init__(self, message: str, field: str, value: Any, **kwargs):
+        super().__init__(
+            message,
+            code=NotionErrorCode.VALIDATION_ERROR,
+            details={"field": field, "invalid_value": str(value)[:100]},
+            **kwargs
+        )
+
+
+class NotionNotFoundError(NotionError):
+    """Raised when a resource is not found"""
+    def __init__(self, message: str, resource_type: str, resource_id: str, **kwargs):
+        super().__init__(
+            message,
+            code=NotionErrorCode.NOT_FOUND,
+            details={"resource_type": resource_type, "resource_id": resource_id},
+            **kwargs
+        )
 
 # Try to import notion client for advanced features
 try:
@@ -87,6 +208,76 @@ class NotionClient:
         self.last_request_time = 0
         self.request_delay = 0.5  # 500ms between requests
 
+        # Operation tracking for debugging
+        self._last_operation = None
+        self._operation_count = 0
+
+    # ═══════════════════════════════════════════════════════════════════════════════════
+    # DATABASE ID PROPERTIES - Direct access without .get() chains
+    # ═══════════════════════════════════════════════════════════════════════════════════
+
+    @property
+    def accounts_db(self) -> str:
+        """Get accounts database ID or raise if not configured"""
+        db_id = self.database_ids.get('accounts')
+        if not db_id:
+            raise NotionConfigError(
+                "Accounts database not configured",
+                missing_config="NOTION_ACCOUNTS_DB_ID",
+                operation="get_accounts_db"
+            )
+        return db_id
+
+    @property
+    def contacts_db(self) -> str:
+        """Get contacts database ID or raise if not configured"""
+        db_id = self.database_ids.get('contacts')
+        if not db_id:
+            raise NotionConfigError(
+                "Contacts database not configured",
+                missing_config="NOTION_CONTACTS_DB_ID",
+                operation="get_contacts_db"
+            )
+        return db_id
+
+    @property
+    def trigger_events_db(self) -> str:
+        """Get trigger events database ID or raise if not configured"""
+        db_id = self.database_ids.get('trigger_events')
+        if not db_id:
+            raise NotionConfigError(
+                "Trigger events database not configured",
+                missing_config="NOTION_TRIGGER_EVENTS_DB_ID",
+                operation="get_trigger_events_db"
+            )
+        return db_id
+
+    @property
+    def partnerships_db(self) -> str:
+        """Get partnerships database ID or raise if not configured"""
+        db_id = self.database_ids.get('partnerships')
+        if not db_id:
+            raise NotionConfigError(
+                "Partnerships database not configured",
+                missing_config="NOTION_PARTNERSHIPS_DB_ID",
+                operation="get_partnerships_db"
+            )
+        return db_id
+
+    def require_database(self, db_name: str) -> str:
+        """
+        Get database ID with explicit requirement - raises if not configured.
+        Use this instead of .get() to make failures explicit.
+        """
+        db_id = self.database_ids.get(db_name)
+        if not db_id:
+            raise NotionConfigError(
+                f"{db_name} database not configured",
+                missing_config=f"NOTION_{db_name.upper()}_DB_ID",
+                operation=f"require_database({db_name})"
+            )
+        return db_id
+
     def _resolve_api_key(self, provided_key: Optional[str]) -> str:
         """Resolve API key from multiple possible sources"""
         if provided_key:
@@ -142,18 +333,157 @@ class NotionClient:
             time.sleep(self.request_delay - elapsed)
         self.last_request_time = time.time()
 
-    def _make_request(self, method: str, url: str, **kwargs) -> requests.Response:
-        """Make rate-limited request to Notion API"""
+    def _make_request(
+        self,
+        method: str,
+        url: str,
+        operation: str = "api_request",
+        **kwargs
+    ) -> requests.Response:
+        """
+        Make rate-limited request to Notion API with proper error handling.
+
+        Args:
+            method: HTTP method (GET, POST, PATCH, DELETE)
+            url: Full URL to request
+            operation: Name of the operation (for error context)
+            **kwargs: Additional arguments for requests
+
+        Returns:
+            Response object
+
+        Raises:
+            NotionAPIError: If the API returns an error response
+            NotionError: For network errors or other failures
+        """
         self._rate_limit()
+        self._last_operation = operation
+        self._operation_count += 1
 
         kwargs.setdefault('headers', self.headers)
-        response = requests.request(method, url, **kwargs)
+        kwargs.setdefault('timeout', 30)  # 30 second timeout
 
+        try:
+            response = requests.request(method, url, **kwargs)
+        except requests.exceptions.Timeout as e:
+            raise NotionError(
+                "Request timed out after 30 seconds",
+                code=NotionErrorCode.NETWORK_ERROR,
+                operation=operation,
+                details={"url": url, "method": method},
+                cause=e
+            )
+        except requests.exceptions.ConnectionError as e:
+            raise NotionError(
+                "Failed to connect to Notion API",
+                code=NotionErrorCode.NETWORK_ERROR,
+                operation=operation,
+                details={"url": url},
+                cause=e
+            )
+        except requests.exceptions.RequestException as e:
+            raise NotionError(
+                f"Request failed: {str(e)}",
+                code=NotionErrorCode.NETWORK_ERROR,
+                operation=operation,
+                cause=e
+            )
+
+        # Check for rate limiting
+        if response.status_code == 429:
+            retry_after = response.headers.get('Retry-After', '60')
+            raise NotionError(
+                f"Rate limited. Retry after {retry_after} seconds",
+                code=NotionErrorCode.RATE_LIMITED,
+                operation=operation,
+                details={"retry_after": retry_after}
+            )
+
+        # Check for API errors
         if not response.ok:
-            logger.error(f"Notion API error: {response.status_code} - {response.text}")
-            response.raise_for_status()
+            error_msg = f"Notion API returned {response.status_code}"
+            logger.error(f"❌ {operation}: {error_msg} - {response.text[:500]}")
+            raise NotionAPIError(
+                error_msg,
+                status_code=response.status_code,
+                response_text=response.text,
+                operation=operation
+            )
 
         return response
+
+    def _parse_json_response(
+        self,
+        response: requests.Response,
+        operation: str = "parse_response"
+    ) -> Dict[str, Any]:
+        """
+        Safely parse JSON from response with proper error handling.
+
+        NEVER silently return empty dict/list on parse failure.
+        """
+        try:
+            return response.json()
+        except json.JSONDecodeError as e:
+            raise NotionParseError(
+                f"Failed to parse JSON response: {str(e)}",
+                raw_response=response.text[:500],
+                operation=operation,
+                cause=e
+            )
+
+    def _extract_results(
+        self,
+        response: requests.Response,
+        operation: str = "extract_results"
+    ) -> List[Dict]:
+        """
+        Extract 'results' array from Notion query response with validation.
+
+        Raises if response doesn't contain expected structure instead of
+        silently returning empty list.
+        """
+        data = self._parse_json_response(response, operation)
+
+        if 'results' not in data:
+            # Log warning but don't fail - some endpoints don't return results
+            logger.warning(
+                f"⚠️ {operation}: Response missing 'results' key. "
+                f"Keys present: {list(data.keys())}"
+            )
+            return []
+
+        results = data['results']
+        if not isinstance(results, list):
+            raise NotionParseError(
+                f"Expected 'results' to be a list, got {type(results).__name__}",
+                raw_response=str(results)[:500],
+                operation=operation
+            )
+
+        return results
+
+    def _extract_page_id(
+        self,
+        response: requests.Response,
+        operation: str = "extract_page_id"
+    ) -> str:
+        """
+        Extract page ID from create/update response with validation.
+
+        NEVER returns None silently - raises on failure.
+        """
+        data = self._parse_json_response(response, operation)
+
+        page_id = data.get('id')
+        if not page_id:
+            raise NotionParseError(
+                "Response missing 'id' field for created/updated page",
+                raw_response=str(data)[:500],
+                operation=operation
+            )
+
+        return page_id
 
     # ═══════════════════════════════════════════════════════════════════════════════════
     # WORKSPACE SETUP (from notion_database.py)
@@ -354,101 +684,269 @@ class NotionClient:
         return response.json()
 
     # ═══════════════════════════════════════════════════════════════════════════════════
-    # DATA PERSISTENCE (from notion_persistence_manager.py)
+    # DATA PERSISTENCE - Fixed to NEVER silently fail
     # ═══════════════════════════════════════════════════════════════════════════════════
 
-    def save_account(self, account: Dict[str, Any]) -> Optional[str]:
-        """Save account data with deduplication"""
-        if not self.database_ids.get('accounts'):
-            logger.error("Accounts database not configured")
-            return None
+    def save_account(self, account: Dict[str, Any]) -> str:
+        """
+        Save account data with deduplication.
+
+        Returns:
+            Page ID of created/updated account
+
+        Raises:
+            NotionConfigError: If accounts database not configured
+            NotionAPIError: If API call fails
+            NotionValidationError: If account data is invalid
+        """
+        # Use property accessor to ensure config - raises if not configured
+        _ = self.accounts_db
+
+        account_name = account.get('name', '')
+        if not account_name:
+            raise NotionValidationError(
+                "Account must have a name",
+                field="name",
+                value=account_name,
+                operation="save_account"
+            )
 
         try:
             # Check for existing account
-            existing_id = self._find_existing_account(account.get('name', ''))
+            existing_id = self._find_existing_account(account_name)
             if existing_id:
-                logger.info(f"Account {account.get('name')} already exists, updating...")
-                return self._update_account(existing_id, account)
+                logger.info(f"Account {account_name} already exists, updating...")
+                result = self._update_account(existing_id, account)
+                if not result:
+                    raise NotionError(
+                        f"Failed to update existing account: {account_name}",
+                        operation="save_account"
+                    )
+                return result
             else:
-                return self._create_account(account)
+                result = self._create_account(account)
+                if not result:
+                    raise NotionError(
+                        f"Failed to create account: {account_name}",
+                        operation="save_account"
+                    )
+                return result
 
+        except NotionError:
+            raise
         except Exception as e:
-            logger.error(f"Error saving account: {e}")
-            return None
+            raise NotionError(
+                f"Unexpected error saving account: {str(e)}",
+                operation="save_account",
+                details={"account_name": account_name},
+                cause=e
+            )
 
-    def save_contacts(self, contacts: List[Dict], account_name: str = "") -> Dict[str, bool]:
-        """Save enriched contact data with deduplication"""
+    def save_contacts(
+        self,
+        contacts: List[Dict],
+        account_name: str = "",
+        fail_fast: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Save enriched contact data with deduplication.
+
+        Args:
+            contacts: List of contact dictionaries
+            account_name: Name of account to associate contacts with
+            fail_fast: If True, raise on first error. If False, collect errors and continue.
+
+        Returns:
+            Dict with 'results' (per-contact status), 'saved', 'failed', 'errors'
+
+        Raises:
+            NotionConfigError: If contacts database not configured
+            NotionError: If fail_fast=True and any contact fails
+        """
         logger.info(f"💾 Saving {len(contacts)} contacts to Notion")
 
-        if not self.database_ids.get('contacts'):
-            logger.error("Contacts database not configured")
-            return {}
+        # Use property accessor to ensure config - raises if not configured
+        _ = self.contacts_db
 
-        results = {}
+        results = {
+            "results": {},
+            "saved": 0,
+            "failed": 0,
+            "skipped": 0,
+            "errors": []
+        }
 
         for contact in contacts:
+            contact_name = contact.get('name', 'unknown')
             try:
                 # Skip contacts without lead score (not enriched)
                 if not contact.get('final_lead_score') and not contact.get('lead_score'):
-                    logger.info(f"Skipping {contact.get('name', 'unknown')} - no lead score")
+                    logger.info(f"Skipping {contact_name} - no lead score")
+                    results["skipped"] += 1
+                    results["results"][contact_name] = {"status": "skipped", "reason": "no_lead_score"}
                     continue
 
                 # Check for existing contact
                 existing_id = self._find_existing_contact(contact.get('linkedin_url', ''))
 
                 if existing_id:
-                    success = self._update_contact(existing_id, contact)
+                    page_id = self._update_contact(existing_id, contact)
                 else:
-                    success = self._create_contact(contact, account_name)
+                    page_id = self._create_contact(contact, account_name)
 
-                contact_name = contact.get('name', 'unknown')
-                results[contact_name] = bool(success)
+                if page_id:
+                    results["saved"] += 1
+                    results["results"][contact_name] = {"status": "saved", "page_id": page_id}
+                else:
+                    raise NotionError(f"No page ID returned for {contact_name}", operation="save_contacts")
 
+            except NotionError as e:
+                results["failed"] += 1
+                results["errors"].append({"contact": contact_name, "error": e.to_dict()})
+                results["results"][contact_name] = {"status": "failed", "error": str(e)}
+                logger.error(f"❌ Failed to save contact {contact_name}: {e}")
+                if fail_fast:
+                    raise
             except Exception as e:
-                logger.error(f"Error saving contact {contact.get('name')}: {e}")
-                results[contact.get('name', 'unknown')] = False
+                results["failed"] += 1
+                err_info = {"contact": contact_name, "error": {"message": str(e), "type": type(e).__name__}}
+                results["errors"].append(err_info)
+                results["results"][contact_name] = {"status": "failed", "error": str(e)}
+                logger.error(f"❌ Unexpected error saving contact {contact_name}: {e}")
+                if fail_fast:
+                    raise NotionError(
+                        f"Failed to save contact: {str(e)}",
+                        operation="save_contacts",
+                        cause=e
+                    )
 
-        successful = sum(results.values())
-        logger.info(f"✅ Successfully saved {successful}/{len(contacts)} contacts")
+        logger.info(f"✅ Contacts: {results['saved']} saved, {results['failed']} failed, {results['skipped']} skipped")
+
+        # Raise if ALL contacts failed (indicates systemic issue)
+        if len(contacts) > 0 and results['saved'] == 0 and results['skipped'] < len(contacts):
+            raise NotionError(
+                f"All {results['failed']} contact saves failed - check Notion connection",
+                operation="save_contacts",
+                details={"errors": results["errors"][:5]}  # Include first 5 errors
+            )
+
         return results
 
-    def save_trigger_events(self, events: List[Dict], account_name: str = "") -> Dict[str, bool]:
-        """Save trigger events data"""
-        if not self.database_ids.get('trigger_events'):
-            logger.error("Trigger events database not configured")
-            return {}
+    def save_trigger_events(
+        self,
+        events: List[Dict],
+        account_name: str = "",
+        fail_fast: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Save trigger events data.
 
-        results = {}
+        Returns:
+            Dict with 'results', 'saved', 'failed', 'errors'
+
+        Raises:
+            NotionConfigError: If trigger_events database not configured
+            NotionError: If fail_fast=True and any event fails, or if ALL events fail
+        """
+        # Use property accessor to ensure config - raises if not configured
+        _ = self.trigger_events_db
+
+        results = {
+            "results": {},
+            "saved": 0,
+            "failed": 0,
+            "errors": []
+        }
 
         for event in events:
+            event_desc = event.get('description', event.get('event_description', 'unknown'))[:50]
             try:
-                success = self._create_trigger_event(event, account_name)
-                event_desc = event.get('description', event.get('event_description', 'unknown'))[:50]
-                results[event_desc] = bool(success)
+                page_id = self._create_trigger_event(event, account_name)
+                if page_id:
+                    results["saved"] += 1
+                    results["results"][event_desc] = {"status": "saved", "page_id": page_id}
+                else:
+                    raise NotionError(f"No page ID returned for event", operation="save_trigger_events")
 
+            except NotionError as e:
+                results["failed"] += 1
+                results["errors"].append({"event": event_desc, "error": e.to_dict()})
+                results["results"][event_desc] = {"status": "failed", "error": str(e)}
+                if fail_fast:
+                    raise
             except Exception as e:
-                logger.error(f"Error saving trigger event: {e}")
-                results[event.get('description', 'unknown')[:50]] = False
+                results["failed"] += 1
+                results["errors"].append({"event": event_desc, "error": str(e)})
+                results["results"][event_desc] = {"status": "failed", "error": str(e)}
+                if fail_fast:
+                    raise NotionError(f"Failed to save event: {str(e)}", operation="save_trigger_events", cause=e)
+
+        # Raise if ALL events failed
+        if len(events) > 0 and results['saved'] == 0:
+            raise NotionError(
+                f"All {results['failed']} trigger event saves failed",
+                operation="save_trigger_events",
+                details={"errors": results["errors"][:5]}
+            )
 
         return results
 
-    def save_partnerships(self, partnerships: List[Dict], account_name: str = "") -> Dict[str, bool]:
-        """Save strategic partnerships data"""
-        if not self.database_ids.get('partnerships'):
-            logger.error("Partnerships database not configured")
-            return {}
+    def save_partnerships(
+        self,
+        partnerships: List[Dict],
+        account_name: str = "",
+        fail_fast: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Save strategic partnerships data.
 
-        results = {}
+        Returns:
+            Dict with 'results', 'saved', 'failed', 'errors'
+
+        Raises:
+            NotionConfigError: If partnerships database not configured
+            NotionError: If fail_fast=True and any partnership fails, or if ALL fail
+        """
+        # Use property accessor to ensure config - raises if not configured
+        _ = self.partnerships_db
+
+        results = {
+            "results": {},
+            "saved": 0,
+            "failed": 0,
+            "errors": []
+        }
 
         for partnership in partnerships:
+            partner_name = partnership.get('partner_name', partnership.get('name', 'unknown'))
             try:
-                success = self._create_partnership(partnership, account_name)
-                partner_name = partnership.get('partner_name', partnership.get('name', 'unknown'))
-                results[partner_name] = bool(success)
+                page_id = self._create_partnership(partnership, account_name)
+                if page_id:
+                    results["saved"] += 1
+                    results["results"][partner_name] = {"status": "saved", "page_id": page_id}
+                else:
+                    raise NotionError(f"No page ID returned for partnership", operation="save_partnerships")
 
+            except NotionError as e:
+                results["failed"] += 1
+                results["errors"].append({"partner": partner_name, "error": e.to_dict()})
+                results["results"][partner_name] = {"status": "failed", "error": str(e)}
+                if fail_fast:
+                    raise
             except Exception as e:
-                logger.error(f"Error saving partnership: {e}")
-                results[partnership.get('partner_name', 'unknown')] = False
+                results["failed"] += 1
+                results["errors"].append({"partner": partner_name, "error": str(e)})
+                results["results"][partner_name] = {"status": "failed", "error": str(e)}
+                if fail_fast:
+                    raise NotionError(f"Failed to save partnership: {str(e)}", operation="save_partnerships", cause=e)
+
+        # Raise if ALL partnerships failed
+        if len(partnerships) > 0 and results['saved'] == 0:
+            raise NotionError(
+                f"All {results['failed']} partnership saves failed",
+                operation="save_partnerships",
+                details={"errors": results["errors"][:5]}
+            )
 
         return results
 
@@ -480,132 +978,150 @@ class NotionClient:
             return None
 
     def query_all_accounts(self) -> List[Dict]:
-        """Query all accounts from Notion database"""
-        if not self.database_ids.get('accounts'):
-            logger.error("Accounts database ID not configured")
-            return []
+        """
+        Query all accounts from Notion database.
 
-        try:
-            url = f"https://api.notion.com/v1/databases/{self.database_ids['accounts']}/query"
-            response = self._make_request('POST', url, json={})
+        Raises:
+            NotionConfigError: If accounts database not configured
+            NotionAPIError: If API call fails
+        """
+        # Use property accessor to ensure config - raises if not configured
+        db_id = self.accounts_db
 
-            results = response.json().get('results', [])
-            logger.info(f"Retrieved {len(results)} accounts from Notion")
-            return results
+        url = f"https://api.notion.com/v1/databases/{db_id}/query"
+        response = self._make_request(
+            'POST', url, json={},
+            operation="query_all_accounts"
+        )
 
-        except Exception as e:
-            logger.error(f"Error querying all accounts: {e}")
-            return []
+        results = self._extract_results(response, "query_all_accounts")
+        logger.info(f"✅ Retrieved {len(results)} accounts from Notion")
+        return results
 
     def query_all_contacts(self, account_id: Optional[str] = None) -> List[Dict]:
-        """Query all contacts from Notion database, optionally filtered by account"""
-        if not self.database_ids.get('contacts'):
-            logger.warning("Contacts database ID not configured")
-            return []
+        """
+        Query all contacts from Notion database, optionally filtered by account.
 
-        try:
-            url = f"https://api.notion.com/v1/databases/{self.database_ids['contacts']}/query"
-            query = {}
+        Raises:
+            NotionConfigError: If contacts database not configured
+            NotionAPIError: If API call fails
+        """
+        # Use property accessor to ensure config - raises if not configured
+        db_id = self.contacts_db
 
-            # Filter by account relation if provided
-            if account_id:
-                query = {
-                    "filter": {
-                        "property": "Account",
-                        "relation": {"contains": account_id}
-                    }
-                }
+        url = f"https://api.notion.com/v1/databases/{db_id}/query"
+        query = {}
 
-            response = self._make_request('POST', url, json=query)
-
-            results = response.json().get('results', [])
-            logger.info(f"Retrieved {len(results)} contacts from Notion")
-            return results
-
-        except Exception as e:
-            logger.error(f"Error querying contacts: {e}")
-            return []
-
-    def query_all_trigger_events(self, account_id: Optional[str] = None) -> List[Dict]:
-        """Query all trigger events from Notion database, optionally filtered by account"""
-        if not self.database_ids.get('trigger_events'):
-            logger.warning("Trigger events database ID not configured")
-            return []
-
-        try:
-            url = f"https://api.notion.com/v1/databases/{self.database_ids['trigger_events']}/query"
-            query = {}
-
-            # Filter by account relation if provided
-            if account_id:
-                query = {
-                    "filter": {
-                        "property": "Account",
-                        "relation": {"contains": account_id}
-                    }
-                }
-
-            response = self._make_request('POST', url, json=query)
-
-            results = response.json().get('results', [])
-            logger.info(f"Retrieved {len(results)} trigger events from Notion")
-            return results
-
-        except Exception as e:
-            logger.error(f"Error querying trigger events: {e}")
-            return []
-
-    def query_all_partnerships(self, account_id: Optional[str] = None) -> List[Dict]:
-        """Query all partnerships from Notion database, optionally filtered by account"""
-        if not self.database_ids.get('partnerships'):
-            logger.warning("Partnerships database ID not configured")
-            return []
-
-        try:
-            url = f"https://api.notion.com/v1/databases/{self.database_ids['partnerships']}/query"
-            query = {}
-
-            # Filter by account relation if provided
-            if account_id:
-                query = {
-                    "filter": {
-                        "property": "Account",
-                        "relation": {"contains": account_id}
-                    }
-                }
-
-            response = self._make_request('POST', url, json=query)
-
-            results = response.json().get('results', [])
-            logger.info(f"Retrieved {len(results)} partnerships from Notion")
-            return results
-
-        except Exception as e:
-            logger.error(f"Error querying partnerships: {e}")
-            return []
-
-    def _find_existing_contact(self, linkedin_url: str) -> Optional[str]:
-        """Find existing contact by LinkedIn URL"""
-        if not self.database_ids.get('contacts') or not linkedin_url:
-            return None
-
-        try:
+        # Filter by account relation if provided
+        if account_id:
             query = {
                 "filter": {
-                    "property": "LinkedIn URL",
-                    "url": {"equals": linkedin_url}
+                    "property": "Account",
+                    "relation": {"contains": account_id}
                 }
             }
 
-            url = f"https://api.notion.com/v1/databases/{self.database_ids['contacts']}/query"
-            response = self._make_request('POST', url, json=query)
+        response = self._make_request(
+            'POST', url, json=query,
+            operation="query_all_contacts"
+        )
 
-            results = response.json().get('results', [])
-            return results[0]['id'] if results else None
+        results = self._extract_results(response, "query_all_contacts")
+        logger.info(f"✅ Retrieved {len(results)} contacts from Notion")
+        return results
 
-        except Exception as e:
-            logger.error(f"Error finding existing contact: {e}")
+    def query_all_trigger_events(self, account_id: Optional[str] = None) -> List[Dict]:
+        """
+        Query all trigger events from Notion database, optionally filtered by account.
+
+        Raises:
+            NotionConfigError: If trigger_events database not configured
+            NotionAPIError: If API call fails
+        """
+        # Use property accessor to ensure config - raises if not configured
+        db_id = self.trigger_events_db
+
+        url = f"https://api.notion.com/v1/databases/{db_id}/query"
+        query = {}
+
+        # Filter by account relation if provided
+        if account_id:
+            query = {
+                "filter": {
+                    "property": "Account",
+                    "relation": {"contains": account_id}
+                }
+            }
+
+        response = self._make_request(
+            'POST', url, json=query,
+            operation="query_all_trigger_events"
+        )
+
+        results = self._extract_results(response, "query_all_trigger_events")
+        logger.info(f"✅ Retrieved {len(results)} trigger events from Notion")
+        return results
+
+    def query_all_partnerships(self, account_id: Optional[str] = None) -> List[Dict]:
+        """
+        Query all partnerships from Notion database, optionally filtered by account.
+
+        Raises:
+            NotionConfigError: If partnerships database not configured
+            NotionAPIError: If API call fails
+        """
+        # Use property accessor to ensure config - raises if not configured
+        db_id = self.partnerships_db
+
+        url = f"https://api.notion.com/v1/databases/{db_id}/query"
+        query = {}
+
+        # Filter by account relation if provided
+        if account_id:
+            query = {
+                "filter": {
+                    "property": "Account",
+                    "relation": {"contains": account_id}
+                }
+            }
+
+        response = self._make_request(
+            'POST', url, json=query,
+            operation="query_all_partnerships"
+        )
+
+        results = self._extract_results(response, "query_all_partnerships")
+        logger.info(f"✅ Retrieved {len(results)} partnerships from Notion")
+        return results
+
+    def _find_existing_contact(self, linkedin_url: str) -> Optional[str]:
+        """
+        Find existing contact by LinkedIn URL.
+
+        Returns None for empty linkedin_url (not an error).
+        Raises for actual failures.
+        """
+        if not linkedin_url:
             return None
+
+        # Use property accessor to ensure config - raises if not configured
+        db_id = self.contacts_db
+
+        query = {
+            "filter": {
+                "property": "LinkedIn URL",
+                "url": {"equals": linkedin_url}
+            }
+        }
+
+        url = f"https://api.notion.com/v1/databases/{db_id}/query"
+        response = self._make_request(
+            'POST', url, json=query,
+            operation="find_existing_contact"
+        )
+
+        results = self._extract_results(response, "find_existing_contact")
+        return results[0]['id'] if results else None
 
     # ═══════════════════════════════════════════════════════════════════════════════════
     # CREATE OPERATIONS
@@ -738,42 +1254,51 @@ class NotionClient:
     def _create_partnership(self, partnership: Dict, account_name: str = "") -> Optional[str]:
         """Create new partnership record with enhanced strategic intelligence and Account relation.
 
-        Supports two types of records:
-        1. Account Vendor Relationships: Discovered vendors that an account uses (has Account relation)
-        2. Verdigris Partners: Companies Verdigris works with (is_verdigris_partner=True, no Account)
-
-        The "trusted path" is when both exist for the same vendor.
+        Uses the ACTUAL Notion database schema fields:
+        - Name (title): Partner/vendor name
+        - Category (select): Partnership type
+        - Priority Score (number): Confidence/relevance score
+        - Relationship Evidence (rich_text): Context/reasoning
+        - Evidence URL (url): Source URL
+        - Detected Date (date): When discovered
+        - Relationship Depth (select): Integration level
+        - Partnership Maturity (select): Relationship stage
+        - Best Approach (select): Recommended strategy
+        - Account (relation): Link to account
         """
         # Get source URL and ensure it's either a valid URL or null (not empty string)
         source_url = partnership.get('source_url', partnership.get('evidence_url', '')) or None
 
-        # TRUSTED PATHS: Find the account to create proper relation
+        # Find the account to create proper relation
         account_id = None
+        partner_name = partnership.get('partner_name', partnership.get('name', partnership.get('account_name', 'Unknown Partner')))
         if account_name:
             account_id = self._find_existing_account(account_name)
             if account_id:
-                logger.info(f"🔗 Linking partnership '{partnership.get('partner_name', 'Unknown')}' to account '{account_name}'")
+                logger.info(f"🔗 Linking partnership '{partner_name}' to account '{account_name}'")
             else:
                 logger.warning(f"⚠️ Could not find account '{account_name}' for partnership relation")
 
+        # Use ACTUAL database field names (verified from schema)
         properties = {
-            # Core fields - FIX: Use "Partner Name" as Notion title field
-            "Partner Name": {"title": [{"text": {"content": partnership.get('partner_name', partnership.get('account_name', 'Unknown Partner'))}}]},
+            # Core fields using actual schema
+            "Name": {"title": [{"text": {"content": partner_name}}]},
             "Category": {"select": {"name": partnership.get('partnership_type', partnership.get('category', 'Strategic Alliance'))}},
             "Priority Score": {"number": partnership.get('confidence_score', partnership.get('relevance_score', partnership.get('priority_score', 0)))},
             "Relationship Evidence": {"rich_text": [{"text": {"content": partnership.get('reasoning', partnership.get('context', partnership.get('relationship_evidence', '')))[:2000]}}]},
             "Detected Date": {"date": {"start": partnership.get('detected_date', datetime.now().strftime('%Y-%m-%d'))}},
 
-            # Partnership Depth & Strategy (KEEP - displayed in dashboard)
+            # Partnership strategy fields
             "Relationship Depth": {"select": {"name": partnership.get('relationship_depth', 'Surface Integration')}},
             "Partnership Maturity": {"select": {"name": partnership.get('partnership_maturity', 'Basic')}},
             "Best Approach": {"select": {"name": partnership.get('best_approach', 'Technical Discussion')}},
-
-            # TRUSTED PATHS: Flag for Verdigris's own partners vs account vendors
-            "Is Verdigris Partner": {"checkbox": partnership.get('is_verdigris_partner', False)}
         }
 
-        # Account relation is required - no fallback (removed aspirational fields)
+        # Add Evidence URL if provided
+        if source_url:
+            properties["Evidence URL"] = {"url": source_url}
+
+        # Add Account relation if found
         if account_id:
             properties["Account"] = {"relation": [{"id": account_id}]}
 
@@ -786,8 +1311,195 @@ class NotionClient:
         return response.json().get('id')
 
     # ═══════════════════════════════════════════════════════════════════════════════════
-    # UPDATE OPERATIONS (simplified for space)
+    # DEDUPLICATION - _find_existing_partnership
     # ═══════════════════════════════════════════════════════════════════════════════════
+
+    def _find_existing_partnership(
+        self,
+        partner_name: str,
+        account_id: Optional[str] = None
+    ) -> Optional[str]:
+        """
+        Find existing partnership by partner name (and optionally account relation).
+
+        Uses "Name" field (the actual title field in the database schema).
+
+        Args:
+            partner_name: Name of the partner/vendor to search for
+            account_id: Optional account ID to filter by
+
+        Returns:
+            Page ID if found, None if not found
+
+        Raises:
+            NotionConfigError: If partnerships database not configured
+            NotionAPIError: If API call fails
+        """
+        if not partner_name:
+            return None
+
+        # Use property to ensure config is valid (raises if not)
+        db_id = self.partnerships_db
+
+        try:
+            # Build filter using "Name" (the actual title field in schema)
+            filter_condition = {
+                "property": "Name",
+                "title": {"equals": partner_name}
+            }
+
+            # If account_id provided, add compound filter
+            if account_id:
+                filter_condition = {
+                    "and": [
+                        {"property": "Name", "title": {"equals": partner_name}},
+                        {"property": "Account", "relation": {"contains": account_id}}
+                    ]
+                }
+
+            query = {"filter": filter_condition}
+            url = f"https://api.notion.com/v1/databases/{db_id}/query"
+            response = self._make_request(
+                'POST', url, json=query,
+                operation=f"find_existing_partnership({partner_name})"
+            )
+
+            results = self._extract_results(response, "find_existing_partnership")
+            if results:
+                logger.info(f"🔍 Found existing partnership: {partner_name}")
+                return results[0]['id']
+
+            return None
+
+        except NotionError:
+            # Re-raise Notion errors with context intact
+            raise
+        except Exception as e:
+            # Wrap unexpected errors
+            raise NotionError(
+                f"Unexpected error finding partnership: {str(e)}",
+                operation="find_existing_partnership",
+                details={"partner_name": partner_name},
+                cause=e
+            )
+
+    def _find_existing_partnership_by_vendor(
+        self,
+        vendor_name: str,
+        account_id: Optional[str] = None
+    ) -> Optional[str]:
+        """Alias for _find_existing_partnership for semantic clarity"""
+        return self._find_existing_partnership(vendor_name, account_id)
+
+    # ═══════════════════════════════════════════════════════════════════════════════════
+    # UPDATE OPERATIONS - Including the critical update_page() method
+    # ═══════════════════════════════════════════════════════════════════════════════════
+
+    def update_page(
+        self,
+        page_id: str,
+        properties: Dict[str, Any],
+        validate: bool = True
+    ) -> str:
+        """
+        Update a Notion page with new property values.
+
+        This is the CRITICAL method that was missing and causing silent failures
+        in email reveal, research pipeline, and other update operations.
+
+        Args:
+            page_id: The Notion page ID to update
+            properties: Dictionary of properties to update (Notion API format)
+            validate: If True, validate properties before sending
+
+        Returns:
+            The page ID if successful
+
+        Raises:
+            NotionValidationError: If page_id is invalid
+            NotionAPIError: If API call fails
+            NotionError: For other errors
+        """
+        if not page_id:
+            raise NotionValidationError(
+                "Cannot update page without page_id",
+                field="page_id",
+                value=page_id,
+                operation="update_page"
+            )
+
+        if not properties:
+            logger.warning(f"⚠️ update_page called with empty properties for {page_id}")
+            return page_id  # No-op but not an error
+
+        # Convert simple dict format to Notion property format if needed
+        formatted_props = self._format_properties_for_update(properties)
+
+        try:
+            url = f"https://api.notion.com/v1/pages/{page_id}"
+            response = self._make_request(
+                'PATCH', url,
+                json={"properties": formatted_props},
+                operation=f"update_page({page_id[:8]}...)"
+            )
+
+            result_id = self._extract_page_id(response, "update_page")
+            logger.info(f"✅ Updated page {page_id[:8]}... with {len(properties)} properties")
+            return result_id
+
+        except NotionError:
+            raise
+        except Exception as e:
+            raise NotionError(
+                f"Failed to update page: {str(e)}",
+                operation="update_page",
+                details={"page_id": page_id, "property_count": len(properties)},
+                cause=e
+            )
+
+    def _format_properties_for_update(
+        self,
+        properties: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Format properties for Notion update API.
+
+        Handles both pre-formatted Notion properties and simple key-value pairs.
+        """
+        formatted = {}
+
+        for key, value in properties.items():
+            # If already in Notion format (has type key), use as-is
+            if isinstance(value, dict) and any(
+                k in value for k in ['title', 'rich_text', 'number', 'select',
+                                     'multi_select', 'date', 'email', 'url',
+                                     'checkbox', 'relation', 'phone_number']
+            ):
+                formatted[key] = value
+            # Simple value - try to infer type
+            elif isinstance(value, str):
+                # Check if it looks like an email
+                if '@' in value and '.' in value:
+                    formatted[key] = {"email": value}
+                # Check if it looks like a URL
+                elif value.startswith('http://') or value.startswith('https://'):
+                    formatted[key] = {"url": value}
+                else:
+                    formatted[key] = {"rich_text": [{"text": {"content": value[:2000]}}]}
+            elif isinstance(value, (int, float)):
+                formatted[key] = {"number": value}
+            elif isinstance(value, bool):
+                formatted[key] = {"checkbox": value}
+            elif isinstance(value, datetime):
+                formatted[key] = {"date": {"start": value.isoformat()}}
+            elif value is None:
+                # Skip None values
+                continue
+            else:
+                # Fallback to rich_text
+                formatted[key] = {"rich_text": [{"text": {"content": str(value)[:2000]}}]}
+
+        return formatted
 
     def _update_account(self, page_id: str, account: Dict) -> Optional[str]:
         """Update existing account record"""
@@ -824,19 +1536,161 @@ class NotionClient:
         return page_id  # Simplified for consolidation
 
     # ═══════════════════════════════════════════════════════════════════════════════════
-    # UTILITY METHODS
+    # UTILITY & HEALTH CHECK METHODS
     # ═══════════════════════════════════════════════════════════════════════════════════
 
+    def test_connection(self) -> Dict[str, Any]:
+        """
+        Test actual connectivity to Notion API.
+
+        This performs a real API call to verify:
+        1. API key is valid
+        2. Network connectivity works
+        3. At least one database is accessible
+
+        Returns:
+            Dict with connection status and any error details
+
+        This method NEVER raises - it captures errors for reporting.
+        """
+        result = {
+            "connected": False,
+            "api_key_valid": False,
+            "databases_accessible": {},
+            "error": None,
+            "latency_ms": None
+        }
+
+        # Test API key by querying user info
+        try:
+            import time as t
+            start = t.time()
+            response = self._make_request(
+                'GET',
+                'https://api.notion.com/v1/users/me',
+                operation="test_connection"
+            )
+            result["latency_ms"] = int((t.time() - start) * 1000)
+            result["api_key_valid"] = True
+            result["connected"] = True
+        except NotionError as e:
+            result["error"] = e.to_dict()
+            return result
+        except Exception as e:
+            result["error"] = {"message": str(e), "type": type(e).__name__}
+            return result
+
+        # Test each configured database
+        for db_name, db_id in self.database_ids.items():
+            if not db_id:
+                result["databases_accessible"][db_name] = {
+                    "configured": False,
+                    "accessible": False,
+                    "error": "Not configured"
+                }
+                continue
+
+            try:
+                url = f"https://api.notion.com/v1/databases/{db_id}"
+                self._make_request('GET', url, operation=f"test_db_{db_name}")
+                result["databases_accessible"][db_name] = {
+                    "configured": True,
+                    "accessible": True,
+                    "error": None
+                }
+            except NotionError as e:
+                result["databases_accessible"][db_name] = {
+                    "configured": True,
+                    "accessible": False,
+                    "error": e.message
+                }
+
+        return result
+
     def get_health_status(self) -> Dict[str, Any]:
-        """Get health status of Notion integration"""
+        """
+        Get comprehensive health status of Notion integration.
+
+        Enhanced to track:
+        - Operation counts and last operation
+        - Database configuration status
+        - Missing critical configuration
+        """
+        # Check which databases are missing
+        missing_dbs = [
+            name for name, db_id in self.database_ids.items() if not db_id
+        ]
+
+        # Determine overall health
+        critical_dbs = ['accounts', 'contacts']  # Must have these
+        critical_missing = [db for db in critical_dbs if db in missing_dbs]
+
         return {
+            'healthy': len(critical_missing) == 0 and bool(self.api_key),
             'api_key_configured': bool(self.api_key),
             'advanced_client_available': bool(self.client),
             'database_configuration': {
-                name: bool(db_id) for name, db_id in self.database_ids.items()
+                name: {
+                    'configured': bool(db_id),
+                    'id_preview': db_id[:8] + '...' if db_id else None
+                }
+                for name, db_id in self.database_ids.items()
             },
+            'missing_databases': missing_dbs,
+            'critical_missing': critical_missing,
+            'operation_count': self._operation_count,
+            'last_operation': self._last_operation,
             'last_request_time': self.last_request_time
         }
+
+    def get_pipeline_status(self) -> Dict[str, Any]:
+        """
+        Get detailed status of the data pipeline for monitoring.
+
+        This is designed to be called from a health check endpoint.
+        """
+        health = self.get_health_status()
+
+        # Test actual connectivity if we think we're configured
+        connection_test = None
+        if health['api_key_configured']:
+            connection_test = self.test_connection()
+
+        return {
+            "status": "healthy" if health['healthy'] and (
+                connection_test and connection_test.get('connected')
+            ) else "degraded" if health['api_key_configured'] else "not_configured",
+            "health": health,
+            "connection_test": connection_test,
+            "recommendations": self._get_recommendations(health, connection_test)
+        }
+
+    def _get_recommendations(
+        self,
+        health: Dict[str, Any],
+        connection_test: Optional[Dict[str, Any]]
+    ) -> List[str]:
+        """Generate actionable recommendations based on health status"""
+        recs = []
+
+        if not health['api_key_configured']:
+            recs.append("Set NOTION_API_KEY environment variable")
+
+        for db in health.get('critical_missing', []):
+            recs.append(f"Configure {db} database ID: NOTION_{db.upper()}_DB_ID")
+
+        if connection_test and not connection_test.get('connected'):
+            recs.append("Check Notion API key validity and network connectivity")
+
+        if connection_test:
+            for db_name, db_status in connection_test.get('databases_accessible', {}).items():
+                if db_status.get('configured') and not db_status.get('accessible'):
+                    recs.append(
+                        f"Database '{db_name}' is configured but not accessible. "
+                        f"Check the database ID and sharing permissions."
+                    )
+
+        return recs
 
 
 # Global instance for convenience (optional)

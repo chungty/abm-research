@@ -57,6 +57,13 @@ try:
     NotionClient = notion_module.NotionClient
     get_notion_client = notion_module.get_notion_client
 
+    # Import exception types for proper error handling
+    NotionError = notion_module.NotionError
+    NotionConfigError = notion_module.NotionConfigError
+    NotionAPIError = notion_module.NotionAPIError
+    NotionValidationError = notion_module.NotionValidationError
+    NotionParseError = notion_module.NotionParseError
+
     # Load unified_lead_scorer directly
     scorer_spec = importlib.util.spec_from_file_location(
         "unified_lead_scorer",
@@ -72,6 +79,12 @@ try:
 except Exception as e:
     NOTION_AVAILABLE = False
     logger.warning(f"⚠️ Notion client not available, using mock data: {e}")
+    # Define placeholder exception classes for when Notion is not available
+    class NotionError(Exception): pass
+    class NotionConfigError(NotionError): pass
+    class NotionAPIError(NotionError): pass
+    class NotionValidationError(NotionError): pass
+    class NotionParseError(NotionError): pass
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend
@@ -81,9 +94,27 @@ CORS(app)  # Enable CORS for frontend
 # Data Layer - Real Notion Integration
 # ============================================================================
 
-def get_notion_accounts() -> List[Dict]:
-    """Fetch accounts from Notion and transform for API"""
+def get_notion_accounts(raise_on_error: bool = False) -> List[Dict]:
+    """
+    Fetch accounts from Notion and transform for API.
+
+    Args:
+        raise_on_error: If True, raise exceptions instead of falling back to mock data.
+                       Use True for debugging and health checks.
+
+    Returns:
+        List of account dictionaries
+
+    Raises:
+        NotionError: If raise_on_error=True and Notion operation fails
+    """
     if not NOTION_AVAILABLE:
+        if raise_on_error:
+            raise NotionConfigError(
+                "Notion client not available",
+                missing_config="NOTION_API_KEY",
+                operation="get_notion_accounts"
+            )
         return get_mock_accounts()
 
     try:
@@ -101,8 +132,14 @@ def get_notion_accounts() -> List[Dict]:
                     account_id = account_rel[0].get('id', '')
                     contact_counts[account_id] = contact_counts.get(account_id, 0) + 1
             logger.info(f"📊 Contact counts: {len(all_contacts)} contacts across {len(contact_counts)} accounts")
-        except Exception as e:
+        except NotionConfigError:
+            # Contacts DB not configured is acceptable, continue without counts
+            logger.warning("⚠️ Contacts database not configured, skipping contact counts")
+        except NotionError as e:
+            # Log but continue - contact counts are not critical
             logger.warning(f"⚠️ Could not fetch contact counts: {e}")
+            if raise_on_error:
+                raise
 
         accounts = []
         for idx, page in enumerate(raw_accounts):
@@ -113,8 +150,40 @@ def get_notion_accounts() -> List[Dict]:
         logger.info(f"✅ Loaded {len(accounts)} accounts from Notion")
         return accounts
 
+    except NotionConfigError as e:
+        # Configuration error - fall back to mock if allowed, otherwise raise
+        logger.error(f"❌ Notion configuration error: {e}")
+        if raise_on_error:
+            raise
+        return get_mock_accounts()
+
+    except NotionAPIError as e:
+        # API error - this is a real failure, log and optionally raise
+        logger.error(f"❌ Notion API error fetching accounts: {e}")
+        if raise_on_error:
+            raise
+        # Fall back to mock data but log that we're doing so
+        logger.warning("⚠️ Falling back to mock data due to API error")
+        return get_mock_accounts()
+
+    except NotionError as e:
+        # Other Notion errors
+        logger.error(f"❌ Notion error fetching accounts: {e}")
+        if raise_on_error:
+            raise
+        return get_mock_accounts()
+
     except Exception as e:
-        logger.error(f"❌ Error fetching from Notion: {e}")
+        # Unexpected error - always log with full traceback
+        logger.error(f"❌ Unexpected error fetching from Notion: {e}")
+        import traceback
+        traceback.print_exc()
+        if raise_on_error:
+            raise NotionError(
+                f"Unexpected error: {str(e)}",
+                operation="get_notion_accounts",
+                cause=e
+            )
         return get_mock_accounts()
 
 
@@ -289,21 +358,49 @@ def get_notion_trigger_events(account_notion_id: str = None) -> List[Dict]:
 
 
 def get_notion_partnerships(account_notion_id: str = None) -> List[Dict]:
-    """Fetch partnerships from Notion, optionally for a specific account"""
+    """Fetch partnerships from Notion, optionally for a specific account
+
+    This function also resolves account names from account relations by building
+    a lookup map from the accounts database.
+    """
     if not NOTION_AVAILABLE:
         return []
 
     try:
         notion = get_notion_client()
+
+        # Build account ID → name lookup map for resolving relations
+        account_lookup = {}
+        try:
+            raw_accounts = notion.query_all_accounts()
+            for acc_page in raw_accounts:
+                acc_id = acc_page.get('id')
+                props = acc_page.get('properties', {})
+                name_prop = props.get('Name', {}) or props.get('Account Name', {})
+                name = ''
+                if name_prop.get('title'):
+                    name = name_prop['title'][0]['text']['content'] if name_prop['title'] else ''
+                if acc_id and name:
+                    account_lookup[acc_id] = name
+        except Exception as e:
+            logger.warning(f"Could not build account lookup map: {e}")
+
         raw_partnerships = notion.query_all_partnerships(account_notion_id)
 
         partnerships = []
         for page in raw_partnerships:
             partnership = transform_notion_partnership(page)
             if partnership:
+                # Resolve account name from account_notion_id using lookup map
+                acc_notion_id = partnership.get('account_notion_id')
+                if acc_notion_id and acc_notion_id in account_lookup:
+                    partnership['account_name'] = account_lookup[acc_notion_id]
+                else:
+                    # Fall back to the fallback field or "N/A"
+                    partnership['account_name'] = partnership.get('account_name_fallback') or 'N/A'
                 partnerships.append(partnership)
 
-        logger.info(f"✅ Loaded {len(partnerships)} partnerships from Notion")
+        logger.info(f"✅ Loaded {len(partnerships)} partnerships from Notion (resolved {len(account_lookup)} account names)")
         return partnerships
 
     except Exception as e:
@@ -835,6 +932,179 @@ def health_check():
     })
 
 
+@app.route('/api/health/pipeline', methods=['GET'])
+def pipeline_health_check():
+    """
+    Comprehensive data pipeline health check.
+
+    Tests actual connectivity to Notion and validates all database configurations.
+    This endpoint NEVER fails silently - it reports ALL issues found.
+
+    Returns:
+        - status: "healthy" | "degraded" | "unhealthy" | "not_configured"
+        - notion_available: Whether Notion client loaded
+        - connection_test: Results of actual API connectivity test
+        - database_status: Per-database accessibility status
+        - recommendations: List of actionable fixes if issues found
+        - last_operation: Most recent Notion operation performed
+    """
+    result = {
+        "status": "unknown",
+        "timestamp": datetime.now().isoformat(),
+        "notion_module_loaded": NOTION_AVAILABLE,
+        "connection_test": None,
+        "database_status": {},
+        "recommendations": [],
+        "errors": []
+    }
+
+    if not NOTION_AVAILABLE:
+        result["status"] = "not_configured"
+        result["recommendations"].append(
+            "Notion client not available. Check NOTION_API_KEY environment variable."
+        )
+        return jsonify(result), 503
+
+    try:
+        notion = get_notion_client()
+
+        # Get comprehensive pipeline status (includes connection test)
+        pipeline_status = notion.get_pipeline_status()
+
+        result["status"] = pipeline_status["status"]
+        result["health"] = pipeline_status["health"]
+        result["connection_test"] = pipeline_status["connection_test"]
+        result["recommendations"] = pipeline_status["recommendations"]
+
+        # Add database-specific status
+        if pipeline_status["connection_test"]:
+            result["database_status"] = pipeline_status["connection_test"].get(
+                "databases_accessible", {}
+            )
+
+        # Determine HTTP status code
+        if result["status"] == "healthy":
+            return jsonify(result), 200
+        elif result["status"] == "degraded":
+            return jsonify(result), 200  # Still return 200, but status shows degraded
+        else:
+            return jsonify(result), 503
+
+    except NotionConfigError as e:
+        result["status"] = "not_configured"
+        result["errors"].append(e.to_dict() if hasattr(e, 'to_dict') else str(e))
+        result["recommendations"].append(f"Configuration error: {e.message if hasattr(e, 'message') else str(e)}")
+        return jsonify(result), 503
+
+    except NotionError as e:
+        result["status"] = "unhealthy"
+        result["errors"].append(e.to_dict() if hasattr(e, 'to_dict') else str(e))
+        result["recommendations"].append(f"Notion error: {e.message if hasattr(e, 'message') else str(e)}")
+        return jsonify(result), 503
+
+    except Exception as e:
+        logger.error(f"❌ Pipeline health check failed: {e}")
+        import traceback
+        traceback.print_exc()
+        result["status"] = "unhealthy"
+        result["errors"].append({"message": str(e), "type": type(e).__name__})
+        result["recommendations"].append("Unexpected error - check server logs")
+        return jsonify(result), 500
+
+
+@app.route('/api/health/notion-test', methods=['POST'])
+def notion_connectivity_test():
+    """
+    Run a live connectivity test to Notion.
+
+    This is a more intensive test than /api/health/pipeline - it actually
+    attempts to read from each database to verify full read/write access.
+
+    Use this when debugging silent failures or verifying configuration changes.
+    """
+    if not NOTION_AVAILABLE:
+        return jsonify({
+            "success": False,
+            "error": "Notion client not available",
+            "recommendation": "Set NOTION_API_KEY environment variable"
+        }), 503
+
+    try:
+        notion = get_notion_client()
+        test_results = {
+            "timestamp": datetime.now().isoformat(),
+            "api_connection": None,
+            "databases": {},
+            "overall_status": "unknown"
+        }
+
+        # Test API connection
+        connection = notion.test_connection()
+        test_results["api_connection"] = {
+            "connected": connection["connected"],
+            "api_key_valid": connection["api_key_valid"],
+            "latency_ms": connection["latency_ms"],
+            "error": connection["error"]
+        }
+
+        if not connection["connected"]:
+            test_results["overall_status"] = "api_connection_failed"
+            return jsonify(test_results), 503
+
+        # Test each database with actual queries
+        db_tests = {
+            "accounts": ("query_all_accounts", lambda n: len(n.query_all_accounts())),
+            "contacts": ("query_all_contacts", lambda n: len(n.query_all_contacts())),
+            "trigger_events": ("query_all_trigger_events", lambda n: len(n.query_all_trigger_events())),
+            "partnerships": ("query_all_partnerships", lambda n: len(n.query_all_partnerships())),
+        }
+
+        all_passed = True
+        for db_name, (op_name, query_fn) in db_tests.items():
+            try:
+                import time as t
+                start = t.time()
+                count = query_fn(notion)
+                latency = int((t.time() - start) * 1000)
+                test_results["databases"][db_name] = {
+                    "status": "accessible",
+                    "record_count": count,
+                    "latency_ms": latency,
+                    "error": None
+                }
+            except NotionConfigError as e:
+                test_results["databases"][db_name] = {
+                    "status": "not_configured",
+                    "error": str(e)
+                }
+                # Not configured is acceptable, not a failure
+            except NotionError as e:
+                test_results["databases"][db_name] = {
+                    "status": "error",
+                    "error": e.to_dict() if hasattr(e, 'to_dict') else str(e)
+                }
+                all_passed = False
+            except Exception as e:
+                test_results["databases"][db_name] = {
+                    "status": "error",
+                    "error": {"message": str(e), "type": type(e).__name__}
+                }
+                all_passed = False
+
+        test_results["overall_status"] = "healthy" if all_passed else "degraded"
+        return jsonify(test_results), 200 if all_passed else 503
+
+    except Exception as e:
+        logger.error(f"❌ Notion connectivity test failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "type": type(e).__name__
+        }), 500
+
+
 @app.route('/api/accounts', methods=['GET'])
 def get_accounts():
     """
@@ -983,7 +1253,7 @@ def create_account():
             }
 
         # Create page in Notion
-        new_page = notion.notion.pages.create(
+        new_page = notion.client.pages.create(
             parent={"database_id": accounts_db_id},
             properties=properties
         )
@@ -1022,7 +1292,7 @@ def create_account():
 def get_account(account_id: str):
     """Get single account with contacts, events, and partnerships"""
     accounts = get_notion_accounts()
-    account = next((a for a in accounts if a['id'] == account_id), None)
+    account = next((a for a in accounts if a['id'] == account_id or a.get('notion_id') == account_id), None)
 
     if not account:
         return jsonify({"error": "Account not found"}), 404
@@ -1086,7 +1356,7 @@ def get_account(account_id: str):
 def get_account_contacts(account_id: str):
     """Get contacts for a specific account"""
     accounts = get_notion_accounts()
-    account = next((a for a in accounts if a['id'] == account_id), None)
+    account = next((a for a in accounts if a['id'] == account_id or a.get('notion_id') == account_id), None)
 
     if not account:
         return jsonify({"contacts": []})
@@ -1634,7 +1904,7 @@ def enrich_account(account_id: str):
 
     # Get account details
     accounts = get_notion_accounts()
-    account = next((a for a in accounts if a['id'] == account_id), None)
+    account = next((a for a in accounts if a['id'] == account_id or a.get('notion_id') == account_id), None)
 
     if not account:
         return jsonify({"error": "Account not found"}), 404
@@ -1734,7 +2004,7 @@ def rescore_account_contacts(account_id: str):
 
     # Get account details
     accounts = get_notion_accounts()
-    account = next((a for a in accounts if a['id'] == account_id), None)
+    account = next((a for a in accounts if a['id'] == account_id or a.get('notion_id') == account_id), None)
 
     if not account:
         return jsonify({"error": "Account not found"}), 404
@@ -1965,7 +2235,22 @@ def reveal_contact_email(contact_id: str):
         if linkedin:
             update_props["LinkedIn URL"] = {"url": linkedin}
 
-        notion.update_page(contact_page['id'], update_props)
+        # CRITICAL: Actually persist to Notion - this was silently failing before!
+        try:
+            notion.update_page(contact_page['id'], update_props)
+            logger.info(f"✅ Email persisted to Notion for contact {contact_id}")
+        except NotionError as e:
+            # Log the error but still return the email to the user
+            # The email was revealed, just not saved
+            logger.error(f"❌ Failed to persist email to Notion: {e}")
+            return jsonify({
+                "email": revealed_email,
+                "cached": False,
+                "credits_used": 1,
+                "message": "Email revealed but FAILED to save to Notion",
+                "notion_error": e.to_dict() if hasattr(e, 'to_dict') else str(e),
+                "warning": "Data was NOT persisted - please save manually"
+            })
 
         logger.info(f"✅ Email revealed and saved: {revealed_email}")
 
@@ -2167,7 +2452,7 @@ def discover_account_trigger_events(account_id: str):
         data = request.get_json(silent=True) or {}
         event_types = data.get('event_types')  # None = all types
         lookback_days = data.get('lookback_days', 90)
-        save_to_notion = data.get('save_to_notion', False)
+        save_to_notion = data.get('save_to_notion', True)  # Default: always save to Notion
 
         logger.info(f"Discovering trigger events for: {account_name}")
 
@@ -2314,7 +2599,7 @@ def classify_account_partnership(account_id: str):
 
         # Request body options
         data = request.get_json(silent=True) or {}
-        save_to_notion = data.get('save_to_notion', False)
+        save_to_notion = data.get('save_to_notion', True)  # Default: always save to Notion
 
         # Note: Notion update skipped - NotionClient doesn't have update_page method yet
         # TODO: Add update_page to NotionClient to persist classification
@@ -2396,9 +2681,9 @@ def run_account_research(account_id: str):
             "fallback": True
         }), 503
 
-    # Get account from Notion
+    # Get account from Notion - support both synthetic ID and Notion UUID
     accounts = get_notion_accounts()
-    account = next((a for a in accounts if a['id'] == account_id), None)
+    account = next((a for a in accounts if a['id'] == account_id or a.get('notion_id') == account_id), None)
 
     if not account:
         return jsonify({"error": "Account not found"}), 404
@@ -2439,6 +2724,7 @@ def run_account_research(account_id: str):
         # BACKUP: Explicitly save to Notion if ABM system didn't persist
         # This ensures research results are always saved
         notion = get_notion_client() if NOTION_AVAILABLE else None
+        persistence_error = None
         if notion and account.get('notion_id'):
             try:
                 account_data = research_results.get('account', {})
@@ -2458,8 +2744,13 @@ def run_account_research(account_id: str):
                     notion.update_page(account['notion_id'], update_fields)
                     logger.info(f"✅ Backup persistence: Updated {len(update_fields)} fields in Notion")
                     notion_results['account_saved'] = True
+            except NotionError as e:
+                persistence_error = e.to_dict() if hasattr(e, 'to_dict') else str(e)
+                logger.error(f"❌ Backup Notion persistence failed: {e}")
+                notion_results['persistence_error'] = persistence_error
             except Exception as e:
-                logger.warning(f"⚠️ Backup Notion persistence failed: {e}")
+                persistence_error = {"message": str(e), "type": type(e).__name__}
+                logger.error(f"❌ Backup Notion persistence failed unexpectedly: {e}")
 
         return jsonify({
             "status": "success",
@@ -2808,9 +3099,9 @@ def discover_account_vendors(account_id: str):
             "message": "VendorRelationshipDiscovery module not configured. Check server logs."
         }), 503
 
-    # Get account from Notion
+    # Get account from Notion - support both synthetic ID and Notion UUID
     accounts = get_notion_accounts()
-    account = next((a for a in accounts if a['id'] == account_id), None)
+    account = next((a for a in accounts if a['id'] == account_id or a.get('notion_id') == account_id), None)
 
     if not account:
         return jsonify({"error": "Account not found"}), 404
@@ -2822,7 +3113,7 @@ def discover_account_vendors(account_id: str):
     # Parse request body
     body = request.get_json(silent=True) or {}
     custom_vendors = body.get('vendors', None)
-    save_to_notion = body.get('save_to_notion', False)
+    save_to_notion = body.get('save_to_notion', True)  # Default: always save to Notion
 
     try:
         logger.info(f"🔍 Discovering vendor relationships for {account_name}")
@@ -2839,30 +3130,51 @@ def discover_account_vendors(account_id: str):
 
         # Save to Notion if requested
         saved_count = 0
+        save_errors = []
         if save_to_notion and signals and NOTION_AVAILABLE:
             try:
                 notion = get_notion_client()
                 account_notion_id = account.get('notion_id')
 
                 for signal in signals[:20]:  # Limit to top 20 signals
-                    properties = vendor_discovery.to_partnership_properties(
-                        signal,
-                        account_page_id=account_notion_id,
-                        is_verdigris_partner=False  # These are account vendors
-                    )
-
-                    # Check if partnership already exists
-                    existing = notion._find_existing_partnership(signal.vendor)
-                    if not existing:
-                        notion.client.pages.create(
-                            parent={"database_id": notion.partnerships_db},
-                            properties=properties
+                    try:
+                        properties = vendor_discovery.to_partnership_properties(
+                            signal,
+                            account_page_id=account_notion_id,
+                            is_verdigris_partner=False  # These are account vendors
                         )
-                        saved_count += 1
-                        logger.info(f"✅ Saved vendor relationship: {signal.vendor}")
 
+                        # Check if partnership already exists using new method
+                        existing = notion._find_existing_partnership(signal.vendor, account_notion_id)
+                        if not existing:
+                            # Use partnerships_db property (will raise if not configured)
+                            notion.client.pages.create(
+                                parent={"database_id": notion.partnerships_db},
+                                properties=properties
+                            )
+                            saved_count += 1
+                            logger.info(f"✅ Saved vendor relationship: {signal.vendor}")
+                        else:
+                            logger.info(f"⏭️ Partnership already exists: {signal.vendor}")
+                    except NotionConfigError as e:
+                        # Config error - stop trying to save more
+                        save_errors.append({"vendor": signal.vendor, "error": str(e), "type": "config"})
+                        logger.error(f"❌ Notion not configured for partnerships: {e}")
+                        break
+                    except NotionError as e:
+                        # API error - log and continue with others
+                        save_errors.append({"vendor": signal.vendor, "error": str(e), "type": "api"})
+                        logger.warning(f"⚠️ Failed to save partnership {signal.vendor}: {e}")
+                    except Exception as e:
+                        save_errors.append({"vendor": signal.vendor, "error": str(e), "type": "unknown"})
+                        logger.warning(f"⚠️ Unexpected error saving {signal.vendor}: {e}")
+
+            except NotionConfigError as e:
+                logger.error(f"❌ Notion partnerships database not configured: {e}")
+                save_errors.append({"error": str(e), "type": "config"})
             except Exception as e:
-                logger.warning(f"⚠️ Failed to save some partnerships to Notion: {e}")
+                logger.error(f"❌ Failed to save partnerships to Notion: {e}")
+                save_errors.append({"error": str(e), "type": "unknown"})
 
         # Convert dataclasses to dicts for JSON response
         signals_json = []
@@ -2900,7 +3212,11 @@ def discover_account_vendors(account_id: str):
             "vendor_scores": vendor_scores_json,
             "total_vendors_with_signals": len(vendor_scores_json),
             "search_failures": search_failures,
-            "saved_to_notion": saved_count,
+            "notion_persistence": {
+                "saved_to_notion": saved_count,
+                "save_errors": save_errors,
+                "all_saved": len(save_errors) == 0 and saved_count > 0
+            },
             "scoring_rubric": {
                 1: "Logo/mention only",
                 2: "Customer referenced but not formal story",
@@ -2949,9 +3265,9 @@ def discover_unknown_vendors(account_id: str):
             "message": "VendorRelationshipDiscovery module not configured. Check server logs."
         }), 503
 
-    # Get account from Notion
+    # Get account from Notion - support both synthetic ID and Notion UUID
     accounts = get_notion_accounts()
-    account = next((a for a in accounts if a['id'] == account_id), None)
+    account = next((a for a in accounts if a['id'] == account_id or a.get('notion_id') == account_id), None)
 
     if not account:
         return jsonify({"error": "Account not found"}), 404
@@ -3161,12 +3477,12 @@ def discover_unknown_vendors_for_account(account_id: str):
             "message": "VendorRelationshipDiscovery module not configured. Check server logs."
         }), 503
 
-    # Get account from Notion
+    # Get account from Notion - support both synthetic ID and Notion UUID
     accounts = get_notion_accounts()
-    account = next((a for a in accounts if a['id'] == account_id), None)
+    account = next((a for a in accounts if a['id'] == account_id or a.get('notion_id') == account_id), None)
 
     if not account:
-        return jsonify({"error": "Account not found"}), 404
+        return jsonify({"error": f"Account not found: {account_id}"}), 404
 
     account_name = account.get('name', '')
     if not account_name:
@@ -3174,7 +3490,7 @@ def discover_unknown_vendors_for_account(account_id: str):
 
     # Parse request body
     body = request.get_json(silent=True) or {}
-    save_to_notion = body.get('save_to_notion', False)
+    save_to_notion = body.get('save_to_notion', True)  # Default: always save to Notion
 
     try:
         logger.info(f"🔍 [Workflow 2] Discovering unknown vendors for {account_name}")
@@ -3309,9 +3625,9 @@ def detect_dc_signals(account_id: str):
     - vendor_mentions: DC rectifier vendors found in search results
     - urgency_breakdown: Signals grouped by urgency (Critical, High, Medium)
     """
-    # Get account from Notion
+    # Get account from Notion - support both synthetic ID and Notion UUID
     accounts = get_notion_accounts()
-    account = next((a for a in accounts if a['id'] == account_id), None)
+    account = next((a for a in accounts if a['id'] == account_id or a.get('notion_id') == account_id), None)
 
     if not account:
         return jsonify({"error": "Account not found"}), 404
@@ -3322,7 +3638,7 @@ def detect_dc_signals(account_id: str):
 
     # Parse request body
     body = request.get_json(silent=True) or {}
-    save_to_notion = body.get('save_to_notion', False)
+    save_to_notion = body.get('save_to_notion', True)  # Default: always save to Notion
 
     # Check for Brave API key
     brave_api_key = os.getenv('BRAVE_API_KEY')
@@ -3688,24 +4004,20 @@ Respond ONLY with valid JSON:
 
         # Step 3: Update Notion with enriched data
         physical_infra = extracted.get('physical_infrastructure', '')[:2000]
-        industry = extracted.get('industry', 'Technology')
         icp_score = min(100, max(0, extracted.get('icp_fit_score', 60)))
+        industry = extracted.get('industry', 'Technology')  # For API response (not saved to Notion)
 
         try:
             notion = get_notion_client()
 
             # Build update properties
+            # Note: "Industry" field does NOT exist in Notion schema
+            # Available fields: Physical Infrastructure, ICP Fit Score, Business Model
             update_properties = {
                 "Physical Infrastructure": {"rich_text": [{"text": {"content": physical_infra}}]},
                 "ICP Fit Score": {"number": icp_score},
                 "Last Updated": {"date": {"start": datetime.now().isoformat()}}
             }
-
-            # Add Industry if the field exists (select type)
-            try:
-                update_properties["Industry"] = {"select": {"name": industry}}
-            except Exception:
-                pass
 
             # Update via Notion API
             url = f"https://api.notion.com/v1/pages/{notion_id}"

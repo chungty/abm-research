@@ -356,9 +356,10 @@ class VendorRelationshipDiscovery:
 
         self.brave_base_url = "https://api.search.brave.com/res/v1/web/search"
 
-        # Rate limiting
+        # Rate limiting - Brave free tier allows 1 req/sec
         self.last_request_time = 0
-        self.request_delay = 0.5  # 0.5 seconds between requests (faster, with retry on 429)
+        self.request_delay = 1.1  # Slightly over 1 req/sec for safety margin
+        self.jitter_range = 0.3   # Random 0-0.3s jitter to prevent thundering herd
         self.max_retries = 3  # Max retries on rate limit
 
         # Cache to avoid duplicate searches
@@ -1352,9 +1353,17 @@ Return JSON object only, no markdown:"""
                 )
 
                 if response.status_code == 429:
-                    # Rate limited - apply exponential backoff
-                    backoff_time = (2 ** attempt) * 3  # 3s, 6s, 12s
-                    logger.warning(f"Brave API rate limited (429). Waiting {backoff_time}s before retry {attempt + 1}/{self.max_retries}")
+                    # Rate limited - use Retry-After header if available, else exponential backoff
+                    retry_after = response.headers.get('Retry-After')
+                    if retry_after:
+                        try:
+                            backoff_time = int(retry_after)
+                            logger.warning(f"Brave API rate limited (429). Server requested {backoff_time}s wait")
+                        except ValueError:
+                            backoff_time = (2 ** attempt) * 3  # Fallback: 3s, 6s, 12s
+                    else:
+                        backoff_time = (2 ** attempt) * 3  # Fallback: 3s, 6s, 12s
+                    logger.warning(f"Brave API rate limited. Waiting {backoff_time}s before retry {attempt + 1}/{self.max_retries}")
                     last_error = f"Rate limited by Brave API. Retried {attempt + 1}/{self.max_retries} times."
                     last_error_code = "BRAVE_RATE_LIMITED"
                     time.sleep(backoff_time)
@@ -1673,10 +1682,14 @@ Return JSON object only, no markdown:"""
         return scores
 
     def _apply_rate_limit(self):
-        """Apply rate limiting between API requests."""
+        """Apply rate limiting between API requests with jitter."""
+        import random
         elapsed = time.time() - self.last_request_time
-        if elapsed < self.request_delay:
-            time.sleep(self.request_delay - elapsed)
+        # Add random jitter to prevent thundering herd
+        jitter = random.uniform(0, self.jitter_range)
+        total_delay = self.request_delay + jitter
+        if elapsed < total_delay:
+            time.sleep(total_delay - elapsed)
         self.last_request_time = time.time()
 
     def to_partnership_properties(

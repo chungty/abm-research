@@ -422,20 +422,47 @@ class StrategicPartnershipIntelligence:
         return False
 
     def _filter_and_deduplicate(self, partnerships: List[StrategicPartnership]) -> List[StrategicPartnership]:
-        """Remove duplicates and filter out low-quality partnerships"""
+        """
+        Remove duplicates, ensure category diversity for BD exploration.
+
+        Strategy:
+        1. First, guarantee at least one partnership from each category (if confidence >= 30%)
+        2. Then, add remaining high-confidence partnerships (>= 50%)
+
+        This ensures BD sees partnership opportunities across all 8 categories,
+        not just the highest-scoring duplicates from one or two categories.
+        """
         if not partnerships:
             return []
 
+        # Group by category first
+        by_category: Dict[str, List[StrategicPartnership]] = {}
+        for p in partnerships:
+            if p.category not in by_category:
+                by_category[p.category] = []
+            by_category[p.category].append(p)
+
         filtered = []
         seen_partners = set()
+        min_threshold = 30  # Lower threshold for category diversity exploration
 
-        for partnership in partnerships:
-            # Create a key for deduplication
-            partner_key = f"{partnership.partner_name.lower()}_{partnership.category}"
+        # Phase 1: Take best from each category (ensures diversity)
+        for category, category_partnerships in by_category.items():
+            # Sort by confidence within category
+            sorted_in_cat = sorted(category_partnerships, key=lambda x: x.confidence_score, reverse=True)
+            for p in sorted_in_cat:
+                key = f"{p.partner_name.lower()}_{p.category}"
+                if key not in seen_partners and p.confidence_score >= min_threshold:
+                    seen_partners.add(key)
+                    filtered.append(p)
+                    break  # Take top 1 per category for guaranteed diversity
 
-            if partner_key not in seen_partners and partnership.confidence_score >= 50:
-                seen_partners.add(partner_key)
-                filtered.append(partnership)
+        # Phase 2: Add remaining high-confidence partnerships
+        for p in partnerships:
+            key = f"{p.partner_name.lower()}_{p.category}"
+            if key not in seen_partners and p.confidence_score >= 50:
+                seen_partners.add(key)
+                filtered.append(p)
 
         return filtered
 
