@@ -1252,7 +1252,10 @@ class NotionClient:
         return response.json().get('id')
 
     def _create_partnership(self, partnership: Dict, account_name: str = "") -> Optional[str]:
-        """Create new partnership record with enhanced strategic intelligence and Account relation.
+        """Create or update partnership record with automatic deduplication.
+
+        If a partnership with the same vendor name already exists, adds the new account
+        to its relation list instead of creating a duplicate record.
 
         Uses the ACTUAL Notion database schema fields:
         - Name (title): Partner/vendor name
@@ -1264,7 +1267,7 @@ class NotionClient:
         - Relationship Depth (select): Integration level
         - Partnership Maturity (select): Relationship stage
         - Best Approach (select): Recommended strategy
-        - Account (relation): Link to account
+        - Account (relation): Link to account(s) - supports multiple
         """
         # Get source URL and ensure it's either a valid URL or null (not empty string)
         source_url = partnership.get('source_url', partnership.get('evidence_url', '')) or None
@@ -1278,6 +1281,13 @@ class NotionClient:
                 logger.info(f"🔗 Linking partnership '{partner_name}' to account '{account_name}'")
             else:
                 logger.warning(f"⚠️ Could not find account '{account_name}' for partnership relation")
+
+        # CHECK FOR EXISTING PARTNERSHIP BY VENDOR NAME (automatic deduplication)
+        existing_partnership_id = self._find_existing_partnership(partner_name)
+        if existing_partnership_id and account_id:
+            # Partnership exists - add this account to its relation list
+            logger.info(f"📎 Found existing partnership '{partner_name}', adding account relation")
+            return self._add_account_to_partnership(existing_partnership_id, account_id, partner_name)
 
         # Use ACTUAL database field names (verified from schema)
         properties = {
@@ -1390,6 +1400,73 @@ class NotionClient:
     ) -> Optional[str]:
         """Alias for _find_existing_partnership for semantic clarity"""
         return self._find_existing_partnership(vendor_name, account_id)
+
+    def _add_account_to_partnership(
+        self,
+        partnership_id: str,
+        account_id: str,
+        partner_name: str = ""
+    ) -> str:
+        """
+        Add an account to an existing partnership's relation list.
+
+        This enables the many-to-many relationship where one vendor/partner
+        can be associated with multiple target accounts. Instead of creating
+        duplicate partnership records, we add new accounts to the existing record.
+
+        Args:
+            partnership_id: The Notion page ID of the existing partnership
+            account_id: The account ID to add to the relation
+            partner_name: Optional name for logging (not used in update)
+
+        Returns:
+            The partnership_id (same as input, for consistency with _create_partnership)
+
+        Raises:
+            NotionAPIError: If the update fails
+        """
+        try:
+            # First, get the current account relations from the partnership
+            url = f"https://api.notion.com/v1/pages/{partnership_id}"
+            response = self._make_request(
+                'GET', url,
+                operation=f"get_partnership_relations({partner_name or partnership_id})"
+            )
+
+            page_data = response.json()
+            current_relations = page_data.get('properties', {}).get('Account', {}).get('relation', [])
+
+            # Extract existing account IDs
+            existing_account_ids = {rel['id'] for rel in current_relations}
+
+            # Check if account is already linked
+            if account_id in existing_account_ids:
+                logger.info(f"📎 Account already linked to '{partner_name}', skipping")
+                return partnership_id
+
+            # Add new account to the relation list
+            updated_relations = list(current_relations) + [{"id": account_id}]
+
+            # Update the partnership with merged relations
+            update_url = f"https://api.notion.com/v1/pages/{partnership_id}"
+            self._make_request(
+                'PATCH', update_url,
+                json={"properties": {"Account": {"relation": updated_relations}}},
+                operation=f"add_account_to_partnership({partner_name or partnership_id})"
+            )
+
+            logger.info(f"✓ Added account to existing partnership '{partner_name}' (now {len(updated_relations)} accounts)")
+            return partnership_id
+
+        except NotionError:
+            raise
+        except Exception as e:
+            raise NotionError(
+                f"Failed to add account to partnership: {str(e)}",
+                operation="_add_account_to_partnership",
+                details={"partnership_id": partnership_id, "account_id": account_id},
+                cause=e
+            )
 
     # ═══════════════════════════════════════════════════════════════════════════════════
     # UPDATE OPERATIONS - Including the critical update_page() method
