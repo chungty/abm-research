@@ -10,7 +10,6 @@ Comprehensive plan to ensure the entire codebase follows the new enhanced schema
 """
 
 
-
 def create_schema_compliance_plan():
     """Create comprehensive plan for schema compliance across the entire codebase"""
 

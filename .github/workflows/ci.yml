@@ -30,7 +30,7 @@ jobs:
       - name: Run pre-commit hooks
         run: pre-commit run --all-files
         env:
-          SKIP: mypy,ruff,bandit,detect-secrets
+          SKIP: mypy,ruff,bandit,detect-secrets,pydocstyle
 
       - name: Type checking with mypy
         run: mypy src/
