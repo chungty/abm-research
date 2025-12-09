@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api/client';
+import { FocusTrap, ErrorBanner } from './shared';
 
 interface Props {
   isOpen: boolean;
@@ -102,15 +103,18 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
       onClick={handleClose}
+      role="presentation"
     >
-      <div
-        className="w-full max-w-lg mx-4 rounded-xl shadow-2xl animate-fade-in"
-        style={{
-          backgroundColor: 'var(--color-bg-elevated)',
-          border: '1px solid var(--color-border-default)',
-        }}
-        onClick={e => e.stopPropagation()}
-      >
+      <FocusTrap active={isOpen && !isSubmitting} onEscape={handleClose}>
+        <div
+          className="w-full max-w-lg mx-4 rounded-xl shadow-2xl animate-fade-in"
+          style={{
+            backgroundColor: 'var(--color-bg-elevated)',
+            border: '1px solid var(--color-border-default)',
+          }}
+          onClick={e => e.stopPropagation()}
+          aria-labelledby="add-account-title"
+        >
         {/* Header */}
         <div
           className="px-6 py-4 flex items-center justify-between"
@@ -118,6 +122,7 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
         >
           <div>
             <h2
+              id="add-account-title"
               className="text-lg font-heading"
               style={{ color: 'var(--color-text-primary)' }}
             >
@@ -133,7 +138,8 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
           <button
             onClick={handleClose}
             disabled={isSubmitting}
-            className="p-2 rounded-lg transition-all"
+            aria-label="Close dialog"
+            className="p-2 rounded-lg transition-all focus:outline-none focus-visible:ring-2"
             style={{
               color: 'var(--color-text-muted)',
               backgroundColor: 'transparent',
@@ -141,7 +147,7 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
               cursor: isSubmitting ? 'not-allowed' : 'pointer',
             }}
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -224,20 +230,13 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
 
           {/* Error Message */}
           {status === 'error' && error && (
-            <div
-              className="p-3 rounded-lg"
-              style={{
-                backgroundColor: 'var(--color-priority-low-bg)',
-                border: '1px solid var(--color-priority-low-border)',
+            <ErrorBanner
+              error={error}
+              onRetry={() => {
+                setError(null);
+                setStatus('idle');
               }}
-            >
-              <p
-                className="text-sm"
-                style={{ color: 'var(--color-priority-low)' }}
-              >
-                {error}
-              </p>
-            </div>
+            />
           )}
 
           {/* Progress Message */}
@@ -345,7 +344,8 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
             </button>
           </div>
         </form>
-      </div>
+        </div>
+      </FocusTrap>
     </div>
   );
 }

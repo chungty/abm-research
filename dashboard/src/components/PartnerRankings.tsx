@@ -185,9 +185,11 @@ function PartnerRankCard({
       }}
     >
       {/* Main Card */}
-      <div
-        className="p-4 cursor-pointer hover:bg-opacity-50 transition-colors"
+      <button
+        className="w-full p-4 cursor-pointer hover:bg-opacity-50 transition-colors text-left"
         onClick={onToggle}
+        aria-expanded={expanded}
+        aria-label={`${partner.partner_name} - Score ${partner.partner_score.toFixed(1)}. Click to ${expanded ? 'collapse' : 'expand'} details.`}
         style={{
           backgroundColor: expanded ? 'var(--color-accent-primary-muted)' : 'transparent'
         }}
@@ -267,11 +269,12 @@ function PartnerRankCard({
               color: 'var(--color-text-muted)',
               transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)'
             }}
+            aria-hidden="true"
           >
             <ChevronDownIcon />
           </div>
         </div>
-      </div>
+      </button>
 
       {/* Expanded Content */}
       {expanded && (
@@ -398,19 +401,37 @@ function ScoreDimensionCard({
   details: string;
   color: string;
 }) {
+  const isZero = score === 0;
+  const isMissingData = details === 'No category' || details === 'Unknown' || details === '0 signals';
+
   return (
     <div
-      className="p-2 rounded-lg text-center"
+      className="p-2 rounded-lg text-center relative"
       style={{
         backgroundColor: 'var(--color-bg-elevated)',
-        border: '1px solid var(--color-border-subtle)'
+        border: `1px solid ${isMissingData ? 'var(--color-priority-medium-border)' : 'var(--color-border-subtle)'}`
       }}
+      title={isMissingData ? `${label}: Score may be low due to missing data. Add more context in Notion.` : undefined}
     >
+      {isMissingData && (
+        <div
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+          style={{
+            backgroundColor: 'var(--color-priority-medium-bg)',
+            color: 'var(--color-priority-medium)',
+            fontSize: '10px',
+            border: '1px solid var(--color-priority-medium-border)',
+          }}
+          title="Missing data - score may be inaccurate"
+        >
+          !
+        </div>
+      )}
       <div
         className="text-lg font-heading tabular-nums"
-        style={{ color }}
+        style={{ color: isZero ? 'var(--color-text-muted)' : color }}
       >
-        {score.toFixed(0)}
+        {isZero ? '—' : score.toFixed(0)}
       </div>
       <div
         className="text-xs font-medium"
@@ -426,10 +447,10 @@ function ScoreDimensionCard({
       </div>
       <div
         className="text-xs mt-1 truncate"
-        style={{ color: 'var(--color-text-tertiary)' }}
+        style={{ color: isMissingData ? 'var(--color-priority-medium)' : 'var(--color-text-tertiary)' }}
         title={details}
       >
-        {details}
+        {isMissingData ? '⚠️ ' : ''}{details}
       </div>
     </div>
   );
@@ -526,9 +547,26 @@ function EmptyRankings() {
       <p className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>
         No partner rankings available
       </p>
-      <p className="text-sm mt-1">
-        Add partnerships to see strategic rankings based on ICP account reach
+      <p className="text-sm mt-1 max-w-md mx-auto">
+        Partnerships are discovered automatically when you run <strong>"Discover Vendors"</strong> on an account.
       </p>
+      <div
+        className="mt-4 p-4 rounded-lg text-left max-w-md mx-auto"
+        style={{
+          backgroundColor: 'var(--color-bg-card)',
+          border: '1px solid var(--color-border-default)'
+        }}
+      >
+        <p className="text-xs font-medium mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+          How to discover partnerships:
+        </p>
+        <ol className="text-xs space-y-1" style={{ color: 'var(--color-text-muted)' }}>
+          <li>1. Select an account from the Accounts tab</li>
+          <li>2. Click <strong>"Discover Vendors"</strong> button</li>
+          <li>3. AI will find vendor relationships and save them as partnerships</li>
+          <li>4. Return here to see ranked partners by ICP account coverage</li>
+        </ol>
+      </div>
     </div>
   );
 }

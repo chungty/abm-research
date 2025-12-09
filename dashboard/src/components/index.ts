@@ -15,3 +15,16 @@ export { TriggerEventsSection } from './TriggerEventsSection';
 export { AddAccountModal } from './AddAccountModal';
 export { ChangelogModal } from './ChangelogModal';
 export { Tooltip, InfoTooltip, LabelWithTooltip } from './Tooltip';
+
+// Shared UI components
+export {
+  LoadingSpinner,
+  ErrorBanner,
+  EmptyState,
+  DataQualityBanner,
+  FocusTrap,
+  IconButton,
+  APP_CONFIG,
+  getScoreLevel,
+  getScoreColor,
+} from './shared';

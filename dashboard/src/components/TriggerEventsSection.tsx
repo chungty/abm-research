@@ -117,18 +117,30 @@ export function TriggerEventsSection({ events, onRefresh, isRefreshing }: Props)
           className="text-center py-8"
           style={{ color: 'var(--color-text-muted)' }}
         >
-          <svg className="w-10 h-10 mx-auto mb-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-10 h-10 mx-auto mb-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
           </svg>
-          <p className="text-sm">No trigger events detected</p>
-          {onRefresh && (
+          <p className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+            No trigger events detected
+          </p>
+          <p className="text-sm mt-1">
+            Trigger events include: expansion, hiring, funding, leadership changes, and incidents.
+          </p>
+          {onRefresh ? (
             <button
               onClick={onRefresh}
-              className="mt-2 text-xs underline"
-              style={{ color: 'var(--color-accent-primary)' }}
+              className="mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-all"
+              style={{
+                backgroundColor: 'var(--color-accent-primary)',
+                color: 'white',
+              }}
             >
-              Run event discovery
+              Discover Events
             </button>
+          ) : (
+            <p className="text-xs mt-2" style={{ color: 'var(--color-text-tertiary)' }}>
+              💡 Click "Refresh" in the account actions to run event discovery.
+            </p>
           )}
         </div>
       ) : (

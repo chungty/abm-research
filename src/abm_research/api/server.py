@@ -433,28 +433,70 @@ def transform_notion_contact(page: Dict) -> Optional[Dict]:
         title_source = extract_select(props.get('Title Source', {}))
         data_quality_score = props.get('Data Quality Score', {}).get('number', 0) or 0
 
-        return {
-            "id": f"con_{page['id'][:8]}",
-            "notion_id": page['id'],
-            "name": name,
-            "email": email,
-            "title": title,
-            "company": company,
-            "linkedin_url": linkedin_url,
-            "lead_score": lead_score,
-            "engagement_level": engagement_level or "Medium",
-            "name_source": name_source,
-            "email_source": email_source,
-            "title_source": title_source,
-            "data_quality_score": data_quality_score,
-            # MEDDIC scoring (placeholder until real scoring is needed)
-            "champion_potential_score": lead_score * 0.8,
-            "role_tier": "entry_point",
-            "role_classification": title if title else "Unknown",
-            "champion_potential_level": "High" if lead_score >= 70 else "Medium" if lead_score >= 50 else "Low",
-            "recommended_approach": "Pain-based outreach",
-            "enrichment_status": "enriched" if email else "pending",
+        # Calculate real MEDDIC scores using the scorer
+        contact_data = {
+            'name': name,
+            'title': title,
+            'email': email,
+            'linkedin_url': linkedin_url,
+            'engagement_level': engagement_level,
         }
+
+        # Use MEDDIC scorer if available, otherwise fall back to basic calculation
+        if meddic_contact_scorer:
+            meddic_result = meddic_contact_scorer.calculate_contact_score(contact_data)
+            meddic_breakdown = meddic_result.get_score_breakdown()
+
+            return {
+                "id": f"con_{page['id'][:8]}",
+                "notion_id": page['id'],
+                "name": name,
+                "email": email,
+                "title": title,
+                "company": company,
+                "linkedin_url": linkedin_url,
+                "lead_score": lead_score,
+                "engagement_level": engagement_level or "Medium",
+                "name_source": name_source,
+                "email_source": email_source,
+                "title_source": title_source,
+                "data_quality_score": data_quality_score,
+                # Real MEDDIC scoring from scorer
+                "champion_potential_score": meddic_result.champion_potential_score,
+                "role_tier": meddic_result.role_tier,
+                "role_classification": meddic_result.role_classification,
+                "champion_potential_level": meddic_result.champion_potential_level,
+                "recommended_approach": meddic_result.recommended_approach,
+                "why_prioritize": meddic_result.why_prioritize,
+                "meddic_score_breakdown": meddic_breakdown,
+                "enrichment_status": "enriched" if email else "pending",
+            }
+        else:
+            # Fallback when scorer not available
+            return {
+                "id": f"con_{page['id'][:8]}",
+                "notion_id": page['id'],
+                "name": name,
+                "email": email,
+                "title": title,
+                "company": company,
+                "linkedin_url": linkedin_url,
+                "lead_score": lead_score,
+                "engagement_level": engagement_level or "Medium",
+                "name_source": name_source,
+                "email_source": email_source,
+                "title_source": title_source,
+                "data_quality_score": data_quality_score,
+                # Fallback scoring when scorer unavailable
+                "champion_potential_score": lead_score * 0.8,
+                "role_tier": "entry_point",
+                "role_classification": title if title else "Unknown",
+                "champion_potential_level": "High" if lead_score >= 70 else "Medium" if lead_score >= 50 else "Low",
+                "recommended_approach": "Pain-based outreach",
+                "why_prioritize": [],
+                "meddic_score_breakdown": None,
+                "enrichment_status": "enriched" if email else "pending",
+            }
 
     except Exception as e:
         logger.error(f"Error transforming contact: {e}")
@@ -3449,17 +3491,19 @@ def calculate_vendor_intro_power():
         }), 500
 
 
-@app.route('/api/accounts/<account_id>/discover-unknown-vendors', methods=['POST'])
-def discover_unknown_vendors_for_account(account_id: str):
+@app.route('/api/accounts/<account_id>/discover-account-vendors', methods=['POST'])
+def discover_account_vendors_endpoint(account_id: str):
     """
-    WORKFLOW 2: Discover vendors for an account WITHOUT a pre-known vendor list.
+    WORKFLOW 2: Discover vendors for an account using pattern-matching.
 
     This is fundamentally different from /discover-vendors (Workflow 1):
     - Workflow 1: "Does vendor X work with account Y?" (requires knowing vendors)
     - Workflow 2: "Who are account Y's vendors?" (discovers vendors from scratch)
+    - Workflow 3 (/discover-unknown-vendors): Uses LLM for extraction
 
     Use this when you want to identify partnership opportunities by finding
-    which vendors a target account is already working with.
+    which vendors a target account is already working with, using pattern-matching
+    against known vendor names (faster than LLM-based discovery).
 
     POST body (optional):
     {

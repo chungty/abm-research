@@ -14,6 +14,7 @@ import {
   type DataQuality,
 } from '../utils/outreachGenerator';
 import { CopyButton } from './CopyButton';
+import { FocusTrap } from './shared';
 
 interface Props {
   contact: Contact;
@@ -155,16 +156,19 @@ export function OutreachPanel({ contact, account, onClose }: Props) {
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
       onClick={onClose}
+      role="presentation"
     >
-      <div
-        className="w-full max-w-4xl max-h-[90vh] rounded-xl overflow-hidden flex flex-col"
-        style={{
-          backgroundColor: 'var(--color-bg-elevated)',
-          border: '1px solid var(--color-border-default)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-        }}
-        onClick={e => e.stopPropagation()}
-      >
+      <FocusTrap active={true} onEscape={onClose}>
+        <div
+          className="w-full max-w-4xl max-h-[90vh] rounded-xl overflow-hidden flex flex-col"
+          style={{
+            backgroundColor: 'var(--color-bg-elevated)',
+            border: '1px solid var(--color-border-default)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          }}
+          onClick={e => e.stopPropagation()}
+          aria-labelledby="outreach-panel-title"
+        >
         {/* Header */}
         <PanelHeader contact={contact} account={account} onClose={onClose} />
 
@@ -223,7 +227,8 @@ export function OutreachPanel({ contact, account, onClose }: Props) {
             />
           )}
         </div>
-      </div>
+        </div>
+      </FocusTrap>
     </div>
   );
 }
@@ -277,16 +282,30 @@ function GenerateButton({
 
       {error && (
         <div
-          className="mt-3 p-3 rounded-lg flex items-center gap-2"
+          className="mt-3 p-3 rounded-lg"
           style={{
-            backgroundColor: 'var(--color-priority-low-bg)',
-            border: '1px solid var(--color-priority-low-border)'
+            backgroundColor: error.includes('template') ? 'var(--color-priority-medium-bg)' : 'var(--color-priority-low-bg)',
+            border: `1px solid ${error.includes('template') ? 'var(--color-priority-medium-border)' : 'var(--color-priority-low-border)'}`
           }}
+          role="alert"
         >
-          <svg className="w-4 h-4" style={{ color: 'var(--color-priority-low)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-sm" style={{ color: 'var(--color-priority-low)' }}>{error}</span>
+          <div className="flex items-start gap-2">
+            <span className="text-sm">{error.includes('template') ? '📝' : '⚠️'}</span>
+            <div className="flex-1">
+              <span
+                className="text-sm font-medium block"
+                style={{ color: error.includes('template') ? 'var(--color-priority-medium)' : 'var(--color-priority-low)' }}
+              >
+                {error.includes('template') ? 'Using Template Fallback' : 'Generation Failed'}
+              </span>
+              <span className="text-xs block mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                {error.includes('template')
+                  ? 'AI service unavailable. Showing template-based content that you can customize.'
+                  : `${error}. Check that the Flask API is running and try again.`
+                }
+              </span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -336,6 +355,7 @@ function PanelHeader({
     >
       <div>
         <h2
+          id="outreach-panel-title"
           className="text-xl font-semibold flex items-center gap-2"
           style={{ color: 'var(--color-text-primary)' }}
         >
@@ -349,18 +369,11 @@ function PanelHeader({
       </div>
       <button
         onClick={onClose}
-        className="p-2 rounded-lg transition-colors"
+        aria-label="Close outreach panel"
+        className="p-2 rounded-lg transition-colors hover:bg-[var(--color-bg-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
         style={{ color: 'var(--color-text-muted)' }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = 'var(--color-bg-hover)';
-          e.currentTarget.style.color = 'var(--color-text-secondary)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'transparent';
-          e.currentTarget.style.color = 'var(--color-text-muted)';
-        }}
       >
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>

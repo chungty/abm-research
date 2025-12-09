@@ -3,6 +3,7 @@ import type { Contact, Account, RoleTier, ChampionPotentialLevel } from '../type
 import { ScoreBadge, RoleTierBadge } from './ScoreBadge';
 import { OutreachPanel } from './OutreachPanel';
 import { API_BASE } from '../api/client';
+import { APP_CONFIG, getScoreColor } from './shared';
 
 interface Props {
   contact: Contact;
@@ -44,8 +45,8 @@ const championColors: Record<ChampionPotentialLevel, string> = {
   Low: 'var(--color-text-tertiary)',
 };
 
-// Threshold for showing "Reveal Email" button - only for high-value contacts
-const LEAD_SCORE_THRESHOLD = 60;
+// Use centralized config for threshold
+const LEAD_SCORE_THRESHOLD = APP_CONFIG.LEAD_SCORE_THRESHOLD;
 
 export function ContactCard({ contact, account, expanded = false, onToggleExpand }: Props) {
   const [showOutreach, setShowOutreach] = useState(false);
@@ -85,7 +86,15 @@ export function ContactCard({ contact, account, expanded = false, onToggleExpand
         setRevealError('No email found');
       }
     } catch (err) {
-      setRevealError(err instanceof Error ? err.message : 'Unknown error');
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      // Provide user-friendly error messages
+      if (errorMsg.includes('fetch') || errorMsg.includes('network')) {
+        setRevealError('Connection failed. Check that the API is running.');
+      } else if (errorMsg.includes('not found') || errorMsg.includes('404')) {
+        setRevealError('Contact not found in enrichment sources.');
+      } else {
+        setRevealError('Could not reveal email. Try again later.');
+      }
     } finally {
       setIsRevealing(false);
     }
@@ -331,10 +340,10 @@ export function ContactCard({ contact, account, expanded = false, onToggleExpand
         {onToggleExpand && (
           <button
             onClick={onToggleExpand}
-            className="w-full mt-2 text-xs transition-colors"
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Show less contact details' : 'Show more contact details'}
+            className="w-full mt-2 text-xs transition-colors py-1 rounded hover:bg-[rgba(255,255,255,0.05)] focus:outline-none focus-visible:ring-2"
             style={{ color: 'var(--color-text-muted)' }}
-            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-text-secondary)'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-text-muted)'}
           >
             {expanded ? '▲ Less' : '▼ More'}
           </button>
@@ -378,27 +387,42 @@ function LoadingSpinner() {
 }
 
 function MiniScore({ label, score, weight }: { label: string; score: number; weight: string }) {
-  const getColor = (s: number) => {
-    if (s >= 80) return 'var(--color-priority-very-high)';
-    if (s >= 60) return 'var(--color-priority-high)';
-    if (s >= 40) return 'var(--color-priority-medium)';
-    return 'var(--color-text-tertiary)';
-  };
+  const isZero = score === 0;
+  const color = getScoreColor(score);
 
   return (
     <div
-      className="rounded p-1"
+      className="rounded p-1.5 relative"
       style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)' }}
+      title={isZero ? `${label}: No data. Run "Rescore MEDDIC" to calculate.` : `${label}: ${Math.round(score)} (${weight} of total)`}
     >
+      {isZero && (
+        <div
+          className="absolute -top-1 -right-1 w-3 h-3 rounded-full flex items-center justify-center text-xs"
+          style={{
+            backgroundColor: 'var(--color-priority-medium-bg)',
+            color: 'var(--color-priority-medium)',
+            fontSize: '8px',
+          }}
+          title="Missing data - run Rescore MEDDIC"
+        >
+          ?
+        </div>
+      )}
       <div
-        className="score-value text-sm"
-        style={{ color: getColor(score) }}
+        className="score-value text-sm font-semibold"
+        style={{ color: isZero ? 'var(--color-text-muted)' : color }}
       >
-        {Math.round(score)}
+        {isZero ? '—' : Math.round(score)}
       </div>
-      <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+      <div className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
         {label}
-        <span className="opacity-50 ml-0.5">({weight})</span>
+      </div>
+      <div
+        className="text-xs font-medium"
+        style={{ color: 'var(--color-text-tertiary)' }}
+      >
+        {weight}
       </div>
     </div>
   );
@@ -489,7 +513,29 @@ export function ContactList({ contacts, account, title = 'Contacts' }: ContactLi
           className="text-center py-8"
           style={{ color: 'var(--color-text-muted)' }}
         >
-          No contacts found
+          <svg
+            className="w-10 h-10 mx-auto mb-3 opacity-50"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={1.5}
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+            />
+          </svg>
+          <p className="font-medium" style={{ color: 'var(--color-text-secondary)' }}>
+            No contacts found
+          </p>
+          <p className="text-sm mt-1">
+            Run <strong>"Contact Intelligence"</strong> enrichment to discover contacts for this account.
+          </p>
+          <p className="text-xs mt-2" style={{ color: 'var(--color-text-tertiary)' }}>
+            💡 Look for the "Rescore MEDDIC" button in the account actions.
+          </p>
         </div>
       )}
     </div>
