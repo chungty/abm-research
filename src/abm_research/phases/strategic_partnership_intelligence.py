@@ -33,10 +33,21 @@ class StrategicPartnershipIntelligence:
     """Phase 5 implementation: Vendor relationship detection"""
 
     def __init__(self):
-        self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # Lazy initialization of OpenAI client to avoid import-time failures
+        self._openai_client = None
 
         # Load partnership categories and opportunity angles
         self.load_partnership_config()
+
+    @property
+    def openai_client(self):
+        """Lazy initialization of OpenAI client."""
+        if self._openai_client is None:
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                raise ValueError("OPENAI_API_KEY environment variable is required")
+            self._openai_client = openai.OpenAI(api_key=api_key)
+        return self._openai_client
 
     def load_partnership_config(self):
         """Load partnership categories and opportunity templates from skill specification"""
@@ -926,5 +937,17 @@ class StrategicPartnershipIntelligence:
         return base_approach
 
 
-# Export for use by production system
-strategic_partnership_intelligence = StrategicPartnershipIntelligence()
+# Lazy singleton pattern to avoid import-time initialization
+_strategic_partnership_intelligence = None
+
+
+def get_strategic_partnership_intelligence():
+    """Get or create the strategic partnership intelligence singleton."""
+    global _strategic_partnership_intelligence
+    if _strategic_partnership_intelligence is None:
+        _strategic_partnership_intelligence = StrategicPartnershipIntelligence()
+    return _strategic_partnership_intelligence
+
+
+# For backwards compatibility - set to None to avoid import-time init
+strategic_partnership_intelligence = None

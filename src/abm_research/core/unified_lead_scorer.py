@@ -990,18 +990,26 @@ class UnifiedLeadScorer:
         self.logger = logging.getLogger(__name__)
         self.config = config or self._load_default_config()
 
-        # Initialize OpenAI for AI recommendations
-        try:
-            self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        except Exception as e:
-            self.logger.warning(f"OpenAI client initialization failed: {e}")
-            self.openai_client = None
+        # Lazy initialization of OpenAI client to avoid import-time failures
+        self._openai_client = None
 
         # Load decision influence mapping
         self.decision_influence_map = self._load_decision_influence_map()
 
         # Load US geographic indicators
         self.us_indicators = self._load_us_indicators()
+
+    @property
+    def openai_client(self):
+        """Lazy initialization of OpenAI client."""
+        if self._openai_client is None:
+            try:
+                api_key = os.getenv("OPENAI_API_KEY")
+                if api_key:
+                    self._openai_client = openai.OpenAI(api_key=api_key)
+            except Exception as e:
+                self.logger.warning(f"OpenAI client initialization failed: {e}")
+        return self._openai_client
 
     def _load_default_config(self) -> dict[str, Any]:
         """Load default scoring configuration"""
