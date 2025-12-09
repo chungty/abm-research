@@ -51,10 +51,21 @@ class LinkedInEnrichmentEngine:
     """Phase 3 implementation: High-priority contact enrichment"""
 
     def __init__(self):
-        self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # Lazy initialization of OpenAI client to avoid import-time failures
+        self._openai_client = None
 
         # Load skill configuration
         self.load_skill_config()
+
+    @property
+    def openai_client(self):
+        """Lazy initialization of OpenAI client"""
+        if self._openai_client is None:
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                raise ValueError("OPENAI_API_KEY environment variable is required")
+            self._openai_client = openai.OpenAI(api_key=api_key)
+        return self._openai_client
 
     def load_skill_config(self):
         """Load scoring rules from skill specification"""
