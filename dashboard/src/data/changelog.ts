@@ -16,9 +16,46 @@ export interface ChangelogEntry {
   }[];
 }
 
-export const CURRENT_VERSION = 'v0.10.0';
+export const CURRENT_VERSION = 'v0.11.0';
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: 'v0.11.0',
+    date: '2025-12-08',
+    title: 'Partnership Discovery & Reliability',
+    highlights: [
+      'Automatic partnership deduplication (one vendor → multiple accounts)',
+      'BD-friendly category-diverse partnership discovery',
+      'Robust Notion API error handling with exception hierarchy'
+    ],
+    features: [
+      {
+        category: 'intelligence',
+        items: [
+          'Category-aware partnership filtering ensures BD sees all 8 vendor categories',
+          'Lowered confidence threshold (30%) for category diversity exploration',
+          'High-confidence partnerships (50%+) still prioritized after diversity pass'
+        ]
+      },
+      {
+        category: 'integration',
+        items: [
+          'Auto-dedupe: existing vendors gain account relations instead of duplicating',
+          'Notion exception hierarchy: NotionError, NotionConfigError, NotionAPIError',
+          'Database ID properties raise immediately if not configured',
+          'Brave API rate limiting: 1.1s delay + jitter + Retry-After header support'
+        ]
+      },
+      {
+        category: 'infrastructure',
+        items: [
+          'Health endpoints: /api/health/pipeline and /api/health/notion-test',
+          'Robust JSON response handling with detailed error context',
+          'Schema fix: "Partner Name" → "Name" field alignment'
+        ]
+      }
+    ]
+  },
   {
     version: 'v0.10.0',
     date: '2025-12-02',
