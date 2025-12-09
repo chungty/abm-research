@@ -39,12 +39,23 @@ class EnhancedEngagementIntelligence:
     """Phase 4 implementation: AI-powered engagement intelligence"""
 
     def __init__(self):
-        self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # Lazy initialization of OpenAI client to avoid import-time failures
+        self._openai_client = None
 
         # Load skill configuration
         self.load_skill_config()
         self.load_pain_point_mapping()
         self.load_content_asset_library()
+
+    @property
+    def openai_client(self):
+        """Lazy initialization of OpenAI client."""
+        if self._openai_client is None:
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                raise ValueError("OPENAI_API_KEY environment variable is required")
+            self._openai_client = openai.OpenAI(api_key=api_key)
+        return self._openai_client
 
     def load_skill_config(self):
         """Load ICP pain points from skill specification"""
@@ -1045,5 +1056,17 @@ I can also share a case study of similar results we've achieved with companies i
         return "No channels analyzed"
 
 
-# Export for use by production system
-enhanced_engagement_intelligence = EnhancedEngagementIntelligence()
+# Lazy singleton pattern to avoid import-time initialization
+_enhanced_engagement_intelligence = None
+
+
+def get_enhanced_engagement_intelligence():
+    """Get or create the enhanced engagement intelligence singleton."""
+    global _enhanced_engagement_intelligence
+    if _enhanced_engagement_intelligence is None:
+        _enhanced_engagement_intelligence = EnhancedEngagementIntelligence()
+    return _enhanced_engagement_intelligence
+
+
+# For backwards compatibility - set to None to avoid import-time init
+enhanced_engagement_intelligence = None
