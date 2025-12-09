@@ -32,13 +32,24 @@ class EnhancedTriggerEventDetector:
     """Comprehensive trigger event detection following skill specification"""
 
     def __init__(self):
-        self.openai_client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        # Lazy initialization of OpenAI client to avoid import-time failures
+        self._openai_client = None
         self.brave_api_key = os.getenv('BRAVE_API_KEY')  # For Brave Search News API
 
         # Load event type definitions from skill spec
         self.event_categories = self._load_event_categories()
         self.confidence_rules = self._load_confidence_rules()
         self.relevance_scoring = self._load_relevance_scoring()
+
+    @property
+    def openai_client(self):
+        """Lazy initialization of OpenAI client"""
+        if self._openai_client is None:
+            api_key = os.getenv('OPENAI_API_KEY')
+            if not api_key:
+                raise ValueError("OPENAI_API_KEY environment variable is required")
+            self._openai_client = openai.OpenAI(api_key=api_key)
+        return self._openai_client
 
     def _load_event_categories(self) -> Dict:
         """Event categories from skill specification"""
