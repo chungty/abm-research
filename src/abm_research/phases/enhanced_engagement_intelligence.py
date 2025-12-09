@@ -49,9 +49,13 @@ class EnhancedEngagementIntelligence:
     def load_skill_config(self):
         """Load ICP pain points from skill specification"""
         try:
-            with open(
-                "/Users/chungty/Projects/abm-research/references/lead_scoring_config.json"
-            ) as f:
+            # Use path relative to the package directory
+            config_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                "references",
+                "lead_scoring_config.json",
+            )
+            with open(config_path) as f:
                 config = json.load(f)
                 self.icp_pain_points = config.get("icp_pain_points", [])
         except FileNotFoundError:

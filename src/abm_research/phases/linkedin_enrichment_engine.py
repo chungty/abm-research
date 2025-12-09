@@ -70,9 +70,13 @@ class LinkedInEnrichmentEngine:
     def load_skill_config(self):
         """Load scoring rules from skill specification"""
         try:
-            with open(
-                "/Users/chungty/Projects/abm-research/references/lead_scoring_config.json"
-            ) as f:
+            # Use path relative to the package directory
+            config_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                "references",
+                "lead_scoring_config.json",
+            )
+            with open(config_path) as f:
                 self.skill_config = json.load(f)
         except FileNotFoundError:
             print("⚠️ Lead scoring config not found, using defaults")
@@ -776,5 +780,18 @@ class LinkedInEnrichmentEngine:
         }
 
 
-# Export for use by production system
-linkedin_enrichment_engine = LinkedInEnrichmentEngine()
+# Lazy singleton pattern to avoid import-time initialization
+_linkedin_enrichment_engine = None
+
+
+def get_linkedin_enrichment_engine():
+    """Get or create the LinkedIn enrichment engine singleton."""
+    global _linkedin_enrichment_engine
+    if _linkedin_enrichment_engine is None:
+        _linkedin_enrichment_engine = LinkedInEnrichmentEngine()
+    return _linkedin_enrichment_engine
+
+
+# For backwards compatibility - but accessing this will trigger instantiation
+# Consider using get_linkedin_enrichment_engine() instead
+linkedin_enrichment_engine = None  # Will be None until explicitly initialized

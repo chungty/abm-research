@@ -49,8 +49,8 @@ class LinkedInDataCollector:
         self.logger = logging.getLogger(__name__)
         self.setup_logging()
 
-        # OpenAI for profile enhancement
-        self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # Lazy initialization for OpenAI client
+        self._openai_client = None
 
         # Rate limiting
         self.request_delay = 2  # seconds between requests
@@ -58,6 +58,16 @@ class LinkedInDataCollector:
 
         # Load configuration
         self.load_config()
+
+    @property
+    def openai_client(self):
+        """Lazy initialization of OpenAI client."""
+        if self._openai_client is None:
+            api_key = os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                raise ValueError("OPENAI_API_KEY environment variable is required")
+            self._openai_client = openai.OpenAI(api_key=api_key)
+        return self._openai_client
 
     def setup_logging(self):
         """Setup logging for LinkedIn data collection"""
@@ -551,5 +561,17 @@ class LinkedInDataCollector:
         return profiles
 
 
-# Export for use by LinkedIn enrichment engine
-linkedin_data_collector = LinkedInDataCollector()
+# Lazy singleton pattern to avoid import-time initialization
+_linkedin_data_collector = None
+
+
+def get_linkedin_data_collector():
+    """Get or create the LinkedIn data collector singleton."""
+    global _linkedin_data_collector
+    if _linkedin_data_collector is None:
+        _linkedin_data_collector = LinkedInDataCollector()
+    return _linkedin_data_collector
+
+
+# For backwards compatibility - set to None to avoid import-time init
+linkedin_data_collector = None

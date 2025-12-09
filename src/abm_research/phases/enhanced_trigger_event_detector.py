@@ -991,5 +991,17 @@ class EnhancedTriggerEventDetector:
         return f"{primary_action} ({confidence}% confidence this will drive engagement)"
 
 
-# Export for use by production system
-enhanced_trigger_detector = EnhancedTriggerEventDetector()
+# Lazy singleton pattern to avoid import-time initialization
+_enhanced_trigger_detector = None
+
+
+def get_enhanced_trigger_detector():
+    """Get or create the enhanced trigger detector singleton."""
+    global _enhanced_trigger_detector
+    if _enhanced_trigger_detector is None:
+        _enhanced_trigger_detector = EnhancedTriggerEventDetector()
+    return _enhanced_trigger_detector
+
+
+# For backwards compatibility - set to None to avoid import-time init
+enhanced_trigger_detector = None
