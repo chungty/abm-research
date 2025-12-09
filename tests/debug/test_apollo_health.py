@@ -4,6 +4,7 @@ Test Apollo API health and credentials
 """
 
 import os
+
 import requests
 
 
@@ -32,10 +33,10 @@ def test_apollo_health():
 
         if response.status_code == 200:
             data = response.json()
-            print(f"✓ Apollo API is healthy")
+            print("✓ Apollo API is healthy")
             print(f"Credits remaining: {data.get('credits_remaining', 'Unknown')}")
         else:
-            print(f"❌ Apollo API health check failed")
+            print("❌ Apollo API health check failed")
 
     except Exception as e:
         print(f"❌ Error testing Apollo API: {e}")

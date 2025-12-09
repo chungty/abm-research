@@ -3,8 +3,8 @@
 Test ABM system with new API-based company enrichment
 """
 
-import sys
 import os
+import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 

@@ -3,9 +3,9 @@
 Save Value-First ABM Results to JSON for Manual Import
 """
 
-import os
 import json
 from datetime import datetime
+
 from value_first_abm_system import ValueFirstABMSystem
 
 
@@ -52,14 +52,14 @@ def main():
         total_high_signal = sum(r.get("high_signal_contacts", 0) for r in all_results.values())
         total_medium_signal = sum(r.get("medium_signal_contacts", 0) for r in all_results.values())
 
-        print(f"\n📊 VALUE-FIRST ABM SUMMARY:")
+        print("\n📊 VALUE-FIRST ABM SUMMARY:")
         print(f"   Accounts Researched: {len(all_results)}")
         print(f"   Total Contacts: {total_contacts}")
         print(f"   High Signal (Problem/Solution): {total_high_signal}")
         print(f"   Medium Signal (Industry Insights): {total_medium_signal}")
 
         # Show sample high-signal intelligence
-        print(f"\n🎯 SAMPLE HIGH-SIGNAL INTELLIGENCE:")
+        print("\n🎯 SAMPLE HIGH-SIGNAL INTELLIGENCE:")
 
         for domain, results in list(all_results.items())[:2]:
             high_contacts = [c for c in results["contacts"] if c.get("signal_level") == "high"]

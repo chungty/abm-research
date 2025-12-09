@@ -9,8 +9,6 @@ Comprehensive plan to ensure the entire codebase follows the new enhanced schema
 - Clean naming conventions
 """
 
-import os
-import sys
 
 
 def create_schema_compliance_plan():
@@ -262,7 +260,7 @@ def create_schema_compliance_plan():
 
 if __name__ == "__main__":
     phases, areas = create_schema_compliance_plan()
-    print(f"\\n🎯 Schema compliance plan created.")
+    print("\\n🎯 Schema compliance plan created.")
     print(f"📊 {len(areas)} code areas identified for updates")
     print(f"🗓️ {len(phases)} implementation phases planned")
     print(

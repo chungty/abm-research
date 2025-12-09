@@ -5,9 +5,8 @@ Identify gaps in contact discovery, MEDDIC segmentation, and data quality
 """
 
 import os
+
 import requests
-import json
-from datetime import datetime
 
 
 def critical_audit_analysis():
@@ -78,22 +77,22 @@ def critical_audit_analysis():
     for contact in genesis_contacts:
         print(f"     - {contact['name']}: {contact['title']}")
 
-    print(f"   • ❌ Missing comprehensive Apollo search (only basic titles)")
-    print(f"   • ❌ No LinkedIn cross-referencing for additional contacts")
-    print(f"   • ❌ Missing key data center operations roles")
-    print(f"   • ❌ No company website team page scraping")
+    print("   • ❌ Missing comprehensive Apollo search (only basic titles)")
+    print("   • ❌ No LinkedIn cross-referencing for additional contacts")
+    print("   • ❌ Missing key data center operations roles")
+    print("   • ❌ No company website team page scraping")
 
     # 2. MEDDIC Segmentation Analysis
     print("\n2. ❌ MEDDIC SEGMENTATION IS GENERIC:")
     print(
-        f"   • Current buying committee roles are generic (Economic Buyer, Technical Evaluator, etc.)"
+        "   • Current buying committee roles are generic (Economic Buyer, Technical Evaluator, etc.)"
     )
-    print(f"   • ❌ No Verdigris Signals-specific MEDDIC mapping:")
-    print(f"     - BUYER: Who has budget for power monitoring solutions?")
-    print(f"     - USER: Who would use Signals day-to-day for power monitoring?")
-    print(f"     - INFLUENCER: Who influences power infrastructure decisions?")
-    print(f"   • ❌ No identification of 'Champion' for Signals product specifically")
-    print(f"   • ❌ No 'Economic Pain' mapping to Verdigris value props")
+    print("   • ❌ No Verdigris Signals-specific MEDDIC mapping:")
+    print("     - BUYER: Who has budget for power monitoring solutions?")
+    print("     - USER: Who would use Signals day-to-day for power monitoring?")
+    print("     - INFLUENCER: Who influences power infrastructure decisions?")
+    print("   • ❌ No identification of 'Champion' for Signals product specifically")
+    print("   • ❌ No 'Economic Pain' mapping to Verdigris value props")
 
     # 3. Data Quality Issues
     print("\n3. ❌ DATA QUALITY ISSUES:")
@@ -110,7 +109,7 @@ def critical_audit_analysis():
     duplicates = len(account_names) - len(set(account_names))
     print(f"   • Account duplicates: {duplicates}")
     if duplicates > 0:
-        print(f"     ❌ Found duplicate account records")
+        print("     ❌ Found duplicate account records")
 
     # Check contact completeness
     contacts_with_email = sum(
@@ -122,16 +121,16 @@ def critical_audit_analysis():
 
     print(f"   • Contacts with email: {contacts_with_email}/{len(contacts_data)}")
     print(f"   • Contacts with LinkedIn: {contacts_with_linkedin}/{len(contacts_data)}")
-    print(f"   • ❌ Missing account relation field in contacts (can't filter by company)")
+    print("   • ❌ Missing account relation field in contacts (can't filter by company)")
 
     # 4. Enrichment Process Analysis
     print("\n4. ❌ ENRICHMENT PROCESS IS SHALLOW:")
-    print(f"   • ❌ No actual LinkedIn profile scraping (simulated data)")
-    print(f"   • ❌ No real LinkedIn activity analysis")
-    print(f"   • ❌ No network analysis for warm introduction paths")
-    print(f"   • ❌ No content engagement history")
-    print(f"   • ❌ No recent job change detection")
-    print(f"   • ❌ No buying signal detection from social media")
+    print("   • ❌ No actual LinkedIn profile scraping (simulated data)")
+    print("   • ❌ No real LinkedIn activity analysis")
+    print("   • ❌ No network analysis for warm introduction paths")
+    print("   • ❌ No content engagement history")
+    print("   • ❌ No recent job change detection")
+    print("   • ❌ No buying signal detection from social media")
 
     # 5. Database Schema Gaps
     print("\n5. ❌ DATABASE SCHEMA INCOMPLETE:")
@@ -143,7 +142,7 @@ def critical_audit_analysis():
         db_info = response.json()
         trigger_props = list(db_info.get("properties", {}).keys())
         print(f"   • Trigger Events fields: {trigger_props}")
-        print(f"     ❌ Missing: event_type, confidence, relevance_score, detected_date")
+        print("     ❌ Missing: event_type, confidence, relevance_score, detected_date")
 
     # Check partnerships schema
     partnerships_db_url = f"https://api.notion.com/v1/databases/{database_ids['partnerships']}"
@@ -152,14 +151,14 @@ def critical_audit_analysis():
         db_info = response.json()
         partnerships_props = list(db_info.get("properties", {}).keys())
         print(f"   • Partnerships fields: {partnerships_props}")
-        print(f"     ❌ Missing: category, confidence, opportunity_angle, team_action")
+        print("     ❌ Missing: category, confidence, opportunity_angle, team_action")
 
     # 6. Account Coverage Analysis
     print("\n6. ❌ ACCOUNT COVERAGE IS LIMITED:")
-    print(f"   • Only Genesis Cloud researched")
-    print(f"   • ❌ No comparison with other AI infrastructure companies")
-    print(f"   • ❌ No prioritization framework for account selection")
-    print(f"   • ❌ No account relationship mapping")
+    print("   • Only Genesis Cloud researched")
+    print("   • ❌ No comparison with other AI infrastructure companies")
+    print("   • ❌ No prioritization framework for account selection")
+    print("   • ❌ No account relationship mapping")
 
     print("\n🎯 IMMEDIATE ACTION REQUIRED")
     print("-" * 40)
@@ -180,13 +179,13 @@ def critical_audit_analysis():
     for fix in priority_fixes:
         print(f"   • {fix}")
 
-    print(f"\n💡 VERDIGRIS SIGNALS CONTEXT MISSING")
+    print("\n💡 VERDIGRIS SIGNALS CONTEXT MISSING")
     print("-" * 40)
-    print(f"   • Who monitors power consumption in data centers?")
-    print(f"   • Who gets alerted when power anomalies occur?")
-    print(f"   • Who makes decisions about power monitoring tools?")
-    print(f"   • Who would champion a predictive power analytics solution?")
-    print(f"   • Who has budget for infrastructure monitoring software?")
+    print("   • Who monitors power consumption in data centers?")
+    print("   • Who gets alerted when power anomalies occur?")
+    print("   • Who makes decisions about power monitoring tools?")
+    print("   • Who would champion a predictive power analytics solution?")
+    print("   • Who has budget for infrastructure monitoring software?")
 
     return {
         "total_contacts": len(contacts_data),

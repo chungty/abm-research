@@ -7,8 +7,9 @@ MEDDIC scoring and returns all required fields.
 Run with: pytest tests/unit/test_contact_transform.py -v
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
 
 
 class TestTransformNotionContact:

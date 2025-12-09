@@ -8,12 +8,9 @@ Consolidated from: comprehensive_abm_system.py
 Updated imports: notion_client.py (replacing notion_persistence_manager.py)
 """
 
-import os
-import json
-import time
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
 # Import all phase engines from package structure
 try:
@@ -67,7 +64,7 @@ except ImportError:
     logging.warning("Apollo contact discovery not available")
 
 try:
-    from .unified_lead_scorer import unified_lead_scorer, account_scorer, meddic_contact_scorer
+    from .unified_lead_scorer import account_scorer, meddic_contact_scorer, unified_lead_scorer
 
     UNIFIED_SCORER_AVAILABLE = True
 except ImportError:
@@ -181,7 +178,7 @@ class ComprehensiveABMSystem:
             status = "✅ Available" if available else "❌ Not Available"
             logger.info(f"  {component}: {status}")
 
-    def conduct_complete_account_research(self, company_name: str, company_domain: str) -> Dict:
+    def conduct_complete_account_research(self, company_name: str, company_domain: str) -> dict:
         """
         Complete 5-phase ABM research per specification
 
@@ -285,7 +282,7 @@ class ComprehensiveABMSystem:
                 try:
                     persistence_results = self._save_complete_research_to_notion(research_results)
                     research_results["notion_persistence"] = persistence_results
-                    logger.info(f"✅ Notion persistence complete:")
+                    logger.info("✅ Notion persistence complete:")
                     logger.info(
                         f"   📋 Contacts saved: {persistence_results.get('contacts_saved', 0)}"
                     )
@@ -462,8 +459,8 @@ class ComprehensiveABMSystem:
         return account_data, formatted_events
 
     def _phase_2_contact_discovery(
-        self, company_name: str, company_domain: str, account_data: Dict
-    ) -> List[Dict]:
+        self, company_name: str, company_domain: str, account_data: dict
+    ) -> list[dict]:
         """Phase 2: Contact Discovery & Segmentation with MEDDIC scoring"""
         if self.apollo_discovery:
             logger.info("🔍 Discovering contacts via Apollo API...")
@@ -573,7 +570,7 @@ class ComprehensiveABMSystem:
             }
         ]
 
-    def _phase_3_contact_enrichment(self, contacts: List[Dict]) -> List[Dict]:
+    def _phase_3_contact_enrichment(self, contacts: list[dict]) -> list[dict]:
         """Phase 3: High-Priority Contact Enrichment"""
         if not self.linkedin_enrichment:
             logger.warning("⚠️  LinkedIn enrichment not available, skipping enrichment")
@@ -660,8 +657,8 @@ class ComprehensiveABMSystem:
         return enriched_contacts
 
     def _phase_4_engagement_intelligence(
-        self, contacts: List[Dict], events: List[Dict], account_data: Dict
-    ) -> List[Dict]:
+        self, contacts: list[dict], events: list[dict], account_data: dict
+    ) -> list[dict]:
         """Phase 4: Engagement Intelligence"""
         if not self.engagement_intelligence:
             logger.warning("⚠️  Engagement intelligence not available, skipping analysis")
@@ -696,8 +693,8 @@ class ComprehensiveABMSystem:
         return intelligence_contacts
 
     def _phase_5_partnership_intelligence(
-        self, company_name: str, company_domain: str, trigger_events: List[Dict] = None
-    ) -> Dict[str, any]:
+        self, company_name: str, company_domain: str, trigger_events: list[dict] = None
+    ) -> dict[str, any]:
         """Phase 5: Partnership Classification & Strategic Partnership Detection
 
         Args:
@@ -850,7 +847,7 @@ class ComprehensiveABMSystem:
         }
         return mapping.get(category, "Technology Vendor")
 
-    def _calculate_relationship_depth(self, vendor: Dict) -> str:
+    def _calculate_relationship_depth(self, vendor: dict) -> str:
         """Calculate relationship depth based on mention count and evidence"""
         mention_count = vendor.get("mention_count", 0)
         confidence = vendor.get("confidence", 0)
@@ -864,7 +861,7 @@ class ComprehensiveABMSystem:
         else:
             return "Potential Relationship"
 
-    def _format_evidence(self, vendor: Dict) -> str:
+    def _format_evidence(self, vendor: dict) -> str:
         """Format evidence snippets into readable string"""
         snippets = vendor.get("evidence_snippets", [])
         if not snippets:
@@ -881,8 +878,8 @@ class ComprehensiveABMSystem:
         return "\n".join(formatted)
 
     def _generate_partnership_angle(
-        self, vendor: Dict, account_name: str, trigger_events: List[Dict] = None
-    ) -> Dict[str, any]:
+        self, vendor: dict, account_name: str, trigger_events: list[dict] = None
+    ) -> dict[str, any]:
         """
         Generate AI-powered actionable partnership angle for BD professionals.
 
@@ -935,13 +932,14 @@ class ComprehensiveABMSystem:
         account_name: str,
         category: str,
         relationship: str,
-        evidence: List[str],
-        trigger_events: List[Dict],
+        evidence: list[str],
+        trigger_events: list[dict],
     ) -> Optional[str]:
         """
         Use Brave Search + OpenAI to generate research-backed partnership angle.
         """
         import os
+
         import requests
 
         # Step 1: Quick Brave search for recent context
@@ -1069,7 +1067,7 @@ Format: Start with the partnership type in caps, then provide the actionable gui
         category: str,
         relationship: str,
         confidence: float,
-        evidence: List[str],
+        evidence: list[str],
     ) -> str:
         """
         Fallback template-based partnership angle generation.
@@ -1120,7 +1118,7 @@ Format: Start with the partnership type in caps, then provide the actionable gui
                 f"VALUE PROP: Energy visibility/sustainability data that enhances {vendor_name}'s infrastructure story."
             )
 
-    def _save_complete_research_to_notion(self, research_results: Dict) -> Dict:
+    def _save_complete_research_to_notion(self, research_results: dict) -> dict:
         """Save complete research to Notion using consolidated client (UPDATED)"""
         results = {
             "account_saved": False,
@@ -1163,7 +1161,7 @@ Format: Start with the partnership type in caps, then provide the actionable gui
         return results
 
     # Helper methods (simplified for space)
-    def _calculate_enhanced_icp_fit(self, events: List[Dict]) -> tuple:
+    def _calculate_enhanced_icp_fit(self, events: list[dict]) -> tuple:
         """Calculate ICP fit score with detailed breakdown"""
         # Base infrastructure relevance scoring
         base_score = 50
@@ -1195,7 +1193,7 @@ Format: Start with the partnership type in caps, then provide the actionable gui
             "infrastructure_relevance": infrastructure_relevance,
         }
 
-    def _enrich_company_data(self, company_name: str, domain: str) -> Dict:
+    def _enrich_company_data(self, company_name: str, domain: str) -> dict:
         """
         Enrich company data using scalable API-based service
         Replaces hardcoded lookup tables with dynamic Apollo API calls
@@ -1242,7 +1240,7 @@ Format: Start with the partnership type in caps, then provide the actionable gui
         """Determine company industry (simplified)"""
         return "Technology"  # Default industry
 
-    def _generate_research_summary(self, results: Dict, start_time: datetime) -> Dict:
+    def _generate_research_summary(self, results: dict, start_time: datetime) -> dict:
         """Generate comprehensive research summary"""
         duration = (datetime.now() - start_time).total_seconds()
 

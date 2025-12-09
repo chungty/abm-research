@@ -5,13 +5,13 @@ Implements Phase 1 requirements from skill specification with real source URLs
 """
 
 import os
-import json
 import time
-import requests
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Optional
+
 import openai
+import requests
 
 # Removed serpapi dependency - using Brave Search API instead
 
@@ -55,7 +55,7 @@ class EnhancedTriggerEventDetector:
             self._openai_client = openai.OpenAI(api_key=api_key)
         return self._openai_client
 
-    def _load_event_categories(self) -> Dict:
+    def _load_event_categories(self) -> dict:
         """Event categories from skill specification"""
         return {
             "expansion": {
@@ -144,7 +144,7 @@ class EnhancedTriggerEventDetector:
             },
         }
 
-    def _load_confidence_rules(self) -> Dict:
+    def _load_confidence_rules(self) -> dict:
         """Confidence scoring rules from skill specification"""
         return {
             "high": {
@@ -174,7 +174,7 @@ class EnhancedTriggerEventDetector:
             },
         }
 
-    def _load_relevance_scoring(self) -> Dict:
+    def _load_relevance_scoring(self) -> dict:
         """Verdigris relevance scoring criteria"""
         return {
             "high_relevance": {
@@ -213,7 +213,7 @@ class EnhancedTriggerEventDetector:
 
     def detect_trigger_events(
         self, company_name: str, company_domain: str, lookback_days: int = 90
-    ) -> List[TriggerEvent]:
+    ) -> list[TriggerEvent]:
         """
         Main entry point for trigger event detection
         Returns list of events with real source URLs and complete metadata
@@ -248,7 +248,7 @@ class EnhancedTriggerEventDetector:
 
     def _search_brave_news(
         self, company_name: str, company_domain: str, lookback_days: int
-    ) -> List[TriggerEvent]:
+    ) -> list[TriggerEvent]:
         """Search Brave News API for company mentions"""
         if not self.brave_api_key:
             print("⚠️ Brave API key not found, skipping news search")
@@ -297,7 +297,7 @@ class EnhancedTriggerEventDetector:
 
     def _search_company_website(
         self, company_name: str, company_domain: str, lookback_days: int
-    ) -> List[TriggerEvent]:
+    ) -> list[TriggerEvent]:
         """Search company website for news and announcements"""
         events = []
 
@@ -330,14 +330,14 @@ class EnhancedTriggerEventDetector:
                         )
                     )
 
-            except Exception as e:
+            except Exception:
                 continue  # Try next path
 
         return events
 
     def _search_linkedin_company(
         self, company_name: str, company_domain: str, lookback_days: int
-    ) -> List[TriggerEvent]:
+    ) -> list[TriggerEvent]:
         """Search LinkedIn company page for posts and updates"""
         events = []
 
@@ -365,7 +365,7 @@ class EnhancedTriggerEventDetector:
 
     def _search_job_postings(
         self, company_name: str, company_domain: str, lookback_days: int
-    ) -> List[TriggerEvent]:
+    ) -> list[TriggerEvent]:
         """Analyze job postings for expansion signals"""
         events = []
 
@@ -400,7 +400,7 @@ class EnhancedTriggerEventDetector:
         return events
 
     def _create_event_from_news_result(
-        self, result: Dict, event_type: str, company_name: str
+        self, result: dict, event_type: str, company_name: str
     ) -> Optional[TriggerEvent]:
         """Convert news search result to TriggerEvent"""
         try:
@@ -439,7 +439,7 @@ class EnhancedTriggerEventDetector:
             return None
 
     def _create_event_from_brave_result(
-        self, result: Dict, event_type: str, company_name: str
+        self, result: dict, event_type: str, company_name: str
     ) -> Optional[TriggerEvent]:
         """Convert Brave search result to TriggerEvent"""
         try:
@@ -486,7 +486,7 @@ class EnhancedTriggerEventDetector:
 
     def _analyze_news_content(
         self, title: str, snippet: str, event_type: str, company_name: str
-    ) -> Tuple[str, int, int]:
+    ) -> tuple[str, int, int]:
         """Use AI to analyze news content and generate scores"""
         try:
             prompt = f"""
@@ -575,7 +575,7 @@ class EnhancedTriggerEventDetector:
 
     def _extract_events_from_webpage(
         self, html_content: str, url: str, company_name: str, lookback_days: int
-    ) -> List[TriggerEvent]:
+    ) -> list[TriggerEvent]:
         """Extract events from company webpage using AI"""
         try:
             # Truncate content to avoid token limits
@@ -636,7 +636,7 @@ class EnhancedTriggerEventDetector:
             print(f"⚠️ Error extracting events from webpage: {e}")
             return []
 
-    def _deduplicate_events(self, events: List[TriggerEvent]) -> List[TriggerEvent]:
+    def _deduplicate_events(self, events: list[TriggerEvent]) -> list[TriggerEvent]:
         """Remove duplicate events based on description similarity"""
         if not events:
             return []
@@ -654,11 +654,11 @@ class EnhancedTriggerEventDetector:
 
         return deduplicated
 
-    def _rank_events_by_relevance(self, events: List[TriggerEvent]) -> List[TriggerEvent]:
+    def _rank_events_by_relevance(self, events: list[TriggerEvent]) -> list[TriggerEvent]:
         """Sort events by relevance score (highest first)"""
         return sorted(events, key=lambda e: (e.relevance_score, e.confidence_score), reverse=True)
 
-    def convert_to_enhanced_schema(self, events: List[TriggerEvent]) -> List[Dict]:
+    def convert_to_enhanced_schema(self, events: list[TriggerEvent]) -> list[dict]:
         """Convert trigger events to enhanced schema format with multi-dimensional scoring"""
 
         enhanced_events = []
@@ -685,7 +685,7 @@ class EnhancedTriggerEventDetector:
                 if not searched:
                     return "N/A - not searched in this analysis"
                 elif not value or value.strip() == "":
-                    return f"Not found (searched multiple sources, 95% confidence)"
+                    return "Not found (searched multiple sources, 95% confidence)"
                 else:
                     conf = (
                         f"({confidence}% confidence)"

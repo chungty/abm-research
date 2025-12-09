@@ -10,8 +10,9 @@ import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.integrations.notion_client import NotionClient
 import logging
+
+from abm_research.integrations.notion_client import NotionClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 

@@ -4,12 +4,7 @@ Codebase Hygiene Agent - Keeps Repository Clean and Organized
 Prevents accumulation of unused/broken files and maintains code quality
 """
 
-import os
-import json
-import glob
 from pathlib import Path
-from typing import Dict, List, Set
-from datetime import datetime, timedelta
 
 
 class CodebaseHygieneAgent:
@@ -28,7 +23,7 @@ class CodebaseHygieneAgent:
         print("🧹 Codebase Hygiene Agent initialized")
         print(f"🎯 Monitoring: {repo_path}")
 
-    def analyze_codebase_health(self) -> Dict:
+    def analyze_codebase_health(self) -> dict:
         """Analyze codebase for cleanliness issues"""
 
         print("\n🔍 ANALYZING CODEBASE HEALTH...")
@@ -73,7 +68,7 @@ class CodebaseHygieneAgent:
         self._print_analysis_summary(analysis)
         return analysis
 
-    def _find_unused_files(self, python_files: List[Path]) -> List[str]:
+    def _find_unused_files(self, python_files: list[Path]) -> list[str]:
         """Find Python files that are never imported or executed"""
 
         print("   🔍 Checking for unused files...")
@@ -84,7 +79,7 @@ class CodebaseHygieneAgent:
 
         for file_path in python_files:
             try:
-                with open(file_path, "r") as f:
+                with open(file_path) as f:
                     content = f.read()
 
                 # Check if file has if __name__ == "__main__"
@@ -129,7 +124,7 @@ class CodebaseHygieneAgent:
         print(f"      📋 Found {len(unused)} potentially unused files")
         return unused
 
-    def _find_duplicate_files(self, python_files: List[Path]) -> List[Dict]:
+    def _find_duplicate_files(self, python_files: list[Path]) -> list[dict]:
         """Find files with similar names or identical content"""
 
         print("   🔍 Checking for duplicate files...")
@@ -167,7 +162,7 @@ class CodebaseHygieneAgent:
         print(f"      📋 Found {len(duplicates)} duplicate file groups")
         return duplicates
 
-    def _find_temporary_files(self) -> List[str]:
+    def _find_temporary_files(self) -> list[str]:
         """Find temporary, test, or debug files"""
 
         print("   🔍 Checking for temporary files...")
@@ -183,7 +178,7 @@ class CodebaseHygieneAgent:
         print(f"      📋 Found {len(temp_files)} temporary files")
         return temp_files
 
-    def _find_large_files(self, size_limit_mb: int = 5) -> List[Dict]:
+    def _find_large_files(self, size_limit_mb: int = 5) -> list[dict]:
         """Find unusually large files that might need attention"""
 
         print(f"   🔍 Checking for files larger than {size_limit_mb}MB...")
@@ -207,7 +202,7 @@ class CodebaseHygieneAgent:
         print(f"      📋 Found {len(large_files)} large files")
         return large_files
 
-    def _generate_cleanup_recommendations(self, analysis: Dict) -> List[str]:
+    def _generate_cleanup_recommendations(self, analysis: dict) -> list[str]:
         """Generate actionable cleanup recommendations"""
 
         recommendations = []
@@ -243,10 +238,10 @@ class CodebaseHygieneAgent:
 
         return recommendations
 
-    def _print_analysis_summary(self, analysis: Dict):
+    def _print_analysis_summary(self, analysis: dict):
         """Print comprehensive analysis summary"""
 
-        print(f"\n📋 CODEBASE HEALTH ANALYSIS")
+        print("\n📋 CODEBASE HEALTH ANALYSIS")
         print("=" * 50)
         print(f"Total Files: {analysis['total_files']}")
 
@@ -261,17 +256,17 @@ class CodebaseHygieneAgent:
             if issues:
                 print(f"   • {issue_type.replace('_', ' ').title()}: {len(issues)}")
 
-        print(f"\n🎯 CLEANUP RECOMMENDATIONS:")
+        print("\n🎯 CLEANUP RECOMMENDATIONS:")
         for i, rec in enumerate(analysis["recommendations"], 1):
             print(f"   {i}. {rec}")
 
         health_score = max(0, 100 - (total_issues * 5))
         print(f"\n📊 HEALTH SCORE: {health_score}/100")
 
-    def execute_safe_cleanup(self, analysis: Dict, confirm_destructive: bool = False) -> Dict:
+    def execute_safe_cleanup(self, analysis: dict, confirm_destructive: bool = False) -> dict:
         """Execute safe cleanup operations (non-destructive by default)"""
 
-        print(f"\n🧹 EXECUTING SAFE CLEANUP...")
+        print("\n🧹 EXECUTING SAFE CLEANUP...")
 
         cleanup_results = {
             "files_moved": [],
@@ -334,7 +329,7 @@ class CodebaseHygieneAgent:
                     cleanup_results["files_removed"].append(temp_file)
                     print(f"   🗑️ Removed {temp_file}")
 
-        print(f"\n✅ Cleanup completed:")
+        print("\n✅ Cleanup completed:")
         print(f"   📦 Files moved: {len(cleanup_results['files_moved'])}")
         print(f"   🗑️ Files removed: {len(cleanup_results['files_removed'])}")
         print(f"   📁 Directories created: {len(cleanup_results['directories_created'])}")
@@ -408,7 +403,7 @@ Agents must pass QA verification before proceeding:
         with open(agents_readme, "w") as f:
             f.write(readme_content)
 
-        print(f"   📋 Created agents/README.md")
+        print("   📋 Created agents/README.md")
 
 
 if __name__ == "__main__":

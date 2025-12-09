@@ -9,14 +9,14 @@ Checks the current state of all 4 Notion databases to verify:
 - Overall database health and cleanliness
 """
 
-import os
 import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.integrations.notion_client import NotionClient
 import logging
 from collections import defaultdict
+
+from abm_research.integrations.notion_client import NotionClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)

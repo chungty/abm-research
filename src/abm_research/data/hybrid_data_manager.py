@@ -4,15 +4,15 @@ Hybrid Data Manager - Notion + Database Architecture
 Combines Notion API (user-facing CRM) with local database (fast queries/analytics)
 """
 
+import json
 import os
 import sqlite3
-import json
-import time
 import threading
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, asdict
+import time
 from contextlib import contextmanager
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any
 
 # Import existing Notion service
 from ..dashboard.dashboard_data_service import NotionDataService
@@ -53,7 +53,7 @@ class HybridDataManager:
         self._migrate_foreign_keys()
 
         # Sync status tracking
-        self.sync_status: Dict[str, SyncStatus] = {}
+        self.sync_status: dict[str, SyncStatus] = {}
 
         # Start background sync thread
         self.sync_thread = threading.Thread(target=self._background_sync_loop, daemon=True)
@@ -326,7 +326,7 @@ class HybridDataManager:
         search: str = None,
         min_icp_score: int = None,
         research_status: str = None,
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Fast account query from local database"""
         with self.get_db_connection() as conn:
             query = "SELECT * FROM accounts WHERE 1=1"
@@ -357,7 +357,7 @@ class HybridDataManager:
 
     def get_contacts_fast(
         self, company_name: str = None, min_lead_score: int = None, limit: int = None
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Fast contact query from local database (optimized with account_id lookup)"""
         with self.get_db_connection() as conn:
             cursor = conn.cursor()
@@ -396,7 +396,7 @@ class HybridDataManager:
 
     def get_trigger_events_fast(
         self, company_name: str = None, urgency_level: str = None, days_back: int = 30
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """Fast trigger events query from local database (optimized with account_id lookup)"""
         with self.get_db_connection() as conn:
             cursor = conn.cursor()
@@ -434,7 +434,7 @@ class HybridDataManager:
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
 
-    def get_dashboard_analytics_fast(self) -> Dict[str, Any]:
+    def get_dashboard_analytics_fast(self) -> dict[str, Any]:
         """Fast analytics query from local database"""
         with self.get_db_connection() as conn:
             cursor = conn.cursor()
@@ -496,7 +496,7 @@ class HybridDataManager:
     # ═══════════════════════════════════════════════════════════════════════════════════
 
     def add_to_research_queue(
-        self, account_id: str, account_name: str, research_phases: List[str], priority: int = 5
+        self, account_id: str, account_name: str, research_phases: list[str], priority: int = 5
     ) -> str:
         """Add account to research queue"""
         queue_id = f"research_{account_id}_{int(time.time())}"
@@ -522,7 +522,7 @@ class HybridDataManager:
 
         return queue_id
 
-    def get_research_queue_status(self) -> Dict[str, Any]:
+    def get_research_queue_status(self) -> dict[str, Any]:
         """Get comprehensive research queue status"""
         with self.get_db_connection() as conn:
             cursor = conn.cursor()
@@ -569,7 +569,7 @@ class HybridDataManager:
                 "timestamp": datetime.now().isoformat(),
             }
 
-    def _calculate_avg_completion_time(self, completed_items: List[Dict]) -> int:
+    def _calculate_avg_completion_time(self, completed_items: list[dict]) -> int:
         """Calculate average completion time in seconds"""
         if not completed_items:
             return 0
@@ -588,7 +588,7 @@ class HybridDataManager:
     # NOTION SYNC OPERATIONS
     # ═══════════════════════════════════════════════════════════════════════════════════
 
-    def sync_from_notion(self, force: bool = False) -> Dict[str, SyncStatus]:
+    def sync_from_notion(self, force: bool = False) -> dict[str, SyncStatus]:
         """Sync data from Notion to local database"""
         print("🔄 Starting Notion → Database sync...")
 
@@ -644,7 +644,7 @@ class HybridDataManager:
         self.sync_status = sync_results
         return sync_results
 
-    def _update_local_table(self, table_name: str, notion_data: List[Dict]) -> int:
+    def _update_local_table(self, table_name: str, notion_data: list[dict]) -> int:
         """Update local table with Notion data, return number of conflicts"""
         conflicts = 0
 
@@ -820,7 +820,7 @@ class HybridDataManager:
                 print(f"❌ Background sync error: {e}")
                 time.sleep(60)  # Wait 1 minute before retrying
 
-    def get_sync_status(self) -> Dict[str, Any]:
+    def get_sync_status(self) -> dict[str, Any]:
         """Get current sync status for all tables"""
         with self.get_db_connection() as conn:
             cursor = conn.cursor()

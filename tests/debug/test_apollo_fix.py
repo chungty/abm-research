@@ -3,8 +3,8 @@
 Test Apollo bulk enrichment fix for 400 error
 """
 
-import sys
 import os
+import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
@@ -43,7 +43,7 @@ def test_apollo_fix():
             # This should now work without 400 errors
             enriched = apollo_discovery._enrich_contact_batch(contacts)
 
-            print(f"✅ Bulk enrichment successful!")
+            print("✅ Bulk enrichment successful!")
             print(f"📊 Enriched {len(enriched)} contacts")
 
             enriched_count = sum(1 for c in enriched if c.enriched)

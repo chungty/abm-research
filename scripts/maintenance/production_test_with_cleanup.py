@@ -6,15 +6,15 @@ Runs ABM system in production mode (with Notion database writes)
 for proper validation, then provides easy cleanup of test data.
 """
 
-import os
 import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.core.abm_system import ComprehensiveABMSystem
-from abm_research.integrations.notion_client import NotionClient
 import logging
 from datetime import datetime
+
+from abm_research.core.abm_system import ComprehensiveABMSystem
+from abm_research.integrations.notion_client import NotionClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -69,13 +69,13 @@ def production_test_with_tracking():
             events_saved = notion_persistence.get("events_saved", 0)
             partnerships_saved = notion_persistence.get("partnerships_saved", 0)
 
-            print(f"✅ ABM Research Results:")
+            print("✅ ABM Research Results:")
             print(f"   📊 Account data generated: {'✅' if account.get('name') else '❌'}")
             print(f"   👥 Contacts discovered: {len(contacts)}")
             print(f"   🎯 Trigger events: {len(trigger_events)}")
             print(f"   🤝 Partnerships: {len(partnerships)}")
             print()
-            print(f"💾 Notion Database Writes:")
+            print("💾 Notion Database Writes:")
             print(f"   🏢 Account saved: {'✅ YES' if account_saved else '❌ FAILED'}")
             print(f"   👥 Contacts saved: {contacts_saved}")
             print(f"   🎯 Events saved: {events_saved}")
@@ -121,7 +121,7 @@ def production_test_with_tracking():
             )
 
     # Test Summary
-    print(f"\n📊 TEST SESSION SUMMARY")
+    print("\n📊 TEST SESSION SUMMARY")
     print("=" * 50)
     successful_tests = len([r for r in test_results if r.get("test_passed", False)])
     print(f"✅ Successful tests: {successful_tests}/{len(test_results)}")
@@ -131,7 +131,7 @@ def production_test_with_tracking():
     total_events = sum(r.get("events_saved", 0) for r in test_results)
     total_partnerships = sum(r.get("partnerships_saved", 0) for r in test_results)
 
-    print(f"📋 Total data written to production:")
+    print("📋 Total data written to production:")
     print(f"   🏢 Accounts: {total_accounts}")
     print(f"   👥 Contacts: {total_contacts}")
     print(f"   🎯 Events: {total_events}")
@@ -143,7 +143,7 @@ def production_test_with_tracking():
 def cleanup_test_data(test_session_companies):
     """Clean up the test data we just created"""
 
-    print(f"\n🧹 CLEANUP: Test Data from Production")
+    print("\n🧹 CLEANUP: Test Data from Production")
     print("-" * 50)
     print("Removing test data companies:")
     for company in test_session_companies:
@@ -247,7 +247,7 @@ if __name__ == "__main__":
     test_results, session_id = production_test_with_tracking()
 
     # Ask user if they want to clean up
-    print(f"\n🤔 CLEANUP DECISION")
+    print("\n🤔 CLEANUP DECISION")
     print("-" * 30)
     print("The test data has been written to production Notion databases.")
     print("You can now:")
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     test_companies = [r["company"] for r in test_results if r.get("account_saved", False)]
 
     if test_companies:
-        print(f"When you're ready, you can clean up the test data:")
+        print("When you're ready, you can clean up the test data:")
         print(f"Test companies: {', '.join(test_companies)}")
         print()
 
@@ -270,13 +270,13 @@ if __name__ == "__main__":
             cleanup_test_data(test_companies)
             print("\n🎉 Test complete! Production databases cleaned.")
         else:
-            print(f"\n⚠️  Test data remains in production.")
-            print(f"Run cleanup manually when ready:")
-            print(f'python3 -c "')
-            print(f"from production_test_with_cleanup import cleanup_test_data")
+            print("\n⚠️  Test data remains in production.")
+            print("Run cleanup manually when ready:")
+            print('python3 -c "')
+            print("from production_test_with_cleanup import cleanup_test_data")
             print(f'cleanup_test_data({test_companies})"')
     else:
         print("✅ No test data was successfully written - nothing to clean up.")
 
-    print(f"\n🎉 Production testing session complete!")
+    print("\n🎉 Production testing session complete!")
     print(f"Session ID: {session_id}")

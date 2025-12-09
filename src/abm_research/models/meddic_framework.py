@@ -2,8 +2,8 @@
 MEDDIC Sales Framework Integration for Contact Segmentation
 """
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
 from enum import Enum
+from typing import Optional
 
 
 class MEDDICRole(Enum):
@@ -49,19 +49,19 @@ class MEDDICProfile:
 
     # Primary MEDDIC role
     primary_role: MEDDICRole
-    secondary_roles: List[MEDDICRole] = field(default_factory=list)
+    secondary_roles: list[MEDDICRole] = field(default_factory=list)
 
     # MEDDIC analysis
     metrics_access: bool = False  # Can they access/share metrics?
     economic_authority: bool = False  # Do they control budget?
     decision_influence: float = 0.0  # 0-100 influence on decision
-    pain_ownership: List[str] = field(default_factory=list)  # Pain points they own
+    pain_ownership: list[str] = field(default_factory=list)  # Pain points they own
     champion_potential: float = 0.0  # 0-100 likelihood to champion Verdigris
 
     # Sales strategy
     engagement_strategy: str = ""
-    key_value_props: List[str] = field(default_factory=list)
-    potential_objections: List[str] = field(default_factory=list)
+    key_value_props: list[str] = field(default_factory=list)
+    potential_objections: list[str] = field(default_factory=list)
 
     def get_sales_approach(self) -> str:
         """Get recommended sales approach based on MEDDIC role"""
@@ -178,7 +178,7 @@ class MEDDICAnalyzer:
 
     def _classify_secondary_roles(
         self, title_lower: str, bio_lower: str, primary_role: MEDDICRole
-    ) -> List[MEDDICRole]:
+    ) -> list[MEDDICRole]:
         """Identify secondary MEDDIC roles"""
         secondary = []
 
@@ -252,7 +252,7 @@ class MEDDICAnalyzer:
 
         return min(100, base_score)
 
-    def _identify_pain_ownership(self, title_lower: str, bio_lower: str) -> List[str]:
+    def _identify_pain_ownership(self, title_lower: str, bio_lower: str) -> list[str]:
         """Identify pain points this contact likely owns"""
         pain_mapping = {
             "operations": ["Uptime pressure", "Operational efficiency", "Cost optimization"],
@@ -301,7 +301,7 @@ class MEDDICAnalyzer:
         }
         return strategies.get(primary_role, "Relationship building and needs discovery")
 
-    def _get_key_value_props(self, primary_role: MEDDICRole) -> List[str]:
+    def _get_key_value_props(self, primary_role: MEDDICRole) -> list[str]:
         """Get key value propositions for the role"""
         value_props = {
             MEDDICRole.METRICS_OWNER: [
@@ -339,7 +339,7 @@ class MEDDICAnalyzer:
         }
         return value_props.get(primary_role, ["Value demonstration", "Relationship building"])
 
-    def _get_potential_objections(self, primary_role: MEDDICRole) -> List[str]:
+    def _get_potential_objections(self, primary_role: MEDDICRole) -> list[str]:
         """Get potential objections for the role"""
         objections = {
             MEDDICRole.METRICS_OWNER: [

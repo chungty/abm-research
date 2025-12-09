@@ -5,13 +5,9 @@ Analyzes API costs, research efficiency, and provides optimization recommendatio
 Based on real performance data from comprehensive 7-company research session
 """
 
-import os
 import json
-import requests
-import time
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass
@@ -78,7 +74,7 @@ class ABMFinanceAgent:
 
         self.research_history = []
 
-    def analyze_recent_research_session(self) -> Dict:
+    def analyze_recent_research_session(self) -> dict:
         """
         Analyze costs from the recent 7-company comprehensive research session
         Based on actual performance data: 473.2 seconds, 36 contacts, 7 events, 11 partnerships
@@ -125,7 +121,7 @@ class ABMFinanceAgent:
         self._print_session_analysis(analysis_result)
         return analysis_result
 
-    def _calculate_actual_session_costs(self, session_data: Dict) -> Dict:
+    def _calculate_actual_session_costs(self, session_data: dict) -> dict:
         """Calculate estimated costs for the actual research session"""
 
         companies = session_data["companies_researched"]
@@ -162,8 +158,8 @@ class ABMFinanceAgent:
         }
 
     def _calculate_session_efficiency_metrics(
-        self, session_data: Dict, cost_breakdown: Dict
-    ) -> Dict:
+        self, session_data: dict, cost_breakdown: dict
+    ) -> dict:
         """Calculate research efficiency and ROI metrics"""
 
         total_cost = cost_breakdown["total_session_cost"]
@@ -191,8 +187,8 @@ class ABMFinanceAgent:
         }
 
     def _generate_real_world_optimizations(
-        self, cost_breakdown: Dict, efficiency_metrics: Dict, session_data: Dict
-    ) -> List[Dict]:
+        self, cost_breakdown: dict, efficiency_metrics: dict, session_data: dict
+    ) -> list[dict]:
         """Generate actionable cost optimization recommendations based on actual issues"""
 
         recommendations = []
@@ -253,7 +249,7 @@ class ABMFinanceAgent:
 
         return recommendations
 
-    def _print_session_analysis(self, analysis: Dict):
+    def _print_session_analysis(self, analysis: dict):
         """Print comprehensive session cost analysis"""
 
         session_data = analysis["session_data"]
@@ -261,7 +257,7 @@ class ABMFinanceAgent:
         efficiency = analysis["efficiency_metrics"]
         recommendations = analysis["optimization_recommendations"]
 
-        print(f"\n📊 RESEARCH SESSION SUMMARY")
+        print("\n📊 RESEARCH SESSION SUMMARY")
         print(f"   🏢 Companies: {session_data['companies_researched']}")
         print(f"   👥 Contacts: {session_data['total_contacts']}")
         print(f"   🔔 Events: {session_data['trigger_events']}")
@@ -269,15 +265,15 @@ class ABMFinanceAgent:
         print(f"   ⏱️  Duration: {session_data['research_duration_minutes']:.1f} minutes")
         print(f"   ⚠️  Rate Limits: {session_data['rate_limit_hits']} hits")
 
-        print(f"\n💰 COST BREAKDOWN")
+        print("\n💰 COST BREAKDOWN")
         for service, cost in costs["detailed_costs"].items():
             print(f"   {service.replace('_', ' ').title()}: ${cost:.3f}")
-        print(f"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         print(f"   💵 Total Session Cost: ${costs['total_session_cost']:.3f}")
         print(f"   📈 Per Company: ${costs['cost_per_company']:.3f}")
         print(f"   👤 Per Contact: ${costs['cost_per_contact']:.3f}")
 
-        print(f"\n📈 EFFICIENCY ANALYSIS")
+        print("\n📈 EFFICIENCY ANALYSIS")
         print(f"   🤖 Automated Cost: ${efficiency['automated_cost']:.2f}")
         print(f"   👨‍💼 Manual Equivalent: ${efficiency['manual_equivalent_cost']:.2f}")
         print(f"   💰 Cost Savings: ${efficiency['cost_savings']:.2f}")
@@ -293,7 +289,7 @@ class ABMFinanceAgent:
             print(f"      🛠️  Implementation: {rec['implementation']}")
             print()
 
-    def calculate_monthly_projections(self, companies_per_month: int = 50) -> Dict:
+    def calculate_monthly_projections(self, companies_per_month: int = 50) -> dict:
         """Calculate projected monthly costs and savings based on actual session data"""
 
         print(f"\n📅 MONTHLY PROJECTIONS ({companies_per_month} companies/month)")
@@ -329,7 +325,7 @@ class ABMFinanceAgent:
         print(f"📈 Monthly Savings: ${monthly_costs['monthly_savings']:.2f}")
         print(f"🎯 Annual Savings: ${monthly_costs['annual_savings']:,.2f}")
         print()
-        print(f"🔧 With Optimizations:")
+        print("🔧 With Optimizations:")
         print(f"💰 Optimized Cost: ${optimized_monthly['optimized_automated']:.2f}/month")
         print(f"💵 Additional Savings: ${optimized_monthly['additional_savings']:.2f}/month")
         print(f"📊 Total Monthly Savings: ${optimized_monthly['total_monthly_savings']:.2f}")
@@ -341,7 +337,7 @@ class ABMFinanceAgent:
             "per_company_cost": per_company_cost,
         }
 
-    def generate_comprehensive_finance_report(self) -> Dict:
+    def generate_comprehensive_finance_report(self) -> dict:
         """Generate complete financial analysis report based on actual session data"""
         print("\n📊 COMPREHENSIVE ABM FINANCE REPORT")
         print("=" * 60)
@@ -356,15 +352,15 @@ class ABMFinanceAgent:
         roi_percentage = session_analysis["efficiency_metrics"]["roi_percentage"]
         monthly_savings = monthly_projections["optimized_projections"]["total_monthly_savings"]
 
-        print(f"\n🎯 EXECUTIVE FINANCIAL SUMMARY:")
+        print("\n🎯 EXECUTIVE FINANCIAL SUMMARY:")
         print("=" * 50)
-        print(f"💻 Development Investment: $6.12 (total system cost)")
+        print("💻 Development Investment: $6.12 (total system cost)")
         print(f"🔍 Cost per Account Research: ${cost_per_company:.3f}")
-        print(f"📈 Break-even Point: Immediate (first account researched)")
+        print("📈 Break-even Point: Immediate (first account researched)")
         print(
             f"💰 Monthly ROI (50 accounts): ${monthly_savings:.2f} savings ({roi_percentage:.0f}% ROI)"
         )
-        print(f"⚡ Research Speed: 95x faster than manual research")
+        print("⚡ Research Speed: 95x faster than manual research")
 
         # Comprehensive report data structure
         comprehensive_report = {
@@ -392,13 +388,13 @@ class ABMFinanceAgent:
 
         print(f"\n📝 Complete report saved: {report_filename}")
 
-        print(f"\n🚀 KEY RECOMMENDATIONS:")
+        print("\n🚀 KEY RECOMMENDATIONS:")
         print(
             f"   1. Implement OpenAI rate limiting improvements (saves ${session_analysis['optimization_recommendations'][0]['potential_savings']:.3f}/company)"
         )
-        print(f"   2. Deploy 30-day caching system (40% cost reduction)")
-        print(f"   3. Scale to 50+ accounts/month for maximum ROI")
-        print(f"   4. Use GPT-3.5 for routine tasks, GPT-4 for complex analysis")
+        print("   2. Deploy 30-day caching system (40% cost reduction)")
+        print("   3. Scale to 50+ accounts/month for maximum ROI")
+        print("   4. Use GPT-3.5 for routine tasks, GPT-4 for complex analysis")
 
         return comprehensive_report
 
@@ -411,11 +407,11 @@ def main():
     """Run comprehensive financial analysis"""
     report = abm_finance_agent.generate_comprehensive_finance_report()
 
-    print(f"\n✅ ABM FINANCE ANALYSIS COMPLETE")
+    print("\n✅ ABM FINANCE ANALYSIS COMPLETE")
     print(
         f"💡 System delivers exceptional ROI at ${report['executive_summary']['cost_per_account']:.3f} per account"
     )
-    print(f"🚀 Recommended scaling: 50-100 accounts/month for maximum efficiency")
+    print("🚀 Recommended scaling: 50-100 accounts/month for maximum efficiency")
 
 
 if __name__ == "__main__":

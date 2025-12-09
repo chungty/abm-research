@@ -4,13 +4,13 @@ Enrich existing accounts in Notion using new API-based company enrichment servic
 Replaces hardcoded data with real Apollo API data
 """
 
-import sys
 import os
+import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
-from abm_research.utils.company_enrichment_service import company_enrichment_service
 from abm_research.integrations.notion_client import NotionClient
+from abm_research.utils.company_enrichment_service import company_enrichment_service
 
 
 def enrich_existing_accounts():
@@ -34,10 +34,10 @@ def enrich_existing_accounts():
     try:
         # Initialize Notion client
         notion_client = NotionClient()
-        print(f"✅ Notion client initialized")
+        print("✅ Notion client initialized")
 
         # Get current accounts from Notion
-        print(f"\n📋 Retrieving current accounts from Notion...")
+        print("\n📋 Retrieving current accounts from Notion...")
         current_accounts = notion_client.query_all_accounts()
         print(f"Found {len(current_accounts)} existing accounts")
 
@@ -96,24 +96,24 @@ def enrich_existing_accounts():
                         break
 
                 if existing_account:
-                    print(f"  📝 Updating existing account...")
+                    print("  📝 Updating existing account...")
                     # Update existing account
                     account_id = existing_account["id"]
                     success = notion_client._update_account(account_id, account_data)
                     if success:
-                        print(f"  ✅ Successfully updated account")
+                        print("  ✅ Successfully updated account")
                         enriched_count += 1
                     else:
-                        print(f"  ❌ Failed to update account")
+                        print("  ❌ Failed to update account")
                 else:
-                    print(f"  📝 Creating new account...")
+                    print("  📝 Creating new account...")
                     # Create new account
                     account_id = notion_client._create_account(account_data)
                     if account_id:
                         print(f"  ✅ Successfully created account: {account_id}")
                         enriched_count += 1
                     else:
-                        print(f"  ❌ Failed to create account")
+                        print("  ❌ Failed to create account")
 
             except ValueError as ve:
                 if "CoreWeave is mock data" in str(ve):
@@ -124,14 +124,14 @@ def enrich_existing_accounts():
             except Exception as e:
                 print(f"  ❌ Error enriching {company_name}: {e}")
 
-        print(f"\n📊 Enrichment Summary:")
+        print("\n📊 Enrichment Summary:")
         print(
             f"  Companies processed: {len([c for c in target_companies if 'coreweave' not in c[1].lower()])}"
         )
         print(f"  Successfully enriched: {enriched_count}")
 
         # Show enrichment statistics
-        print(f"\n📈 API Enrichment Statistics:")
+        print("\n📈 API Enrichment Statistics:")
         stats = company_enrichment_service.get_enrichment_stats()
         for key, value in stats.items():
             print(f"  {key}: {value}")

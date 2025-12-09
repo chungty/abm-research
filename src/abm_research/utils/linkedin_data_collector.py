@@ -5,19 +5,19 @@ Multiple approaches for collecting real LinkedIn data
 Handles API limitations and provides fallback strategies
 """
 
-import os
 import json
-import time
-import requests
-import random
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass
 import logging
+import os
+import random
+import time
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Optional
 
 # Selenium imports removed - not currently used in this implementation
 # from selenium import webdriver  # For future web scraping implementation
 import openai
+import requests
 
 
 @dataclass
@@ -29,10 +29,10 @@ class LinkedInProfile:
     company: str
     location: str
     bio: str
-    experience: List[Dict]
-    education: List[Dict]
-    skills: List[str]
-    recent_activity: List[Dict]
+    experience: list[dict]
+    education: list[dict]
+    skills: list[str]
+    recent_activity: list[dict]
     connections_count: str
     profile_url: str
     profile_picture_url: str
@@ -74,7 +74,7 @@ class LinkedInDataCollector:
             config_path = os.path.join(
                 os.path.dirname(os.path.dirname(__file__)), "config", "linkedin_config.json"
             )
-            with open(config_path, "r") as f:
+            with open(config_path) as f:
                 self.config = json.load(f)
         except FileNotFoundError:
             self.logger.warning("LinkedIn config not found, creating default config")
@@ -129,7 +129,7 @@ class LinkedInDataCollector:
         self.logger.info("✓ Created default LinkedIn collection config")
 
     def collect_profile_data(
-        self, linkedin_url: str, contact_info: Dict = None
+        self, linkedin_url: str, contact_info: dict = None
     ) -> Optional[LinkedInProfile]:
         """
         Collect LinkedIn profile data using available methods
@@ -177,7 +177,7 @@ class LinkedInDataCollector:
             cache_file = f"{cache_dir}/{profile_id}.json"
 
             if os.path.exists(cache_file):
-                with open(cache_file, "r") as f:
+                with open(cache_file) as f:
                     data = json.load(f)
                 return self.dict_to_profile(data)
 
@@ -223,7 +223,7 @@ class LinkedInDataCollector:
 
         return None
 
-    def generate_enhanced_profile(self, linkedin_url: str, contact_info: Dict) -> LinkedInProfile:
+    def generate_enhanced_profile(self, linkedin_url: str, contact_info: dict) -> LinkedInProfile:
         """
         Generate enhanced LinkedIn profile using AI and available contact information
         More sophisticated than simulation - uses real data where available
@@ -296,7 +296,7 @@ class LinkedInDataCollector:
             self.logger.warning(f"AI bio generation failed: {e}")
             return f"Experienced {title} at {company} focused on operational excellence and infrastructure optimization."
 
-    def generate_realistic_experience(self, title: str, company: str) -> List[Dict]:
+    def generate_realistic_experience(self, title: str, company: str) -> list[dict]:
         """Generate realistic work experience"""
         experience = []
 
@@ -326,7 +326,7 @@ class LinkedInDataCollector:
 
         return experience
 
-    def generate_realistic_skills(self, title: str) -> List[str]:
+    def generate_realistic_skills(self, title: str) -> list[str]:
         """Generate realistic skills based on title"""
         base_skills = [
             "Leadership",
@@ -373,7 +373,7 @@ class LinkedInDataCollector:
 
         return base_skills[:15]  # LinkedIn shows top skills
 
-    def generate_realistic_education(self) -> List[Dict]:
+    def generate_realistic_education(self) -> list[dict]:
         """Generate realistic education background"""
         degrees = [
             "Bachelor of Science in Electrical Engineering",
@@ -398,7 +398,7 @@ class LinkedInDataCollector:
             }
         ]
 
-    def generate_realistic_activity(self, title: str, company: str) -> List[Dict]:
+    def generate_realistic_activity(self, title: str, company: str) -> list[dict]:
         """Generate realistic LinkedIn activity"""
         # Use the same logic as the original LinkedIn enrichment engine
         from linkedin_enrichment_engine import LinkedInEnrichmentEngine
@@ -407,7 +407,7 @@ class LinkedInDataCollector:
         return enrichment_engine._generate_realistic_activity(title)
 
     def create_minimal_profile(
-        self, linkedin_url: str, contact_info: Dict = None
+        self, linkedin_url: str, contact_info: dict = None
     ) -> LinkedInProfile:
         """Create minimal profile when other methods fail"""
         if contact_info is None:
@@ -465,7 +465,7 @@ class LinkedInDataCollector:
         except Exception as e:
             self.logger.warning(f"Failed to cache profile: {e}")
 
-    def dict_to_profile(self, data: Dict) -> LinkedInProfile:
+    def dict_to_profile(self, data: dict) -> LinkedInProfile:
         """Convert dictionary to LinkedInProfile object"""
         return LinkedInProfile(
             name=data.get("name", ""),
@@ -485,7 +485,7 @@ class LinkedInDataCollector:
             ),
         )
 
-    def parse_rapid_api_response(self, data: Dict, linkedin_url: str) -> LinkedInProfile:
+    def parse_rapid_api_response(self, data: dict, linkedin_url: str) -> LinkedInProfile:
         """Parse RapidAPI response into LinkedInProfile"""
         # This would parse the actual API response format
         # Structure depends on the specific RapidAPI service used
@@ -512,7 +512,7 @@ class LinkedInDataCollector:
             time.sleep(self.request_delay - elapsed)
         self.last_request_time = time.time()
 
-    def import_csv_profiles(self, csv_path: str) -> List[LinkedInProfile]:
+    def import_csv_profiles(self, csv_path: str) -> list[LinkedInProfile]:
         """
         Import LinkedIn profiles from CSV export
         Useful for Sales Navigator exports or manual data entry

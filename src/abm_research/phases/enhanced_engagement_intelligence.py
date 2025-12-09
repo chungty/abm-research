@@ -5,10 +5,10 @@ Implements Phase 4 requirements from skill specification
 Role-specific pain point mapping and personalized value-add recommendations
 """
 
-import os
 import json
-from typing import Dict, List, Optional
+import os
 from dataclasses import dataclass
+
 import openai
 
 
@@ -17,22 +17,22 @@ class EngagementIntelligence:
     """Complete engagement intelligence for a contact"""
 
     # Pain point mapping
-    problems_owned: List[str]  # From role-to-pain-point mapping
-    pain_point_details: Dict[str, str]  # Detailed explanation per pain point
+    problems_owned: list[str]  # From role-to-pain-point mapping
+    pain_point_details: dict[str, str]  # Detailed explanation per pain point
 
     # Value proposition matching
-    value_add_ideas: List[str]  # 2-3 specific, actionable ideas
-    verdigris_content_matches: List[Dict]  # Matching content assets
+    value_add_ideas: list[str]  # 2-3 specific, actionable ideas
+    verdigris_content_matches: list[dict]  # Matching content assets
 
     # Personalized outreach
     email_template: str  # Personalized email template
     linkedin_message: str  # LinkedIn connection/message
     call_script: str  # Phone conversation guide
-    conversation_starters: List[str]  # 3-5 specific questions
+    conversation_starters: list[str]  # 3-5 specific questions
 
     # Timing intelligence
-    optimal_timing: Dict  # When and why to reach out
-    urgency_factors: List[str]  # Reasons for urgency
+    optimal_timing: dict  # When and why to reach out
+    urgency_factors: list[str]  # Reasons for urgency
 
 
 class EnhancedEngagementIntelligence:
@@ -50,7 +50,7 @@ class EnhancedEngagementIntelligence:
         """Load ICP pain points from skill specification"""
         try:
             with open(
-                "/Users/chungty/Projects/abm-research/references/lead_scoring_config.json", "r"
+                "/Users/chungty/Projects/abm-research/references/lead_scoring_config.json"
             ) as f:
                 config = json.load(f)
                 self.icp_pain_points = config.get("icp_pain_points", [])
@@ -228,7 +228,7 @@ class EnhancedEngagementIntelligence:
         }
 
     def generate_engagement_intelligence(
-        self, contact: Dict, trigger_events: List[Dict] = None, account_context: Dict = None
+        self, contact: dict, trigger_events: list[dict] = None, account_context: dict = None
     ) -> EngagementIntelligence:
         """
         Generate complete engagement intelligence for high-scoring contacts
@@ -268,7 +268,7 @@ class EnhancedEngagementIntelligence:
             urgency_factors=timing_analysis["urgency_factors"],
         )
 
-    def _map_role_to_pain_points(self, contact: Dict) -> Dict:
+    def _map_role_to_pain_points(self, contact: dict) -> dict:
         """Map contact's role to specific ICP pain points per skill specification"""
         title = contact.get("title", "")
         role_classification = self._classify_role(title)
@@ -388,7 +388,7 @@ class EnhancedEngagementIntelligence:
         else:
             return f"As a {actual_title}, this pain point impacts their daily operational effectiveness and strategic objectives"
 
-    def _generate_value_add_ideas(self, contact: Dict, problems_analysis: Dict) -> Dict:
+    def _generate_value_add_ideas(self, contact: dict, problems_analysis: dict) -> dict:
         """Generate 2-3 specific, actionable value-add ideas per skill specification"""
         problems = problems_analysis["problems"]
         role_classification = problems_analysis["role_classification"]
@@ -447,12 +447,12 @@ class EnhancedEngagementIntelligence:
 
     def _generate_outreach_templates(
         self,
-        contact: Dict,
-        problems_analysis: Dict,
-        value_add_analysis: Dict,
-        trigger_events: List[Dict] = None,
-        account_context: Dict = None,
-    ) -> Dict:
+        contact: dict,
+        problems_analysis: dict,
+        value_add_analysis: dict,
+        trigger_events: list[dict] = None,
+        account_context: dict = None,
+    ) -> dict:
         """Generate personalized outreach templates"""
         name = contact.get("name", "")
         title = contact.get("title", "")
@@ -503,8 +503,8 @@ class EnhancedEngagementIntelligence:
         title: str,
         company: str,
         top_pain_point: str,
-        value_ideas: List[str],
-        trigger_event: Dict = None,
+        value_ideas: list[str],
+        trigger_event: dict = None,
     ) -> str:
         """Generate personalized email template"""
         subject_hook = ""
@@ -548,7 +548,7 @@ P.S. I can share a relevant case study about similar {top_pain_point.lower()} ch
         return template
 
     def _generate_linkedin_message(
-        self, name: str, title: str, role_classification: str, pain_points: List[str]
+        self, name: str, title: str, role_classification: str, pain_points: list[str]
     ) -> str:
         """Generate LinkedIn connection message"""
         primary_focus = pain_points[0] if pain_points else "infrastructure optimization"
@@ -560,7 +560,7 @@ Would you be open to connecting? I'd love to share some insights relevant to {ro
         return message
 
     def _generate_call_script(
-        self, name: str, title: str, top_pain_point: str, trigger_event: Dict = None
+        self, name: str, title: str, top_pain_point: str, trigger_event: dict = None
     ) -> str:
         """Generate phone call script"""
         if trigger_event:
@@ -581,8 +581,8 @@ I can also share a case study of similar results we've achieved with companies i
         return script
 
     def _generate_conversation_starters(
-        self, pain_points: List[str], role_classification: str
-    ) -> List[str]:
+        self, pain_points: list[str], role_classification: str
+    ) -> list[str]:
         """Generate role-specific conversation starters"""
         starters = []
 
@@ -628,7 +628,7 @@ I can also share a case study of similar results we've achieved with companies i
 
         return starters[:5]  # Limit to 5 starters
 
-    def _analyze_optimal_timing(self, contact: Dict, trigger_events: List[Dict] = None) -> Dict:
+    def _analyze_optimal_timing(self, contact: dict, trigger_events: list[dict] = None) -> dict:
         """Analyze optimal timing for outreach based on trigger events and role"""
         urgency_factors = []
         timing_recommendation = "Medium"
@@ -674,7 +674,7 @@ I can also share a case study of similar results we've achieved with companies i
             "urgency_factors": urgency_factors,
         }
 
-    def _create_basic_intelligence(self, contact: Dict) -> EngagementIntelligence:
+    def _create_basic_intelligence(self, contact: dict) -> EngagementIntelligence:
         """Create basic intelligence for contacts below score threshold"""
         return EngagementIntelligence(
             problems_owned=["Infrastructure optimization"],
@@ -693,7 +693,7 @@ I can also share a case study of similar results we've achieved with companies i
             urgency_factors=[],
         )
 
-    def _get_fallback_value_add_ideas(self, role_classification: str, problems: List[str]) -> Dict:
+    def _get_fallback_value_add_ideas(self, role_classification: str, problems: list[str]) -> dict:
         """Fallback value-add ideas when AI generation fails"""
         fallback_ideas = []
 
@@ -717,7 +717,7 @@ I can also share a case study of similar results we've achieved with companies i
 
         return {"ideas": fallback_ideas, "content_matches": []}
 
-    def _get_default_pain_points(self) -> List[str]:
+    def _get_default_pain_points(self) -> list[str]:
         """Default ICP pain points if config file missing"""
         return [
             "Power capacity planning and management",
@@ -731,8 +731,8 @@ I can also share a case study of similar results we've achieved with companies i
         ]
 
     def convert_to_enhanced_schema(
-        self, contact: Dict, engagement_intel: EngagementIntelligence = None
-    ) -> Dict:
+        self, contact: dict, engagement_intel: EngagementIntelligence = None
+    ) -> dict:
         """
         Convert contact engagement data to enhanced schema with confidence indicators
 
@@ -856,9 +856,7 @@ I can also share a case study of similar results we've achieved with companies i
     def _extract_primary_channel(self, engagement_intel: EngagementIntelligence) -> str:
         """Extract primary outreach channel from engagement intelligence"""
         # Try to determine from outreach templates
-        if hasattr(engagement_intel, "email_template") and getattr(
-            engagement_intel, "email_template"
-        ):
+        if hasattr(engagement_intel, "email_template") and engagement_intel.email_template:
             email_length = len(str(getattr(engagement_intel, "email_template", "")))
             linkedin_length = len(str(getattr(engagement_intel, "linkedin_message", "")))
 
@@ -888,7 +886,7 @@ I can also share a case study of similar results we've achieved with companies i
 
         return "Infrastructure optimization discussion"
 
-    def _assess_decision_influence(self, contact: Dict) -> str:
+    def _assess_decision_influence(self, contact: dict) -> str:
         """Assess decision influence level for the contact"""
         title = contact.get("title", "").lower()
 
@@ -903,7 +901,7 @@ I can also share a case study of similar results we've achieved with companies i
         else:
             return "Low (Individual contributor)"
 
-    def _calculate_content_engagement_score(self, contact: Dict) -> int:
+    def _calculate_content_engagement_score(self, contact: dict) -> int:
         """Calculate content engagement score based on LinkedIn activity"""
         activity_level = contact.get("linkedin_activity_level", "").lower()
         content_themes = contact.get("content_themes", [])
@@ -935,7 +933,7 @@ I can also share a case study of similar results we've achieved with companies i
 
         return min(max(score, 0), 100)  # Cap between 0-100
 
-    def generate_enhanced_engagement_summary(self, contacts: List[Dict]) -> Dict:
+    def generate_enhanced_engagement_summary(self, contacts: list[dict]) -> dict:
         """Generate enhanced summary of engagement intelligence with confidence indicators"""
 
         if not contacts:
@@ -986,7 +984,7 @@ I can also share a case study of similar results we've achieved with companies i
             "Engagement Analysis Status": "Comprehensive role-based intelligence complete (95% confidence)",
         }
 
-    def _calculate_avg_influence(self, contacts: List[Dict]) -> str:
+    def _calculate_avg_influence(self, contacts: list[dict]) -> str:
         """Calculate average decision influence across contacts"""
         influence_scores = []
         for contact in contacts:
@@ -1015,7 +1013,7 @@ I can also share a case study of similar results we've achieved with companies i
 
         return "Unknown (insufficient data)"
 
-    def _analyze_channel_distribution(self, contacts: List[Dict]) -> str:
+    def _analyze_channel_distribution(self, contacts: list[dict]) -> str:
         """Analyze distribution of recommended outreach channels"""
         channels = []
         for contact in contacts:

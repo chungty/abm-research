@@ -4,9 +4,10 @@ Debug Apollo bulk_match API 400 error
 Test the bulk enrichment endpoint to understand the issue
 """
 
-import sys
-import os
 import json
+import os
+import sys
+
 import requests
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
@@ -70,7 +71,7 @@ def debug_apollo_bulk_match():
 
     for test_case in test_cases:
         print(f"\n🧪 Testing: {test_case['name']}")
-        print(f"📤 Request payload:")
+        print("📤 Request payload:")
         print(json.dumps(test_case["payload"], indent=2))
 
         try:
@@ -80,17 +81,17 @@ def debug_apollo_bulk_match():
             print(f"📬 Response Headers: {dict(response.headers)}")
 
             if response.status_code == 200:
-                print(f"✅ Success!")
+                print("✅ Success!")
                 data = response.json()
                 print(f"📊 Response data keys: {list(data.keys())}")
             else:
-                print(f"❌ Failed!")
+                print("❌ Failed!")
                 print(f"📄 Response text: {response.text}")
 
                 # Try to parse as JSON for better formatting
                 try:
                     error_data = response.json()
-                    print(f"📄 Parsed error:")
+                    print("📄 Parsed error:")
                     print(json.dumps(error_data, indent=2))
                 except:
                     pass
@@ -99,7 +100,7 @@ def debug_apollo_bulk_match():
             print(f"💥 Exception: {e}")
 
     # Test with actual contact from our system
-    print(f"\n🧪 Testing with Real Contact Data from Groq:")
+    print("\n🧪 Testing with Real Contact Data from Groq:")
 
     real_contact_payload = {
         "details": [
@@ -114,7 +115,7 @@ def debug_apollo_bulk_match():
         "reveal_phone_number": True,
     }
 
-    print(f"📤 Real contact payload:")
+    print("📤 Real contact payload:")
     print(json.dumps(real_contact_payload, indent=2))
 
     try:
@@ -123,13 +124,13 @@ def debug_apollo_bulk_match():
         print(f"📬 Response Status: {response.status_code}")
 
         if response.status_code == 200:
-            print(f"✅ Real contact lookup succeeded!")
+            print("✅ Real contact lookup succeeded!")
             data = response.json()
             print(f"📊 Response structure: {list(data.keys())}")
             if "matches" in data:
                 print(f"📊 Found {len(data['matches'])} matches")
         else:
-            print(f"❌ Real contact lookup failed!")
+            print("❌ Real contact lookup failed!")
             print(f"📄 Response text: {response.text}")
 
     except Exception as e:

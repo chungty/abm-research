@@ -10,12 +10,12 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from config.settings import (
-    validate_config,
     load_lead_scoring_config,
-    load_trigger_events_config,
     load_partnership_categories,
+    load_trigger_events_config,
+    validate_config,
 )
-from models import Account, Contact, TriggerEvent, StrategicPartnership
+from models import Account
 from models.lead_scoring import LeadScoringEngine
 
 
@@ -120,7 +120,7 @@ class ABMResearchOrchestrator:
         # - Connection pathway identification
         # - Value-add idea generation
 
-        print(f"  ✓ Generated engagement insights")
+        print("  ✓ Generated engagement insights")
         return account
 
     def _phase_5_partnership_intelligence(self, account: Account) -> Account:

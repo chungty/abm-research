@@ -3,8 +3,8 @@
 Test LinkedIn enrichment fix for missing enrich_contact method
 """
 
-import sys
 import os
+import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 

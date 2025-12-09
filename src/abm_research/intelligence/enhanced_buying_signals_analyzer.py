@@ -4,14 +4,9 @@ Enhanced Buying Signals Analyzer
 Adds trend analysis and priority explanations to trigger events for more actionable sales intelligence
 """
 
-import os
-import json
-import requests
-import time
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, asdict
-from collections import defaultdict, Counter
+from collections import defaultdict
+from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass
@@ -33,7 +28,7 @@ class BuyingSignalPriority:
     signal_id: str
     priority_score: int  # 1-100 scale
     priority_level: str  # "Critical", "High", "Medium", "Low"
-    urgency_factors: List[str]  # List of urgency drivers
+    urgency_factors: list[str]  # List of urgency drivers
     timing_recommendation: str  # When to act
     confidence_reasoning: str  # Why this confidence level
     sales_angle: str  # Recommended approach angle
@@ -43,12 +38,12 @@ class BuyingSignalPriority:
 class EnhancedBuyingSignal:
     """Enhanced buying signal with trend analysis and priority"""
 
-    original_signal: Dict
+    original_signal: dict
     trend_analysis: BuyingSignalTrend
     priority_analysis: BuyingSignalPriority
     competitive_context: str  # Market timing considerations
     verdigris_relevance: str  # Specific Verdigris angle
-    recommended_actions: List[str]  # Specific next steps
+    recommended_actions: list[str]  # Specific next steps
 
 
 class EnhancedBuyingSignalsAnalyzer:
@@ -90,8 +85,8 @@ class EnhancedBuyingSignalsAnalyzer:
         }
 
     def analyze_buying_signals(
-        self, trigger_events: List[Dict], account_data: Dict = None
-    ) -> List[EnhancedBuyingSignal]:
+        self, trigger_events: list[dict], account_data: dict = None
+    ) -> list[EnhancedBuyingSignal]:
         """
         Analyze buying signals with enhanced trend analysis and priority scoring
         """
@@ -141,7 +136,7 @@ class EnhancedBuyingSignalsAnalyzer:
         # Sort by priority score (highest first)
         enhanced_signals.sort(key=lambda x: x.priority_analysis.priority_score, reverse=True)
 
-        print(f"✅ Enhanced analysis complete:")
+        print("✅ Enhanced analysis complete:")
         print(
             f"   🔥 Critical signals: {len([s for s in enhanced_signals if s.priority_analysis.priority_level == 'Critical'])}"
         )
@@ -154,7 +149,7 @@ class EnhancedBuyingSignalsAnalyzer:
 
         return enhanced_signals
 
-    def _categorize_signals(self, events: List[Dict]) -> Dict[str, List[Dict]]:
+    def _categorize_signals(self, events: list[dict]) -> dict[str, list[dict]]:
         """Group signals by category for trend analysis"""
         categorized = defaultdict(list)
 
@@ -164,7 +159,7 @@ class EnhancedBuyingSignalsAnalyzer:
 
         return dict(categorized)
 
-    def _categorize_single_signal(self, event: Dict) -> str:
+    def _categorize_single_signal(self, event: dict) -> str:
         """Categorize a single signal based on its content"""
         description = event.get("description", "").lower()
 
@@ -175,8 +170,8 @@ class EnhancedBuyingSignalsAnalyzer:
         return "general"
 
     def _analyze_trends(
-        self, signals_by_category: Dict[str, List[Dict]], all_events: List[Dict]
-    ) -> Dict[str, BuyingSignalTrend]:
+        self, signals_by_category: dict[str, list[dict]], all_events: list[dict]
+    ) -> dict[str, BuyingSignalTrend]:
         """Analyze trends across signal categories"""
         trends = {}
 
@@ -246,7 +241,7 @@ class EnhancedBuyingSignalsAnalyzer:
         )
 
     def _calculate_priority_analysis(
-        self, event: Dict, account_data: Dict, trend: BuyingSignalTrend
+        self, event: dict, account_data: dict, trend: BuyingSignalTrend
     ) -> BuyingSignalPriority:
         """Calculate comprehensive priority analysis for a signal"""
 
@@ -300,7 +295,7 @@ class EnhancedBuyingSignalsAnalyzer:
             sales_angle=sales_angle,
         )
 
-    def _calculate_recency_score(self, event: Dict) -> float:
+    def _calculate_recency_score(self, event: dict) -> float:
         """Calculate recency score (0-1) based on when signal was detected"""
         detected_date = event.get("detected_date")
         if not detected_date:
@@ -328,7 +323,7 @@ class EnhancedBuyingSignalsAnalyzer:
         except:
             return 0.3
 
-    def _calculate_relevance_score(self, event: Dict) -> float:
+    def _calculate_relevance_score(self, event: dict) -> float:
         """Calculate relevance score to Verdigris solutions"""
         description = event.get("description", "").lower()
 
@@ -342,7 +337,7 @@ class EnhancedBuyingSignalsAnalyzer:
 
         return min(1.0, relevance_score / 2.0)  # Normalize
 
-    def _calculate_urgency_score(self, event: Dict, trend: BuyingSignalTrend) -> float:
+    def _calculate_urgency_score(self, event: dict, trend: BuyingSignalTrend) -> float:
         """Calculate urgency score based on signal type and trends"""
         base_urgency = 0.5
 
@@ -363,7 +358,7 @@ class EnhancedBuyingSignalsAnalyzer:
 
         return min(1.0, base_urgency)
 
-    def _calculate_size_score(self, event: Dict, account_data: Dict) -> float:
+    def _calculate_size_score(self, event: dict, account_data: dict) -> float:
         """Calculate opportunity size score"""
         if not account_data:
             return 0.5
@@ -379,7 +374,7 @@ class EnhancedBuyingSignalsAnalyzer:
         else:
             return 0.4
 
-    def _identify_urgency_factors(self, event: Dict, trend: BuyingSignalTrend) -> List[str]:
+    def _identify_urgency_factors(self, event: dict, trend: BuyingSignalTrend) -> list[str]:
         """Identify specific factors creating urgency"""
         factors = []
 
@@ -403,7 +398,7 @@ class EnhancedBuyingSignalsAnalyzer:
         return factors or ["Standard market timing considerations"]
 
     def _generate_timing_recommendation(
-        self, priority_level: str, urgency_factors: List[str]
+        self, priority_level: str, urgency_factors: list[str]
     ) -> str:
         """Generate timing recommendation for outreach"""
         if priority_level == "Critical":
@@ -415,7 +410,7 @@ class EnhancedBuyingSignalsAnalyzer:
         else:
             return "Monitor for additional signals before outreach"
 
-    def _explain_confidence_reasoning(self, event: Dict, priority_score: int) -> str:
+    def _explain_confidence_reasoning(self, event: dict, priority_score: int) -> str:
         """Explain confidence level reasoning"""
         confidence = event.get("confidence", "Medium")
         source_type = event.get("source_type", "Unknown")
@@ -429,7 +424,7 @@ class EnhancedBuyingSignalsAnalyzer:
         else:
             return f"Standard confidence level from {source_type} source"
 
-    def _determine_sales_angle(self, event: Dict, trend: BuyingSignalTrend) -> str:
+    def _determine_sales_angle(self, event: dict, trend: BuyingSignalTrend) -> str:
         """Determine recommended sales approach angle"""
         description = event.get("description", "").lower()
         category = trend.signal_category
@@ -447,7 +442,7 @@ class EnhancedBuyingSignalsAnalyzer:
         else:
             return "Consultative approach - understand their current challenges first"
 
-    def _analyze_competitive_context(self, event: Dict, category: str) -> str:
+    def _analyze_competitive_context(self, event: dict, category: str) -> str:
         """Analyze competitive timing and market context"""
         contexts = {
             "funding": "Newly funded companies prioritize infrastructure investments - ideal timing before they commit to alternatives",
@@ -462,7 +457,7 @@ class EnhancedBuyingSignalsAnalyzer:
             category, "Standard competitive timing - monitor for additional signals"
         )
 
-    def _analyze_verdigris_relevance(self, event: Dict) -> str:
+    def _analyze_verdigris_relevance(self, event: dict) -> str:
         """Analyze specific Verdigris solution relevance"""
         description = event.get("description", "").lower()
 
@@ -480,8 +475,8 @@ class EnhancedBuyingSignalsAnalyzer:
             return "General infrastructure opportunity - explore specific monitoring needs"
 
     def _generate_recommended_actions(
-        self, event: Dict, priority: BuyingSignalPriority, trend: BuyingSignalTrend
-    ) -> List[str]:
+        self, event: dict, priority: BuyingSignalPriority, trend: BuyingSignalTrend
+    ) -> list[str]:
         """Generate specific recommended actions"""
         actions = []
 
@@ -502,7 +497,7 @@ class EnhancedBuyingSignalsAnalyzer:
 
         return actions
 
-    def _generate_market_context(self, category: str, signals: List[Dict]) -> str:
+    def _generate_market_context(self, category: str, signals: list[dict]) -> str:
         """Generate market context explanation"""
         contexts = {
             "funding": f"VC funding activity creates infrastructure investment opportunities ({len(signals)} recent signals)",
@@ -517,7 +512,7 @@ class EnhancedBuyingSignalsAnalyzer:
             category, f"General market activity in {category} category ({len(signals)} signals)"
         )
 
-    def generate_buying_signals_report(self, enhanced_signals: List[EnhancedBuyingSignal]) -> str:
+    def generate_buying_signals_report(self, enhanced_signals: list[EnhancedBuyingSignal]) -> str:
         """Generate comprehensive buying signals analysis report"""
 
         if not enhanced_signals:
@@ -549,7 +544,7 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 - **Next Actions**: {', '.join(signal.recommended_actions[:3])}
 """
 
-        report += f"""
+        report += """
 ## 📊 Trend Analysis Summary
 """
 
@@ -575,8 +570,8 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         return report.strip()
 
     def convert_to_dashboard_format(
-        self, enhanced_signals: List[EnhancedBuyingSignal]
-    ) -> List[Dict]:
+        self, enhanced_signals: list[EnhancedBuyingSignal]
+    ) -> list[dict]:
         """Convert enhanced signals to dashboard-friendly format"""
 
         dashboard_signals = []

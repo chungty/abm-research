@@ -7,19 +7,19 @@ to identify why accounts are marked as "failed" in main output
 while internal logs claim success.
 """
 
-import os
 import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.integrations.notion_client import NotionClient
+import logging
+
 from abm_research.config.settings import (
     NOTION_ACCOUNTS_DB_ID,
     NOTION_CONTACTS_DB_ID,
-    NOTION_TRIGGER_EVENTS_DB_ID,
     NOTION_PARTNERSHIPS_DB_ID,
+    NOTION_TRIGGER_EVENTS_DB_ID,
 )
-import logging
+from abm_research.integrations.notion_client import NotionClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -51,8 +51,8 @@ def debug_database_configuration():
     print("🔧 Notion Client Initialization:")
     try:
         notion_client = NotionClient()
-        print(f"   ✅ Client initialized successfully")
-        print(f"   🗂️  Database IDs configured:")
+        print("   ✅ Client initialized successfully")
+        print("   🗂️  Database IDs configured:")
         for db_name, db_id in notion_client.database_ids.items():
             print(f"      {db_name}: {db_id}")
         print()
@@ -83,7 +83,7 @@ def debug_database_configuration():
             if found_id:
                 print(f"   ✅ Account retrieval SUCCESS: {found_id[:20]}...")
             else:
-                print(f"   ⚠️  Account save succeeded but retrieval failed")
+                print("   ⚠️  Account save succeeded but retrieval failed")
 
         else:
             print(f"   ❌ Account save FAILED: {account_id} (type: {type(account_id)})")

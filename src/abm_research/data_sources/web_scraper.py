@@ -1,14 +1,14 @@
 """
 Web scraping utilities for company websites and news sources
 """
-import asyncio
-import aiohttp
-from bs4 import BeautifulSoup
-from typing import Dict, Any, List, Optional
-from datetime import datetime, date
 import logging
 import re
-from urllib.parse import urljoin, urlparse
+from datetime import date, datetime
+from typing import Any, Optional
+from urllib.parse import urljoin
+
+import aiohttp
+from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ class WebScraper:
             logger.error(f"Error fetching {url}: {e}")
             return None
 
-    async def scrape_company_about_page(self, domain: str) -> Dict[str, Any]:
+    async def scrape_company_about_page(self, domain: str) -> dict[str, Any]:
         """Scrape company about/info page for firmographics"""
         logger.info(f"Scraping company info for {domain}")
 
@@ -121,7 +121,7 @@ class WebScraper:
 
         return None
 
-    def _extract_locations(self, soup: BeautifulSoup) -> List[str]:
+    def _extract_locations(self, soup: BeautifulSoup) -> list[str]:
         """Extract data center or office locations"""
         locations = []
 
@@ -176,7 +176,7 @@ class WebScraper:
         end = min(len(text), keyword_pos + context_length // 2)
         return text[start:end]
 
-    async def scrape_news_page(self, url: str) -> Dict[str, Any]:
+    async def scrape_news_page(self, url: str) -> dict[str, Any]:
         """Scrape a news article or press release"""
         logger.info(f"Scraping news page: {url}")
 
@@ -282,8 +282,8 @@ class WebScraper:
         return ""
 
     async def search_company_newsroom(
-        self, domain: str, keywords: List[str]
-    ) -> List[Dict[str, Any]]:
+        self, domain: str, keywords: list[str]
+    ) -> list[dict[str, Any]]:
         """Search company newsroom for relevant articles"""
         logger.info(f"Searching newsroom for {domain}")
 

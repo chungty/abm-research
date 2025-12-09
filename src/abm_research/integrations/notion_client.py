@@ -13,17 +13,15 @@ Provides unified interface for:
 - EXPLICIT error propagation (no silent failures)
 """
 
-import os
 import json
-import time
 import logging
-import requests
-import traceback
-from typing import Dict, List, Any, Optional, Union
-from datetime import datetime, date
-from dataclasses import asdict
+import os
+import time
+from datetime import datetime
 from enum import Enum
+from typing import Any, Optional
 
+import requests
 
 # ═══════════════════════════════════════════════════════════════════════════════════
 # EXCEPTION HIERARCHY - No more silent failures!
@@ -53,7 +51,7 @@ class NotionError(Exception):
         message: str,
         code: NotionErrorCode = NotionErrorCode.API_ERROR,
         operation: str = "unknown",
-        details: Optional[Dict[str, Any]] = None,
+        details: Optional[dict[str, Any]] = None,
         cause: Optional[Exception] = None,
     ):
         self.message = message
@@ -71,7 +69,7 @@ class NotionError(Exception):
             msg += f" | Caused by: {type(self.cause).__name__}: {self.cause}"
         return msg
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for API responses"""
         return {
             "error_type": "NotionError",
@@ -158,8 +156,8 @@ except ImportError:
 try:
     from src.models.account import Account
     from src.models.contact import Contact
-    from src.models.trigger_event import TriggerEvent
     from src.models.strategic_partnership import StrategicPartnership
+    from src.models.trigger_event import TriggerEvent
 
     MODELS_AVAILABLE = True
 except ImportError:
@@ -304,7 +302,7 @@ class NotionClient:
             "❌ Notion API key not found. Set either NOTION_API_KEY or NOTION_ABM_API_KEY"
         )
 
-    def _load_database_config(self) -> Dict[str, Optional[str]]:
+    def _load_database_config(self) -> dict[str, Optional[str]]:
         """Load database IDs from environment variables"""
         db_config = {
             "accounts": os.getenv("NOTION_ACCOUNTS_DB_ID"),
@@ -415,7 +413,7 @@ class NotionClient:
 
     def _parse_json_response(
         self, response: requests.Response, operation: str = "parse_response"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Safely parse JSON from response with proper error handling.
 
@@ -433,7 +431,7 @@ class NotionClient:
 
     def _extract_results(
         self, response: requests.Response, operation: str = "extract_results"
-    ) -> List[Dict]:
+    ) -> list[dict]:
         """
         Extract 'results' array from Notion query response with validation.
 
@@ -484,7 +482,7 @@ class NotionClient:
     # WORKSPACE SETUP (from notion_database.py)
     # ═══════════════════════════════════════════════════════════════════════════════════
 
-    def setup_abm_workspace(self, parent_page_id: str) -> Dict[str, str]:
+    def setup_abm_workspace(self, parent_page_id: str) -> dict[str, str]:
         """
         Create complete ABM research workspace with all 5 databases
 
@@ -515,7 +513,7 @@ class NotionClient:
             logger.error(f"❌ Failed to create ABM workspace: {str(e)}")
             raise
 
-    def _create_accounts_database(self, parent_page_id: str) -> Dict[str, Any]:
+    def _create_accounts_database(self, parent_page_id: str) -> dict[str, Any]:
         """Create Accounts database with complete schema"""
         properties = {
             "Company Name": {"title": {}},
@@ -570,7 +568,7 @@ class NotionClient:
 
         return self._create_database(parent_page_id, "🏢 Accounts", properties)
 
-    def _create_contacts_database(self, parent_page_id: str) -> Dict[str, Any]:
+    def _create_contacts_database(self, parent_page_id: str) -> dict[str, Any]:
         """Create Contacts database with complete schema"""
         properties = {
             "Name": {"title": {}},
@@ -628,7 +626,7 @@ class NotionClient:
 
         return self._create_database(parent_page_id, "👤 Contacts", properties)
 
-    def _create_trigger_events_database(self, parent_page_id: str) -> Dict[str, Any]:
+    def _create_trigger_events_database(self, parent_page_id: str) -> dict[str, Any]:
         """Create Trigger Events database with complete schema"""
         properties = {
             "Event Description": {"title": {}},
@@ -670,7 +668,7 @@ class NotionClient:
 
         return self._create_database(parent_page_id, "⚡ Trigger Events", properties)
 
-    def _create_contact_intelligence_database(self, parent_page_id: str) -> Dict[str, Any]:
+    def _create_contact_intelligence_database(self, parent_page_id: str) -> dict[str, Any]:
         """Create Contact Intelligence database"""
         properties = {
             "Contact Name": {"title": {}},
@@ -691,7 +689,7 @@ class NotionClient:
 
         return self._create_database(parent_page_id, "🧠 Contact Intelligence", properties)
 
-    def _create_partnerships_database(self, parent_page_id: str) -> Dict[str, Any]:
+    def _create_partnerships_database(self, parent_page_id: str) -> dict[str, Any]:
         """Create Strategic Partnerships database"""
         properties = {
             "Partner Name": {"title": {}},
@@ -713,7 +711,7 @@ class NotionClient:
 
         return self._create_database(parent_page_id, "🤝 Strategic Partnerships", properties)
 
-    def _create_database(self, parent_page_id: str, title: str, properties: Dict) -> Dict[str, Any]:
+    def _create_database(self, parent_page_id: str, title: str, properties: dict) -> dict[str, Any]:
         """Create a database with given properties"""
         data = {
             "parent": {"page_id": parent_page_id},
@@ -728,7 +726,7 @@ class NotionClient:
     # DATA PERSISTENCE - Fixed to NEVER silently fail
     # ═══════════════════════════════════════════════════════════════════════════════════
 
-    def save_account(self, account: Dict[str, Any]) -> str:
+    def save_account(self, account: dict[str, Any]) -> str:
         """
         Save account data with deduplication.
 
@@ -783,8 +781,8 @@ class NotionClient:
             )
 
     def save_contacts(
-        self, contacts: List[Dict], account_name: str = "", fail_fast: bool = False
-    ) -> Dict[str, Any]:
+        self, contacts: list[dict], account_name: str = "", fail_fast: bool = False
+    ) -> dict[str, Any]:
         """
         Save enriched contact data with deduplication.
 
@@ -872,8 +870,8 @@ class NotionClient:
         return results
 
     def save_trigger_events(
-        self, events: List[Dict], account_name: str = "", fail_fast: bool = False
-    ) -> Dict[str, Any]:
+        self, events: list[dict], account_name: str = "", fail_fast: bool = False
+    ) -> dict[str, Any]:
         """
         Save trigger events data.
 
@@ -898,7 +896,7 @@ class NotionClient:
                     results["results"][event_desc] = {"status": "saved", "page_id": page_id}
                 else:
                     raise NotionError(
-                        f"No page ID returned for event", operation="save_trigger_events"
+                        "No page ID returned for event", operation="save_trigger_events"
                     )
 
             except NotionError as e:
@@ -927,8 +925,8 @@ class NotionClient:
         return results
 
     def save_partnerships(
-        self, partnerships: List[Dict], account_name: str = "", fail_fast: bool = False
-    ) -> Dict[str, Any]:
+        self, partnerships: list[dict], account_name: str = "", fail_fast: bool = False
+    ) -> dict[str, Any]:
         """
         Save strategic partnerships data.
 
@@ -953,7 +951,7 @@ class NotionClient:
                     results["results"][partner_name] = {"status": "saved", "page_id": page_id}
                 else:
                     raise NotionError(
-                        f"No page ID returned for partnership", operation="save_partnerships"
+                        "No page ID returned for partnership", operation="save_partnerships"
                     )
 
             except NotionError as e:
@@ -1005,7 +1003,7 @@ class NotionClient:
             logger.error(f"Error finding existing account: {e}")
             return None
 
-    def query_all_accounts(self) -> List[Dict]:
+    def query_all_accounts(self) -> list[dict]:
         """
         Query all accounts from Notion database.
 
@@ -1023,7 +1021,7 @@ class NotionClient:
         logger.info(f"✅ Retrieved {len(results)} accounts from Notion")
         return results
 
-    def query_all_contacts(self, account_id: Optional[str] = None) -> List[Dict]:
+    def query_all_contacts(self, account_id: Optional[str] = None) -> list[dict]:
         """
         Query all contacts from Notion database, optionally filtered by account.
 
@@ -1047,7 +1045,7 @@ class NotionClient:
         logger.info(f"✅ Retrieved {len(results)} contacts from Notion")
         return results
 
-    def query_all_trigger_events(self, account_id: Optional[str] = None) -> List[Dict]:
+    def query_all_trigger_events(self, account_id: Optional[str] = None) -> list[dict]:
         """
         Query all trigger events from Notion database, optionally filtered by account.
 
@@ -1071,7 +1069,7 @@ class NotionClient:
         logger.info(f"✅ Retrieved {len(results)} trigger events from Notion")
         return results
 
-    def query_all_partnerships(self, account_id: Optional[str] = None) -> List[Dict]:
+    def query_all_partnerships(self, account_id: Optional[str] = None) -> list[dict]:
         """
         Query all partnerships from Notion database, optionally filtered by account.
 
@@ -1120,7 +1118,7 @@ class NotionClient:
     # CREATE OPERATIONS
     # ═══════════════════════════════════════════════════════════════════════════════════
 
-    def _create_account(self, account: Dict) -> Optional[str]:
+    def _create_account(self, account: dict) -> Optional[str]:
         """Create new account record using actual production database field names"""
         properties = {
             # Core fields (using ACTUAL production field names)
@@ -1146,7 +1144,7 @@ class NotionClient:
         response = self._make_request("POST", "https://api.notion.com/v1/pages", json=data)
         return response.json().get("id")
 
-    def _create_contact(self, contact: Dict, account_name: str = "") -> Optional[str]:
+    def _create_contact(self, contact: dict, account_name: str = "") -> Optional[str]:
         """Create new contact record with proper Account relation and enhanced fields"""
         # Handle URL field properly - use null instead of empty string
         linkedin_url = contact.get("linkedin_url", "") or None
@@ -1191,7 +1189,7 @@ class NotionClient:
         response = self._make_request("POST", "https://api.notion.com/v1/pages", json=data)
         return response.json().get("id")
 
-    def _create_trigger_event(self, event: Dict, account_name: str = "") -> Optional[str]:
+    def _create_trigger_event(self, event: dict, account_name: str = "") -> Optional[str]:
         """Create new trigger event record with proper Account relation and enhanced multi-dimensional intelligence"""
         # Handle URL field properly - use null instead of empty string
         source_url = event.get("source_url", "") or None
@@ -1265,7 +1263,7 @@ class NotionClient:
         response = self._make_request("POST", "https://api.notion.com/v1/pages", json=data)
         return response.json().get("id")
 
-    def _create_partnership(self, partnership: Dict, account_name: str = "") -> Optional[str]:
+    def _create_partnership(self, partnership: dict, account_name: str = "") -> Optional[str]:
         """Create or update partnership record with automatic deduplication.
 
         If a partnership with the same vendor name already exists, adds the new account
@@ -1519,7 +1517,7 @@ class NotionClient:
     # UPDATE OPERATIONS - Including the critical update_page() method
     # ═══════════════════════════════════════════════════════════════════════════════════
 
-    def update_page(self, page_id: str, properties: Dict[str, Any], validate: bool = True) -> str:
+    def update_page(self, page_id: str, properties: dict[str, Any], validate: bool = True) -> str:
         """
         Update a Notion page with new property values.
 
@@ -1577,7 +1575,7 @@ class NotionClient:
                 cause=e,
             )
 
-    def _format_properties_for_update(self, properties: Dict[str, Any]) -> Dict[str, Any]:
+    def _format_properties_for_update(self, properties: dict[str, Any]) -> dict[str, Any]:
         """
         Format properties for Notion update API.
 
@@ -1629,7 +1627,7 @@ class NotionClient:
 
         return formatted
 
-    def _update_account(self, page_id: str, account: Dict) -> Optional[str]:
+    def _update_account(self, page_id: str, account: dict) -> Optional[str]:
         """Update existing account record"""
         try:
             properties = {
@@ -1660,7 +1658,7 @@ class NotionClient:
             logger.error(f"Error updating account: {e}")
             return None
 
-    def _update_contact(self, page_id: str, contact: Dict) -> Optional[str]:
+    def _update_contact(self, page_id: str, contact: dict) -> Optional[str]:
         """Update existing contact record"""
         # Implementation similar to create but using PATCH
         logger.info(f"Updating contact {contact.get('name', 'unknown')}")
@@ -1670,7 +1668,7 @@ class NotionClient:
     # UTILITY & HEALTH CHECK METHODS
     # ═══════════════════════════════════════════════════════════════════════════════════
 
-    def test_connection(self) -> Dict[str, Any]:
+    def test_connection(self) -> dict[str, Any]:
         """
         Test actual connectivity to Notion API.
 
@@ -1737,7 +1735,7 @@ class NotionClient:
 
         return result
 
-    def get_health_status(self) -> Dict[str, Any]:
+    def get_health_status(self) -> dict[str, Any]:
         """
         Get comprehensive health status of Notion integration.
 
@@ -1771,7 +1769,7 @@ class NotionClient:
             "last_request_time": self.last_request_time,
         }
 
-    def get_pipeline_status(self) -> Dict[str, Any]:
+    def get_pipeline_status(self) -> dict[str, Any]:
         """
         Get detailed status of the data pipeline for monitoring.
 
@@ -1796,8 +1794,8 @@ class NotionClient:
         }
 
     def _get_recommendations(
-        self, health: Dict[str, Any], connection_test: Optional[Dict[str, Any]]
-    ) -> List[str]:
+        self, health: dict[str, Any], connection_test: Optional[dict[str, Any]]
+    ) -> list[str]:
         """Generate actionable recommendations based on health status"""
         recs = []
 

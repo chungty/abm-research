@@ -18,7 +18,7 @@ repos:
       - id: check-json
         exclude: ^(archive/|dashboard/tsconfig\.)
       - id: check-added-large-files
-        args: ['--maxkb=1000']
+        args: ["--maxkb=1000"]
       - id: check-merge-conflict
       - id: debug-statements
         exclude: ^archive/
@@ -70,7 +70,7 @@ repos:
     rev: v1.4.0
     hooks:
       - id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
+        args: ["--baseline", ".secrets.baseline"]
         exclude: ^archive/
 
   # Check Python docstrings

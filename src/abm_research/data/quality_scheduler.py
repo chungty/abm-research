@@ -4,12 +4,12 @@ ABM Data Quality Scheduler
 Runs automated quality checks and cleanup routines
 """
 
-import schedule
 import time
-import threading
 from datetime import datetime
-from automated_data_quality_system import ABMDataQualitySystem
+
+import schedule
 from aggressive_notion_cleanup import AggressiveNotionCleanup
+from automated_data_quality_system import ABMDataQualitySystem
 
 
 class QualityScheduler:
@@ -133,7 +133,7 @@ def run_manual_quality_check():
     # Run quality checks
     results = quality_system.run_quality_checks()
 
-    print(f"\n📊 MANUAL CHECK COMPLETE")
+    print("\n📊 MANUAL CHECK COMPLETE")
     print(f"✅ Quality Score: {results['quality_score']:.1f}/100")
     print(f"🔧 Issues Fixed: {results['issues_fixed']}")
 

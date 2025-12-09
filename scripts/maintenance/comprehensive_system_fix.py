@@ -9,15 +9,15 @@ Addresses all critical issues:
 4. Verify CoreWeave mock data filter removal
 """
 
-import os
 import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.integrations.notion_client import NotionClient
-from abm_research.core.abm_system import ComprehensiveABMSystem
 import logging
 from collections import defaultdict
+
+from abm_research.core.abm_system import ComprehensiveABMSystem
+from abm_research.integrations.notion_client import NotionClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -221,7 +221,7 @@ def test_coreweave_fix():
         account = result.get("account", {})
         notion_status = result.get("notion_persistence", {})
 
-        print(f"✅ CoreWeave enrichment completed")
+        print("✅ CoreWeave enrichment completed")
         print(f"✅ Account name: {account.get('name', 'Unknown')}")
         print(f"✅ Business model: {account.get('business_model', 'Unknown')}")
 

@@ -8,15 +8,16 @@ for the React frontend.
 Run: python -m src.abm_research.api.server
 """
 
-import os
-import sys
 import json
 import logging
+import os
+import sys
+from datetime import datetime
+from typing import Optional
+
 import requests
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from datetime import datetime
-from typing import Dict, List, Any, Optional
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -108,7 +109,7 @@ CORS(app)  # Enable CORS for frontend
 # ============================================================================
 
 
-def get_notion_accounts(raise_on_error: bool = False) -> List[Dict]:
+def get_notion_accounts(raise_on_error: bool = False) -> list[dict]:
     """
     Fetch accounts from Notion and transform for API.
 
@@ -136,7 +137,7 @@ def get_notion_accounts(raise_on_error: bool = False) -> List[Dict]:
         raw_accounts = notion.query_all_accounts()
 
         # Build contact count map (query once, use for all accounts)
-        contact_counts: Dict[str, int] = {}
+        contact_counts: dict[str, int] = {}
         try:
             all_contacts = notion.query_all_contacts()
             for contact in all_contacts:
@@ -203,8 +204,8 @@ def get_notion_accounts(raise_on_error: bool = False) -> List[Dict]:
 
 
 def transform_notion_account(
-    page: Dict, idx: int = 0, contact_counts: Optional[Dict[str, int]] = None
-) -> Optional[Dict]:
+    page: dict, idx: int = 0, contact_counts: Optional[dict[str, int]] = None
+) -> Optional[dict]:
     """Transform Notion page to API account format with full scoring"""
     try:
         props = page.get("properties", {})
@@ -312,7 +313,7 @@ def transform_notion_account(
         return None
 
 
-def extract_rich_text(prop: Dict) -> str:
+def extract_rich_text(prop: dict) -> str:
     """Extract text from Notion rich_text property"""
     rich_text = prop.get("rich_text", [])
     if rich_text and len(rich_text) > 0:
@@ -320,7 +321,7 @@ def extract_rich_text(prop: Dict) -> str:
     return ""
 
 
-def extract_select(prop: Dict) -> str:
+def extract_select(prop: dict) -> str:
     """Extract value from Notion select property"""
     select = prop.get("select")
     if select:
@@ -328,7 +329,7 @@ def extract_select(prop: Dict) -> str:
     return ""
 
 
-def get_notion_contacts(account_notion_id: str) -> List[Dict]:
+def get_notion_contacts(account_notion_id: str) -> list[dict]:
     """Fetch contacts for account from Notion"""
     if not NOTION_AVAILABLE:
         return get_mock_contacts(account_notion_id)
@@ -353,7 +354,7 @@ def get_notion_contacts(account_notion_id: str) -> List[Dict]:
         return get_mock_contacts(account_notion_id)
 
 
-def get_notion_trigger_events(account_notion_id: str = None) -> List[Dict]:
+def get_notion_trigger_events(account_notion_id: str = None) -> list[dict]:
     """Fetch trigger events from Notion, optionally for a specific account"""
     if not NOTION_AVAILABLE:
         return []
@@ -376,7 +377,7 @@ def get_notion_trigger_events(account_notion_id: str = None) -> List[Dict]:
         return []
 
 
-def get_notion_partnerships(account_notion_id: str = None) -> List[Dict]:
+def get_notion_partnerships(account_notion_id: str = None) -> list[dict]:
     """Fetch partnerships from Notion, optionally for a specific account
 
     This function also resolves account names from account relations by building
@@ -429,7 +430,7 @@ def get_notion_partnerships(account_notion_id: str = None) -> List[Dict]:
         return []
 
 
-def transform_notion_contact(page: Dict) -> Optional[Dict]:
+def transform_notion_contact(page: dict) -> Optional[dict]:
     """Transform Notion contact page to API format"""
     try:
         props = page.get("properties", {})
@@ -528,7 +529,7 @@ def transform_notion_contact(page: Dict) -> Optional[Dict]:
         return None
 
 
-def transform_notion_trigger_event(page: Dict) -> Optional[Dict]:
+def transform_notion_trigger_event(page: dict) -> Optional[dict]:
     """Transform Notion trigger event page to API format"""
     try:
         props = page.get("properties", {})
@@ -571,7 +572,7 @@ def transform_notion_trigger_event(page: Dict) -> Optional[Dict]:
         return None
 
 
-def transform_notion_partnership(page: Dict) -> Optional[Dict]:
+def transform_notion_partnership(page: dict) -> Optional[dict]:
     """Transform Notion partnership page to API format
 
     Field mappings (Notion field name -> API field name):
@@ -1647,8 +1648,8 @@ def get_trusted_paths():
 
 
 def calculate_partner_score(
-    partnership: Dict, matched_accounts: List[Dict], all_accounts: List[Dict]
-) -> Dict:
+    partnership: dict, matched_accounts: list[dict], all_accounts: list[dict]
+) -> dict:
     """
     Calculate a composite partner score based on observable/public data.
 
@@ -1845,7 +1846,7 @@ def calculate_partner_score(
     }
 
 
-def match_accounts_to_partner(partner_name: str, accounts: List[Dict]) -> List[Dict]:
+def match_accounts_to_partner(partner_name: str, accounts: list[dict]) -> list[dict]:
     """
     Find accounts that could benefit from warm introductions via this partner.
 
@@ -2851,7 +2852,7 @@ def classify_account_partnership(account_id: str):
         # Note: Notion update skipped - NotionClient doesn't have update_page method yet
         # TODO: Add update_page to NotionClient to persist classification
         if save_to_notion:
-            logger.warning(f"save_to_notion requested but NotionClient.update_page not implemented")
+            logger.warning("save_to_notion requested but NotionClient.update_page not implemented")
 
         logger.info(f"✅ Classified {account_name}: {classification.partnership_type.value}")
 
@@ -3084,7 +3085,7 @@ except Exception as e:
     logger.warning(f"⚠️ OpenAI not available: {e}")
 
 
-def build_outreach_prompt(contact: Dict, account: Dict, outreach_type: str, tone: str) -> str:
+def build_outreach_prompt(contact: dict, account: dict, outreach_type: str, tone: str) -> str:
     """Build a rich prompt for AI outreach generation"""
 
     # Extract key intelligence
@@ -3291,7 +3292,7 @@ def generate_ai_outreach():
         # Parse the JSON response
         try:
             generated = json.loads(content)
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError:
             logger.error(f"Failed to parse OpenAI response: {content[:200]}")
             return (
                 jsonify({"error": "AI response parsing failed", "raw_response": content[:500]}),
@@ -4582,7 +4583,7 @@ def main():
 
     logger.info(f"🚀 Starting ABM Dashboard API on port {port}")
     logger.info(f"   Debug mode: {debug}")
-    logger.info(f"   CORS enabled for frontend development")
+    logger.info("   CORS enabled for frontend development")
 
     app.run(host="0.0.0.0", port=port, debug=debug)
 

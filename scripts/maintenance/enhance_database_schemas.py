@@ -6,9 +6,9 @@ Add all fields specified in SKILL.md that are currently missing
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 from notion_client import Client
-from datetime import datetime
 
 # Load environment variables
 env_path = Path(__file__).parent.parent / ".env"

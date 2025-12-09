@@ -4,9 +4,8 @@ Fix Notion Database Configuration
 Tests current database IDs and creates new ones if needed
 """
 
-import os
-import sys
 import logging
+import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
@@ -25,7 +24,7 @@ def test_current_databases():
     try:
         notion_client = NotionClient()
 
-        print(f"📋 Current database configuration:")
+        print("📋 Current database configuration:")
         for db_name, db_id in notion_client.database_ids.items():
             if db_id:
                 print(f"  ✅ {db_name}: {db_id}")
@@ -40,7 +39,7 @@ def test_current_databases():
                 # Test accounts database query
                 print("  Testing accounts database...")
                 result = notion_client.find_existing_account("Test Company")
-                print(f"  ✅ Accounts database accessible")
+                print("  ✅ Accounts database accessible")
             except Exception as e:
                 print(f"  ❌ Accounts database error: {e}")
 
@@ -49,7 +48,7 @@ def test_current_databases():
                 # Test contacts database query
                 print("  Testing contacts database...")
                 result = notion_client.find_contact_by_linkedin("https://linkedin.com/in/test")
-                print(f"  ✅ Contacts database accessible")
+                print("  ✅ Contacts database accessible")
             except Exception as e:
                 print(f"  ❌ Contacts database error: {e}")
 
@@ -113,7 +112,7 @@ def update_env_file(databases):
     # Read current .env file
     env_vars = {}
     try:
-        with open(env_file_path, "r") as f:
+        with open(env_file_path) as f:
             for line in f:
                 if "=" in line and not line.strip().startswith("#"):
                     key, value = line.strip().split("=", 1)

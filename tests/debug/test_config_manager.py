@@ -19,7 +19,7 @@ def test_config_manager():
         print(f"📊 Manager representation: {config_manager}")
 
         # Test API key access
-        print(f"\n🔑 API Keys Available:")
+        print("\n🔑 API Keys Available:")
         try:
             apollo_key = config_manager.get_apollo_api_key()
             print(
@@ -45,7 +45,7 @@ def test_config_manager():
             print(f"   OpenAI: ✗ ({e})")
 
         # Test database IDs
-        print(f"\n💾 Database IDs:")
+        print("\n💾 Database IDs:")
         try:
             db_ids = config_manager.get_all_database_ids()
             for db_type, db_id in db_ids.items():
@@ -63,7 +63,7 @@ def test_config_manager():
             print(f"   Accounts ID lookup: ✗ ({e})")
 
         # Test header generation (consolidates duplicate code)
-        print(f"\n📄 Header Generation:")
+        print("\n📄 Header Generation:")
         try:
             notion_headers = config_manager.get_notion_headers()
             print(f"   Notion headers: ✓ ({len(notion_headers)} keys)")
@@ -78,7 +78,7 @@ def test_config_manager():
             print(f"   Apollo headers: ✗ ({e})")
 
         # Test external config loading
-        print(f"\n📚 External Configurations:")
+        print("\n📚 External Configurations:")
         try:
             lead_config = config_manager.get_lead_scoring_config()
             print(
@@ -98,7 +98,7 @@ def test_config_manager():
             print(f"   Partnership categories: ✗ ({e})")
 
         # Test utility methods
-        print(f"\n🛠️ Utility Methods:")
+        print("\n🛠️ Utility Methods:")
         try:
             is_dev = config_manager.is_development_mode()
             print(f"   Development mode: {is_dev}")

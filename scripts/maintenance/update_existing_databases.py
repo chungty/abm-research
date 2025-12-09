@@ -5,10 +5,9 @@ Works with user's existing 4 databases instead of creating new ones
 """
 
 import os
-import json
-import requests
 from datetime import datetime
-from typing import Dict, List, Optional
+
+import requests
 from focused_gtm_system import FocusedGTMContactDiscovery, FocusedGTMValueIntelligence
 
 
@@ -34,12 +33,12 @@ class ExistingDatabaseUpdater:
             "intelligence": "fa1467c0-ad15-4b09-bb03-cc715f9b8577",
         }
 
-        print(f"✅ Using FIXED database IDs:")
+        print("✅ Using FIXED database IDs:")
         for db_type, db_id in self.database_ids.items():
             print(f"   📊 {db_type.title()}: {db_id}")
-        print(f"   🚨 NEVER creating new databases - only updating existing ones")
+        print("   🚨 NEVER creating new databases - only updating existing ones")
 
-    def discover_existing_databases(self) -> Dict[str, str]:
+    def discover_existing_databases(self) -> dict[str, str]:
         """Find existing databases by searching for ABM-related databases"""
 
         try:
@@ -91,7 +90,7 @@ class ExistingDatabaseUpdater:
             print(f"❌ Error discovering databases: {e}")
             return {}
 
-    def get_database_schema(self, database_id: str) -> Dict:
+    def get_database_schema(self, database_id: str) -> dict:
         """Get existing database schema to understand available fields"""
 
         try:
@@ -103,7 +102,7 @@ class ExistingDatabaseUpdater:
                 database_info = response.json()
                 properties = database_info.get("properties", {})
 
-                print(f"📋 Database schema:")
+                print("📋 Database schema:")
                 for prop_name, prop_info in properties.items():
                     prop_type = prop_info.get("type", "unknown")
                     print(f"   - {prop_name}: {prop_type}")
@@ -117,7 +116,7 @@ class ExistingDatabaseUpdater:
             print(f"❌ Error getting database schema: {e}")
             return {}
 
-    def update_accounts_database(self, accounts_data: List[Dict]):
+    def update_accounts_database(self, accounts_data: list[dict]):
         """Update existing accounts database with new data"""
 
         if "accounts" not in self.database_ids:
@@ -171,7 +170,7 @@ class ExistingDatabaseUpdater:
             if properties:
                 try:
                     response = requests.post(
-                        f"https://api.notion.com/v1/pages",
+                        "https://api.notion.com/v1/pages",
                         headers=self.headers,
                         json={"parent": {"database_id": accounts_db_id}, "properties": properties},
                     )
@@ -184,7 +183,7 @@ class ExistingDatabaseUpdater:
                 except Exception as e:
                     print(f"❌ Error adding account {company_name}: {e}")
 
-    def update_contacts_database(self, all_contacts: List[Dict]):
+    def update_contacts_database(self, all_contacts: list[dict]):
         """Update existing contacts database with focused GTM contacts"""
 
         if "contacts" not in self.database_ids:
@@ -258,7 +257,7 @@ class ExistingDatabaseUpdater:
             if properties:
                 try:
                     response = requests.post(
-                        f"https://api.notion.com/v1/pages",
+                        "https://api.notion.com/v1/pages",
                         headers=self.headers,
                         json={"parent": {"database_id": contacts_db_id}, "properties": properties},
                     )
@@ -356,7 +355,7 @@ def main():
             print(f"✅ {domain}: {len(qualified_contacts)} qualified contacts")
 
         # 3. Update existing databases
-        print(f"\n🔄 Updating existing Notion databases...")
+        print("\n🔄 Updating existing Notion databases...")
 
         # Update accounts database
         database_updater.update_accounts_database(all_account_data)
@@ -365,13 +364,13 @@ def main():
         database_updater.update_contacts_database(all_contacts)
 
         # Summary
-        print(f"\n✅ DATABASE UPDATE COMPLETE")
+        print("\n✅ DATABASE UPDATE COMPLETE")
         print(f"   Accounts Updated: {len(all_account_data)}")
         print(f"   Contacts Added: {len(all_contacts)}")
         print(f"   Databases Used: {len(existing_dbs)}")
 
         # Show database links
-        print(f"\n🔗 UPDATED DATABASES:")
+        print("\n🔗 UPDATED DATABASES:")
         for db_type, db_id in existing_dbs.items():
             print(f"   {db_type.title()}: https://notion.so/{db_id.replace('-', '')}")
 

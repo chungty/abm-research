@@ -5,13 +5,13 @@ Notion Database Access Investigation
 Investigates why database URLs don't work and finds the proper way to access databases.
 """
 
-import os
 import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.integrations.notion_client import NotionClient
 import logging
+
+from abm_research.integrations.notion_client import NotionClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -83,15 +83,15 @@ def investigate_database_access():
                 print(f"   📄 Response: {response.text}")
 
                 if response.status_code == 404:
-                    print(f"   ⚠️  Database not found - may be in different workspace or deleted")
+                    print("   ⚠️  Database not found - may be in different workspace or deleted")
                 elif response.status_code == 403:
-                    print(f"   ⚠️  Access forbidden - integration may lack permissions")
+                    print("   ⚠️  Access forbidden - integration may lack permissions")
 
         except Exception as e:
             print(f"   ❌ Error accessing database: {e}")
 
     # 2. Try to query each database to see if we can access the data
-    print(f"\n📊 STEP 2: Database Data Access Test")
+    print("\n📊 STEP 2: Database Data Access Test")
     print("-" * 50)
 
     for db_name, db_id in notion_client.database_ids.items():
@@ -130,7 +130,7 @@ def investigate_database_access():
                                 print(f"   📝 Sample item title: '{title}'")
                                 break
                 else:
-                    print(f"   ⚠️  Database is empty (no items found)")
+                    print("   ⚠️  Database is empty (no items found)")
 
             else:
                 print(f"   ❌ Data query failed: {response.status_code}")
@@ -140,7 +140,7 @@ def investigate_database_access():
             print(f"   ❌ Error querying database: {e}")
 
     # 3. Check workspace and integration permissions
-    print(f"\n🔒 STEP 3: Integration Permissions Check")
+    print("\n🔒 STEP 3: Integration Permissions Check")
     print("-" * 50)
 
     try:
@@ -152,7 +152,7 @@ def investigate_database_access():
             user_name = user_data.get("name", "Unknown")
             user_type = user_data.get("type", "Unknown")
 
-            print(f"   ✅ API access working")
+            print("   ✅ API access working")
             print(f"   👤 Integration user: {user_name} ({user_type})")
         else:
             print(f"   ❌ Basic API access failed: {response.status_code}")
@@ -161,7 +161,7 @@ def investigate_database_access():
         print(f"   ❌ Permission check failed: {e}")
 
     # 4. Recommendations
-    print(f"\n📋 STEP 4: Recommendations")
+    print("\n📋 STEP 4: Recommendations")
     print("-" * 40)
     print("Based on the investigation:")
     print()

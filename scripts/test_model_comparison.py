@@ -9,12 +9,13 @@ This script compares the quality of GPT-4 and GPT-4o-mini for:
 
 Run with: PYTHONPATH=. python3 scripts/test_model_comparison.py
 """
-import os
 import json
+import os
 import time
 from datetime import datetime
-from openai import OpenAI
+
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
 

@@ -4,13 +4,14 @@ Modern Apollo Contact Discovery System
 Optimized for credit-efficient ABM research with batch enrichment
 """
 
+import logging
 import os
 import time
-import requests
-from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime
-import logging
+from typing import Optional
+
+import requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -82,7 +83,7 @@ class ApolloContactDiscovery:
 
     def discover_contacts(
         self, company_name: str, company_domain: str, max_contacts: int = 50
-    ) -> List[ApolloContact]:
+    ) -> list[ApolloContact]:
         """
         Main entry point for contact discovery
         Implements two-stage workflow for credit efficiency
@@ -108,7 +109,7 @@ class ApolloContactDiscovery:
 
     def _search_people(
         self, company_name: str, company_domain: str, max_contacts: int = 50
-    ) -> List[ApolloContact]:
+    ) -> list[ApolloContact]:
         """
         Stage 1: Search Apollo database (no credits consumed)
         Returns basic prospect information for filtering
@@ -200,8 +201,8 @@ class ApolloContactDiscovery:
             return []
 
     def _filter_high_priority_prospects(
-        self, prospects: List[ApolloContact], max_priority: int = 20
-    ) -> List[ApolloContact]:
+        self, prospects: list[ApolloContact], max_priority: int = 20
+    ) -> list[ApolloContact]:
         """
         Stage 2: Intelligent filtering before enrichment
         Prioritize contacts most likely to be valuable for ABM
@@ -265,7 +266,7 @@ class ApolloContactDiscovery:
 
         return [p for p, score in prospects_with_scores[:max_priority]]
 
-    def _batch_enrich_contacts(self, prospects: List[ApolloContact]) -> List[ApolloContact]:
+    def _batch_enrich_contacts(self, prospects: list[ApolloContact]) -> list[ApolloContact]:
         """
         Stage 3: Batch enrichment for full contact data (credits consumed)
         Process up to 10 contacts per API call for efficiency
@@ -288,7 +289,7 @@ class ApolloContactDiscovery:
 
         return enriched_contacts
 
-    def _enrich_contact_batch(self, contacts: List[ApolloContact]) -> List[ApolloContact]:
+    def _enrich_contact_batch(self, contacts: list[ApolloContact]) -> list[ApolloContact]:
         """
         Enrich a batch of contacts using Apollo's bulk enrichment API
         """
@@ -441,7 +442,7 @@ class ApolloContactDiscovery:
 
         self.last_enrichment_time = time.time()
 
-    def get_api_credits_remaining(self) -> Optional[Dict]:
+    def get_api_credits_remaining(self) -> Optional[dict]:
         """
         Check remaining Apollo API credits
         Useful for monitoring usage and planning research
@@ -465,8 +466,8 @@ class ApolloContactDiscovery:
             return None
 
     def convert_to_notion_format(
-        self, contacts: List[ApolloContact], company_name: str = None
-    ) -> List[Dict]:
+        self, contacts: list[ApolloContact], company_name: str = None
+    ) -> list[dict]:
         """
         Convert Apollo contacts to enhanced schema format with confidence indicators and data provenance
         """
@@ -478,7 +479,7 @@ class ApolloContactDiscovery:
 
         return notion_contacts
 
-    def _convert_to_enhanced_schema(self, contact: ApolloContact, company_name: str = None) -> Dict:
+    def _convert_to_enhanced_schema(self, contact: ApolloContact, company_name: str = None) -> dict:
         """Convert single contact to enhanced schema format with confidence indicators"""
 
         # Helper function for confidence indicators
@@ -802,7 +803,7 @@ apollo_discovery = None  # Set to None, use get_apollo_discovery() instead
 
 
 # Backward compatibility function for existing code
-def discover_contacts(company_name: str, company_domain: str) -> List[Dict]:
+def discover_contacts(company_name: str, company_domain: str) -> list[dict]:
     """
     Backward compatibility wrapper for existing ABM system
     """

@@ -4,9 +4,8 @@ Cleanup Duplicate Genesis Cloud Entries
 Removes the malformed duplicate account entry from Notion
 """
 
-import os
+
 import requests
-import json
 from abm_config import config
 from config.settings import NOTION_ACCOUNTS_DB_ID
 

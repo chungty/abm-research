@@ -4,22 +4,19 @@ System Integration Agent - End-to-End Workflow Orchestration
 Coordinates all agents in proper sequence and ensures dependencies are met
 """
 
-import os
 import sys
-import time
-from pathlib import Path
-from typing import Dict, List, Any, Optional
 from datetime import datetime
+from pathlib import Path
 
 # Add agents directory to path
 agents_path = Path(__file__).parent
 repo_path = agents_path.parent
 sys.path.extend([str(agents_path), str(repo_path)])
 
-from qa_verification_agent import QAVerificationAgent
-from product_design_agent import ProductDesignAgent
-from data_pipeline_agent import DataPipelineAgent
 from codebase_hygiene_agent import CodebaseHygieneAgent
+from data_pipeline_agent import DataPipelineAgent
+from product_design_agent import ProductDesignAgent
+from qa_verification_agent import QAVerificationAgent
 
 
 class SystemIntegrationAgent:
@@ -45,7 +42,7 @@ class SystemIntegrationAgent:
         print(f"🎯 Managing: {repo_path}")
         print("🤖 All sub-agents loaded")
 
-    def execute_complete_abm_workflow(self, company_domain: str) -> Dict:
+    def execute_complete_abm_workflow(self, company_domain: str) -> dict:
         """Execute complete ABM workflow with sequential gates"""
 
         print(f"\n🚀 EXECUTING COMPLETE ABM WORKFLOW FOR: {company_domain}")
@@ -130,7 +127,7 @@ class SystemIntegrationAgent:
 
         return self._finalize_workflow_results(workflow_results, workflow_results["final_status"])
 
-    def _execute_gate1_system_health(self) -> Dict:
+    def _execute_gate1_system_health(self) -> dict:
         """Gate 1: Verify system health and codebase cleanliness"""
 
         gate_result = {"passed": False, "blockers": [], "details": {}}
@@ -174,7 +171,7 @@ class SystemIntegrationAgent:
 
         return gate_result
 
-    def _execute_gate2_compliance(self) -> Dict:
+    def _execute_gate2_compliance(self) -> dict:
         """Gate 2: Verify SKILL.md compliance"""
 
         gate_result = {"passed": False, "blockers": [], "details": {}}
@@ -190,7 +187,7 @@ class SystemIntegrationAgent:
             else:
                 gate_result["blockers"].extend(
                     [
-                        f"SKILL.md compliance failed",
+                        "SKILL.md compliance failed",
                         f"Missing components: {', '.join(compliance_results['missing_components'])}",
                     ]
                 )
@@ -212,7 +209,7 @@ class SystemIntegrationAgent:
 
         return gate_result
 
-    def _execute_gate3_data_pipeline(self, company_domain: str) -> Dict:
+    def _execute_gate3_data_pipeline(self, company_domain: str) -> dict:
         """Gate 3: Execute data pipeline and verify completion"""
 
         gate_result = {"passed": False, "blockers": [], "details": {}, "pipeline_data": None}
@@ -227,7 +224,7 @@ class SystemIntegrationAgent:
             # Check if all 5 phases completed
             phases_completed = len(pipeline_results.get("phases_completed", []))
             if phases_completed == 5:
-                print(f"      ✅ All 5 phases completed")
+                print("      ✅ All 5 phases completed")
             else:
                 gate_result["blockers"].append(f"Only {phases_completed}/5 phases completed")
 
@@ -257,7 +254,7 @@ class SystemIntegrationAgent:
 
         return gate_result
 
-    def _execute_gate4_notion_validation(self) -> Dict:
+    def _execute_gate4_notion_validation(self) -> dict:
         """Gate 4: Validate Notion databases are accessible and populated"""
 
         gate_result = {"passed": False, "blockers": [], "details": {}}
@@ -295,7 +292,7 @@ class SystemIntegrationAgent:
 
         return gate_result
 
-    def _execute_gate5_integration_test(self) -> Dict:
+    def _execute_gate5_integration_test(self) -> dict:
         """Gate 5: End-to-end integration test"""
 
         gate_result = {"passed": False, "blockers": [], "details": {}}
@@ -351,7 +348,7 @@ class SystemIntegrationAgent:
 
         return gate_result
 
-    def _finalize_workflow_results(self, workflow_results: Dict, status: str) -> Dict:
+    def _finalize_workflow_results(self, workflow_results: dict, status: str) -> dict:
         """Finalize workflow results and print summary"""
 
         workflow_results["workflow_end"] = datetime.now().isoformat()
@@ -367,10 +364,10 @@ class SystemIntegrationAgent:
         self._print_workflow_summary(workflow_results)
         return workflow_results
 
-    def _print_workflow_summary(self, results: Dict):
+    def _print_workflow_summary(self, results: dict):
         """Print comprehensive workflow execution summary"""
 
-        print(f"\n🎼 SYSTEM INTEGRATION WORKFLOW SUMMARY")
+        print("\n🎼 SYSTEM INTEGRATION WORKFLOW SUMMARY")
         print("=" * 60)
 
         status_color = "✅" if results["final_status"] == "Success" else "❌"
@@ -378,7 +375,7 @@ class SystemIntegrationAgent:
         print(f"Company: {results['company_domain']}")
         print(f"Execution Time: {results.get('execution_time_seconds', 0):.1f} seconds")
 
-        print(f"\n🚪 SEQUENTIAL GATES:")
+        print("\n🚪 SEQUENTIAL GATES:")
         total_gates = 5
         gates_passed = len(results["gates_passed"])
         gates_failed = len(results["gates_failed"])
@@ -403,29 +400,29 @@ class SystemIntegrationAgent:
             else:
                 print(f"   ⏳ Gate {i}: {gate_name} [NOT REACHED]")
 
-        print(f"\n📊 GATE STATISTICS:")
+        print("\n📊 GATE STATISTICS:")
         print(f"   Passed: {gates_passed}/{total_gates}")
         print(f"   Failed: {gates_failed}/{total_gates}")
         print(f"   Success Rate: {(gates_passed/total_gates)*100:.1f}%")
 
         if results.get("errors"):
-            print(f"\n⚠️ ERRORS & BLOCKERS:")
+            print("\n⚠️ ERRORS & BLOCKERS:")
             for i, error in enumerate(results["errors"], 1):
                 print(f"   {i}. {error}")
 
         if results["final_status"] == "Success":
-            print(f"\n🎉 WORKFLOW COMPLETE - ABM RESEARCH SYSTEM OPERATIONAL")
-            print(f"   • All 5 phases executed successfully")
-            print(f"   • Notion databases populated and accessible")
-            print(f"   • End-to-end integration verified")
-            print(f"   • Ready for dashboard connection and usage")
+            print("\n🎉 WORKFLOW COMPLETE - ABM RESEARCH SYSTEM OPERATIONAL")
+            print("   • All 5 phases executed successfully")
+            print("   • Notion databases populated and accessible")
+            print("   • End-to-end integration verified")
+            print("   • Ready for dashboard connection and usage")
         else:
-            print(f"\n🔧 NEXT STEPS:")
-            print(f"   • Resolve blockers listed above")
-            print(f"   • Re-run workflow after fixes")
-            print(f"   • Sequential gates prevent progression until issues resolved")
+            print("\n🔧 NEXT STEPS:")
+            print("   • Resolve blockers listed above")
+            print("   • Re-run workflow after fixes")
+            print("   • Sequential gates prevent progression until issues resolved")
 
-    def get_system_status(self) -> Dict:
+    def get_system_status(self) -> dict:
         """Get current system status without execution"""
 
         print("\n📊 CHECKING SYSTEM STATUS...")
@@ -486,20 +483,20 @@ class SystemIntegrationAgent:
         self._print_status_summary(status)
         return status
 
-    def _print_status_summary(self, status: Dict):
+    def _print_status_summary(self, status: dict):
         """Print system status summary"""
 
-        print(f"\n📊 SYSTEM STATUS SUMMARY")
+        print("\n📊 SYSTEM STATUS SUMMARY")
         print("=" * 40)
 
         print(f"📅 Timestamp: {status['timestamp']}")
 
-        print(f"\n🤖 AGENT STATUS:")
+        print("\n🤖 AGENT STATUS:")
         for agent_name, operational in status["agents_operational"].items():
             status_icon = "✅" if operational else "❌"
             print(f"   {status_icon} {agent_name}")
 
-        print(f"\n⚡ QUICK HEALTH CHECK:")
+        print("\n⚡ QUICK HEALTH CHECK:")
         for check_name, result in status["quick_health_check"].items():
             if isinstance(result, bool):
                 status_icon = "✅" if result else "❌"
@@ -507,7 +504,7 @@ class SystemIntegrationAgent:
             else:
                 print(f"   📊 {check_name.replace('_', ' ').title()}: {result}")
 
-        print(f"\n🎯 RECOMMENDATIONS:")
+        print("\n🎯 RECOMMENDATIONS:")
         for i, rec in enumerate(status["recommendations"], 1):
             print(f"   {i}. {rec}")
 

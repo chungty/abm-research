@@ -5,7 +5,6 @@ Get Real Database Schemas
 Query the actual Notion databases to see what fields they really have.
 """
 
-import os
 import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")

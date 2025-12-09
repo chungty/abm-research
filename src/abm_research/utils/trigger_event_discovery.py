@@ -5,14 +5,15 @@ Active detection of expansion, hiring, funding, partnership, AI, leadership, and
 Designed to save results directly to Notion's Trigger Events database.
 """
 
+import logging
 import os
 import re
 import time
-import requests
-import logging
-from typing import Dict, List, Optional
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Optional
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -183,9 +184,9 @@ class TriggerEventDiscovery:
         self,
         company_name: str,
         company_domain: Optional[str] = None,
-        event_types: Optional[List[str]] = None,
+        event_types: Optional[list[str]] = None,
         lookback_days: int = 90,
-    ) -> List[DiscoveredTriggerEvent]:
+    ) -> list[DiscoveredTriggerEvent]:
         """
         Discover trigger events for a company using Brave Search.
 
@@ -234,7 +235,7 @@ class TriggerEventDiscovery:
 
     def _search_event_type(
         self, company_name: str, company_domain: Optional[str], event_type: str, lookback_days: int
-    ) -> List[DiscoveredTriggerEvent]:
+    ) -> list[DiscoveredTriggerEvent]:
         """Search for a specific event type"""
         events = []
         config = self.EVENT_TYPES[event_type]
@@ -296,7 +297,7 @@ class TriggerEventDiscovery:
         return events
 
     def _parse_news_result(
-        self, result: Dict, event_type: str, company_name: str, config: Dict
+        self, result: dict, event_type: str, company_name: str, config: dict
     ) -> Optional[DiscoveredTriggerEvent]:
         """Parse a news search result into a trigger event"""
         try:
@@ -347,7 +348,7 @@ class TriggerEventDiscovery:
             return None
 
     def _parse_web_result(
-        self, result: Dict, event_type: str, company_name: str, config: Dict
+        self, result: dict, event_type: str, company_name: str, config: dict
     ) -> Optional[DiscoveredTriggerEvent]:
         """Parse a web search result into a trigger event"""
         try:
@@ -491,8 +492,8 @@ class TriggerEventDiscovery:
         return None
 
     def _deduplicate_events(
-        self, events: List[DiscoveredTriggerEvent]
-    ) -> List[DiscoveredTriggerEvent]:
+        self, events: list[DiscoveredTriggerEvent]
+    ) -> list[DiscoveredTriggerEvent]:
         """Remove duplicate events based on URL"""
         seen_urls = set()
         unique = []
@@ -513,7 +514,7 @@ class TriggerEventDiscovery:
 
     def to_notion_properties(
         self, event: DiscoveredTriggerEvent, account_page_id: Optional[str] = None
-    ) -> Dict:
+    ) -> dict:
         """
         Convert a discovered event to Notion properties format.
         Ready to be saved to the Trigger Events database.

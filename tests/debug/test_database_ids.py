@@ -43,7 +43,7 @@ def test_database_ids():
 
         # Test one database access
         if client.database_ids.get("accounts"):
-            print(f"🧪 TESTING ACCOUNTS DATABASE ACCESS:")
+            print("🧪 TESTING ACCOUNTS DATABASE ACCESS:")
             print(f"   Using ID: {client.database_ids['accounts']}")
             try:
                 response = client._make_request(

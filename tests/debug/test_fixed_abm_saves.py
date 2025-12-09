@@ -10,8 +10,9 @@ import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.core.abm_system import ComprehensiveABMSystem
 import logging
+
+from abm_research.core.abm_system import ComprehensiveABMSystem
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)

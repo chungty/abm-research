@@ -17,7 +17,8 @@ Usage:
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Any
+
 from abm_research.core.abm_system import ComprehensiveABMSystem
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,7 @@ class TestModeABMSystem(ComprehensiveABMSystem):
         else:
             logger.info("🚀 TestModeABMSystem initialized - Production mode")
 
-    def save_research_to_notion(self, research_results: Dict[str, Any]) -> Dict[str, Any]:
+    def save_research_to_notion(self, research_results: dict[str, Any]) -> dict[str, Any]:
         """
         Override save method to prevent database writes in test mode
 
@@ -83,7 +84,7 @@ class TestModeABMSystem(ComprehensiveABMSystem):
 
     def conduct_complete_account_research(
         self, company_name: str, company_domain: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Override complete research to ensure test mode is applied consistently
 
@@ -109,7 +110,7 @@ class TestModeABMSystem(ComprehensiveABMSystem):
 
         return results
 
-    def _save_complete_research_to_notion(self, research_results: Dict[str, Any]) -> Dict[str, Any]:
+    def _save_complete_research_to_notion(self, research_results: dict[str, Any]) -> dict[str, Any]:
         """
         Internal save method override - prevents accidental production writes
 

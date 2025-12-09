@@ -9,10 +9,10 @@ Comprehensive validation system for the enhanced ABM schema ensuring:
 - Clean naming conventions
 """
 
-import re
-from typing import Dict, List, Any, Optional, Tuple
-from datetime import datetime
 import logging
+import re
+from datetime import datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ class SchemaValidator:
             "low_confidence_terms": ["likely", "appears", "seems", "possibly"],
         }
 
-    def validate_account_data(self, account_data: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    def validate_account_data(self, account_data: dict[str, Any]) -> tuple[bool, list[str]]:
         """
         Validate account data against enhanced schema
 
@@ -152,8 +152,8 @@ class SchemaValidator:
         return len(issues) == 0, issues
 
     def validate_contact_data(
-        self, contact_data: Dict[str, Any], account_name: str = ""
-    ) -> Tuple[bool, List[str]]:
+        self, contact_data: dict[str, Any], account_name: str = ""
+    ) -> tuple[bool, list[str]]:
         """
         Validate contact data against enhanced schema with proper account relations
         """
@@ -202,8 +202,8 @@ class SchemaValidator:
         return len(issues) == 0, issues
 
     def validate_trigger_event_data(
-        self, event_data: Dict[str, Any], account_name: str = ""
-    ) -> Tuple[bool, List[str]]:
+        self, event_data: dict[str, Any], account_name: str = ""
+    ) -> tuple[bool, list[str]]:
         """
         Validate trigger event data against enhanced schema with tactical intelligence focus
         """
@@ -254,7 +254,7 @@ class SchemaValidator:
 
         return len(issues) == 0, issues
 
-    def validate_partnership_data(self, partnership_data: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    def validate_partnership_data(self, partnership_data: dict[str, Any]) -> tuple[bool, list[str]]:
         """
         Validate partnership data against enhanced schema with strategic intelligence focus
         """
@@ -313,8 +313,8 @@ class SchemaValidator:
         return len(issues) == 0, issues
 
     def validate_complete_research_result(
-        self, result: Dict[str, Any]
-    ) -> Tuple[bool, Dict[str, List[str]]]:
+        self, result: dict[str, Any]
+    ) -> tuple[bool, dict[str, list[str]]]:
         """
         Validate complete ABM research result against enhanced schema
 
@@ -482,7 +482,7 @@ class SchemaValidator:
 
         return False
 
-    def generate_validation_report(self, result: Dict[str, Any]) -> str:
+    def generate_validation_report(self, result: dict[str, Any]) -> str:
         """
         Generate comprehensive validation report for ABM research result
         """
@@ -547,7 +547,7 @@ def get_schema_validator() -> SchemaValidator:
     return _schema_validator
 
 
-def validate_research_result(result: Dict[str, Any]) -> Tuple[bool, str]:
+def validate_research_result(result: dict[str, Any]) -> tuple[bool, str]:
     """
     Convenience function to validate complete research result
 

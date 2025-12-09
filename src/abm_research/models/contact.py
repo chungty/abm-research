@@ -3,8 +3,8 @@ Contact model for ABM Research System
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional, Dict, Any
 from enum import Enum
+from typing import Any, Optional
 
 
 class ResearchStatus(Enum):
@@ -48,14 +48,14 @@ class Contact:
 
     # Phase 3 enrichment data (LinkedIn analysis)
     linkedin_activity_level: str = "unknown"  # weekly+, monthly, quarterly, inactive
-    linkedin_content_themes: List[str] = field(default_factory=list)
+    linkedin_content_themes: list[str] = field(default_factory=list)
     linkedin_network_quality: bool = False  # connected to DC operators/vendors
 
     # Phase 4 engagement intelligence
-    problems_they_own: List[str] = field(default_factory=list)  # tags from ICP pain points
-    content_themes_they_value: List[str] = field(default_factory=list)
+    problems_they_own: list[str] = field(default_factory=list)  # tags from ICP pain points
+    content_themes_they_value: list[str] = field(default_factory=list)
     connection_pathways: str = ""  # diagnostic text
-    value_add_ideas: List[str] = field(default_factory=list)  # 2-3 bullets
+    value_add_ideas: list[str] = field(default_factory=list)  # 2-3 bullets
 
     # Apollo data
     apollo_contact_id: Optional[str] = None
@@ -69,7 +69,7 @@ class Contact:
         """Calculate initial scores after initialization"""
         self.calculate_buying_power_score()
 
-    def calculate_icp_fit_score(self, scoring_config: Dict[str, Any]) -> float:
+    def calculate_icp_fit_score(self, scoring_config: dict[str, Any]) -> float:
         """Calculate ICP fit based on title match and responsibility keywords"""
         score = 0.0
 
@@ -178,7 +178,7 @@ class Contact:
         self.engagement_potential_score = min(score, 100)
         return self.engagement_potential_score
 
-    def calculate_final_lead_score(self, scoring_config: Dict[str, Any]) -> float:
+    def calculate_final_lead_score(self, scoring_config: dict[str, Any]) -> float:
         """Calculate final weighted lead score"""
         weights = scoring_config["scoring_formula"]["component_weights"]
 
@@ -190,7 +190,7 @@ class Contact:
 
         return self.final_lead_score
 
-    def update_scores(self, scoring_config: Dict[str, Any]) -> float:
+    def update_scores(self, scoring_config: dict[str, Any]) -> float:
         """Recalculate all scores"""
         self.calculate_icp_fit_score(scoring_config)
         self.calculate_buying_power_score()
@@ -199,7 +199,7 @@ class Contact:
         return self.final_lead_score
 
     def add_linkedin_analysis(
-        self, activity_level: str, content_themes: List[str], network_quality: bool
+        self, activity_level: str, content_themes: list[str], network_quality: bool
     ):
         """Add LinkedIn enrichment data from Phase 3"""
         self.linkedin_activity_level = activity_level
@@ -208,7 +208,7 @@ class Contact:
         self.research_status = ResearchStatus.ENRICHED
 
     def add_engagement_intelligence(
-        self, problems: List[str], content_themes: List[str], pathways: str, value_ideas: List[str]
+        self, problems: list[str], content_themes: list[str], pathways: str, value_ideas: list[str]
     ):
         """Add engagement intelligence from Phase 4"""
         self.problems_they_own = problems
@@ -221,7 +221,7 @@ class Contact:
         """Check if contact meets high priority threshold"""
         return self.final_lead_score >= threshold
 
-    def to_notion_format(self) -> Dict[str, Any]:
+    def to_notion_format(self) -> dict[str, Any]:
         """Convert to Notion database format"""
         return {
             "Name": {"title": [{"text": {"content": self.name}}]},

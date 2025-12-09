@@ -4,14 +4,10 @@ Intelligent Contact Enrichment with Verdigris Signals MEDDIC
 Integrates persona classification, role intelligence, and sales insights
 """
 
-import os
-import json
 from datetime import datetime
-from typing import Dict, List, Optional
 
 # Import our systems
 from verdigris_signals_meddic_framework import VerdigrisSignalsMEDDIC
-from enhanced_deduplication_system import ProductionContactProcessor
 
 
 class IntelligentContactEnricher:
@@ -21,7 +17,7 @@ class IntelligentContactEnricher:
         self.meddic = VerdigrisSignalsMEDDIC()
         self.role_intelligence = self._build_role_intelligence()
 
-    def _build_role_intelligence(self) -> Dict:
+    def _build_role_intelligence(self) -> dict:
         """Build comprehensive role intelligence database based on research"""
 
         return {
@@ -135,7 +131,7 @@ class IntelligentContactEnricher:
             },
         }
 
-    def enrich_contact_with_intelligence(self, contact: Dict) -> Dict:
+    def enrich_contact_with_intelligence(self, contact: dict) -> dict:
         """Enrich contact with MEDDIC classification and role intelligence"""
 
         # Step 1: MEDDIC Classification
@@ -167,7 +163,7 @@ class IntelligentContactEnricher:
 
         return enriched_contact
 
-    def _analyze_role_intelligence(self, contact: Dict, meddic: Dict) -> Dict:
+    def _analyze_role_intelligence(self, contact: dict, meddic: dict) -> dict:
         """Analyze contact's role against power monitoring intelligence"""
 
         title = (contact.get("title") or "").lower()
@@ -215,7 +211,7 @@ class IntelligentContactEnricher:
             "power_monitoring_relevance": len(relevant_intelligence) > 0,
         }
 
-    def _generate_sales_strategy(self, contact: Dict, meddic: Dict, role_analysis: Dict) -> Dict:
+    def _generate_sales_strategy(self, contact: dict, meddic: dict, role_analysis: dict) -> dict:
         """Generate specific sales strategy based on persona and role intelligence"""
 
         persona_type = meddic["primary_persona"]["type"]
@@ -243,7 +239,7 @@ class IntelligentContactEnricher:
 
         return strategy
 
-    def _recommend_educational_content(self, contact: Dict, meddic: Dict) -> List[Dict]:
+    def _recommend_educational_content(self, contact: dict, meddic: dict) -> list[dict]:
         """Recommend educational content based on persona and interests"""
 
         persona_type = meddic["primary_persona"]["type"]
@@ -363,7 +359,7 @@ class IntelligentContactEnricher:
         else:
             return "Low Priority"
 
-    def _generate_conversation_starters(self, contact: Dict, role_analysis: Dict) -> List[str]:
+    def _generate_conversation_starters(self, contact: dict, role_analysis: dict) -> list[str]:
         """Generate conversation starters based on role intelligence"""
 
         starters = []
@@ -394,7 +390,7 @@ class IntelligentContactEnricher:
 
         return starters
 
-    def _generate_objection_handling(self, persona_type: str) -> List[Dict]:
+    def _generate_objection_handling(self, persona_type: str) -> list[dict]:
         """Generate common objections and handling strategies"""
 
         objections = []
@@ -441,7 +437,7 @@ class IntelligentContactEnricher:
         else:
             return "Monthly follow-ups with educational content and industry updates"
 
-    def _calculate_enrichment_confidence(self, meddic: Dict, role_analysis: Dict) -> str:
+    def _calculate_enrichment_confidence(self, meddic: dict, role_analysis: dict) -> str:
         """Calculate overall confidence in enrichment accuracy"""
 
         meddic_confidence = meddic.get("confidence", "low")
@@ -477,20 +473,20 @@ def test_intelligent_enrichment():
     enriched = enricher.enrich_contact_with_intelligence(test_contact)
 
     print(f"👤 {enriched['name']} - {enriched['title']}")
-    print(f"\n🎯 MEDDIC Classification:")
+    print("\n🎯 MEDDIC Classification:")
     print(f"   Persona: {enriched['meddic_classification']['primary_persona']['name']}")
     print(f"   Type: {enriched['meddic_classification']['primary_persona']['type']}")
     print(
         f"   Buying Power: {enriched['meddic_classification']['primary_persona']['buying_power_score']}/100"
     )
 
-    print(f"\n🔍 Role Intelligence:")
+    print("\n🔍 Role Intelligence:")
     print(f"   Environment: {enriched['role_intelligence']['environment_type']}")
     print(
         f"   Power Monitoring Relevance: {enriched['role_intelligence']['power_monitoring_relevance']}"
     )
 
-    print(f"\n💼 Sales Strategy:")
+    print("\n💼 Sales Strategy:")
     print(f"   Priority: {enriched['sales_strategy']['engagement_priority']}")
     print(f"   CTA: {enriched['sales_strategy']['call_to_action']}")
 

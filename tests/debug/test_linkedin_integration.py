@@ -4,17 +4,17 @@ Test LinkedIn Real Data Integration
 Validates the enhanced LinkedIn enrichment with real data collection
 """
 
+import json
 import os
 import sys
-import json
 from datetime import datetime
 from typing import Dict, List
 
 # Add project root to path
 sys.path.append("/Users/chungty/Projects/vdg-clean/abm-research")
 
-from linkedin_enrichment_engine import linkedin_enrichment_engine
 from linkedin_data_collector import linkedin_data_collector
+from linkedin_enrichment_engine import linkedin_enrichment_engine
 
 
 def test_linkedin_data_collection():
@@ -44,7 +44,7 @@ def test_linkedin_data_collection():
             print(f"   Bio length: {len(profile.bio)} characters")
             print(f"   Skills: {len(profile.skills)} skills")
             print(f"   Recent activity: {len(profile.recent_activity)} posts")
-            print(f"   Data source: Enhanced AI generation")
+            print("   Data source: Enhanced AI generation")
             return True
         else:
             print("❌ Profile collection failed")
@@ -95,7 +95,7 @@ def test_linkedin_enrichment_integration():
         # Run enrichment
         enriched_contacts = linkedin_enrichment_engine.enrich_high_priority_contacts(test_contacts)
 
-        print(f"📊 Enrichment Results:")
+        print("📊 Enrichment Results:")
         print(f"   Input contacts: {len(test_contacts)}")
         print(f"   Output contacts: {len(enriched_contacts)}")
 
@@ -111,7 +111,7 @@ def test_linkedin_enrichment_integration():
             print(f"      Data Source: {data_source}")
 
             if original_score > 60:
-                print(f"      ✅ Enriched (score > 60)")
+                print("      ✅ Enriched (score > 60)")
                 print(f"      Activity Level: {contact.get('linkedin_activity_level', 'Unknown')}")
                 print(f"      Content Themes: {len(contact.get('content_themes', []))} themes")
                 print(
@@ -119,7 +119,7 @@ def test_linkedin_enrichment_integration():
                 )
                 print(f"      Network Quality: {contact.get('network_quality_score', 0)} points")
             else:
-                print(f"      ⏭️ Skipped (score ≤ 60)")
+                print("      ⏭️ Skipped (score ≤ 60)")
 
         return True
 
@@ -151,12 +151,12 @@ def test_data_source_transparency():
         data_source = contact.get("linkedin_data_source")
         profile_complete = contact.get("profile_data_complete")
 
-        print(f"✅ Data source tracking working:")
+        print("✅ Data source tracking working:")
         print(f"   Data Source: {data_source}")
         print(f"   Profile Complete: {profile_complete}")
 
         if data_source in ["real_data", "simulation", "cached"]:
-            print(f"✅ Valid data source identifier")
+            print("✅ Valid data source identifier")
             return True
         else:
             print(f"❌ Invalid data source: {data_source}")
@@ -179,7 +179,7 @@ def test_configuration_creation():
         collector = linkedin_data_collector
 
         if os.path.exists(config_path):
-            with open(config_path, "r") as f:
+            with open(config_path) as f:
                 config = json.load(f)
 
             print(f"✅ Configuration file created at: {config_path}")
@@ -219,7 +219,7 @@ def test_caching_functionality():
         )
 
         if profile1:
-            print(f"✅ First collection successful")
+            print("✅ First collection successful")
 
             # Second collection should use cache
             profile2 = linkedin_data_collector.collect_profile_data(
@@ -227,11 +227,11 @@ def test_caching_functionality():
             )
 
             if profile2:
-                print(f"✅ Second collection successful (likely from cache)")
+                print("✅ Second collection successful (likely from cache)")
                 print(f"   Profiles match: {profile1.name == profile2.name}")
                 return True
 
-        print(f"❌ Caching test failed")
+        print("❌ Caching test failed")
         return False
 
     except Exception as e:

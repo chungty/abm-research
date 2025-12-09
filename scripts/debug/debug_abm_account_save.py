@@ -6,14 +6,14 @@ Tests account save functionality in the exact context of the ABM system
 to identify why account_saved status reports False when saves actually work.
 """
 
-import os
 import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.integrations.notion_client import NotionClient
-from abm_research.core.abm_system import ComprehensiveABMSystem
 import logging
+
+from abm_research.core.abm_system import ComprehensiveABMSystem
+from abm_research.integrations.notion_client import NotionClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ def debug_abm_account_save():
         # Use a simple, clean test case
         result = abm_system.conduct_complete_account_research("ABM Test Company", "abmtest.com")
 
-        print(f"   📊 ABM Research completed")
+        print("   📊 ABM Research completed")
         account_data = result.get("account", {})
         saved_status = result.get("saved_to_notion", {})
 
@@ -91,7 +91,7 @@ def debug_abm_account_save():
                 abm_val = account_data.get(field)
                 print(f"      {field}: Direct='{direct_val}' vs ABM='{abm_val}'")
         else:
-            print(f"   ❌ ABM research returned no account data")
+            print("   ❌ ABM research returned no account data")
 
     except Exception as e:
         print(f"   ❌ ABM research failed: {e}")

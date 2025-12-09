@@ -6,13 +6,13 @@ Migrates TensorFlow from partnerships database to accounts database
 with correct classification as a Strategic Partner account.
 """
 
-import os
 import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.integrations.notion_client import NotionClient
 import logging
+
+from abm_research.integrations.notion_client import NotionClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -180,10 +180,10 @@ def fix_tensorflow_classification():
             )
             classification = classification_field.get("name", "") if classification_field else ""
 
-            print(f"✅ Verification successful:")
+            print("✅ Verification successful:")
             print(f"   Company Name: {verified_name}")
             print(f"   Classification: {classification}")
-            print(f"   Database: Accounts (correct!)")
+            print("   Database: Accounts (correct!)")
 
             return True
 
@@ -230,7 +230,7 @@ def check_tensorflow_status():
             else:
                 print("⚠️  Wrong record still exists and is active")
         else:
-            print(f"✅ Wrong record not accessible (may be cleaned up)")
+            print("✅ Wrong record not accessible (may be cleaned up)")
 
     except Exception as e:
         print(f"✅ Wrong database not accessible: {e}")
@@ -261,4 +261,4 @@ if __name__ == "__main__":
         print("\n❌ TENSORFLOW FIX FAILED")
         print("Some steps completed successfully, check output above")
 
-    print(f"\n📋 Next: Fix field mapping bug in notion_client.py")
+    print("\n📋 Next: Fix field mapping bug in notion_client.py")

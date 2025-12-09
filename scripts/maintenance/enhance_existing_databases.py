@@ -5,18 +5,17 @@ Add missing schema fields to the existing ABM databases using direct API access
 """
 
 import os
-import requests
-import json
-from pathlib import Path
-from dotenv import load_dotenv
 from datetime import datetime
-from abm_config import config
+from pathlib import Path
+
+import requests
 from config.settings import (
     NOTION_ACCOUNTS_DB_ID,
     NOTION_CONTACTS_DB_ID,
-    NOTION_TRIGGER_EVENTS_DB_ID,
     NOTION_PARTNERSHIPS_DB_ID,
+    NOTION_TRIGGER_EVENTS_DB_ID,
 )
+from dotenv import load_dotenv
 
 # Load environment variables
 env_path = Path(__file__).parent.parent / ".env"
@@ -73,7 +72,7 @@ def enhance_accounts_database(database_id: str):
     headers = get_headers()
     current_props = analyze_database_schema(database_id, "Accounts")
 
-    print(f"\n🔧 ENHANCING ACCOUNTS DATABASE")
+    print("\n🔧 ENHANCING ACCOUNTS DATABASE")
     print("-" * 40)
 
     # Define complete enhanced schema based on SKILL.md and our research
@@ -151,7 +150,7 @@ def enhance_contacts_database(database_id: str, accounts_db_id: str):
     headers = get_headers()
     current_props = analyze_database_schema(database_id, "Contacts")
 
-    print(f"\n👤 ENHANCING CONTACTS DATABASE")
+    print("\n👤 ENHANCING CONTACTS DATABASE")
     print("-" * 40)
 
     # Define complete enhanced schema with Verdigris Signals MEDDIC
@@ -281,7 +280,7 @@ def enhance_trigger_events_database(database_id: str, accounts_db_id: str):
     headers = get_headers()
     current_props = analyze_database_schema(database_id, "Trigger Events")
 
-    print(f"\n⚡ ENHANCING TRIGGER EVENTS DATABASE")
+    print("\n⚡ ENHANCING TRIGGER EVENTS DATABASE")
     print("-" * 40)
 
     required_fields = {
@@ -364,7 +363,7 @@ def enhance_partnerships_database(database_id: str, accounts_db_id: str):
     headers = get_headers()
     current_props = analyze_database_schema(database_id, "Strategic Partnerships")
 
-    print(f"\n🤝 ENHANCING STRATEGIC PARTNERSHIPS DATABASE")
+    print("\n🤝 ENHANCING STRATEGIC PARTNERSHIPS DATABASE")
     print("-" * 40)
 
     required_fields = {
@@ -508,7 +507,7 @@ DATABASE_URLS = {{
     with open("enhanced_existing_database_config.py", "w") as f:
         f.write(config_content)
 
-    print(f"\n🎉 ENHANCEMENT COMPLETE!")
+    print("\n🎉 ENHANCEMENT COMPLETE!")
     print("=" * 50)
     print(f"✅ Enhanced {success_count}/4 databases successfully")
     print(f"📊 Accounts: https://www.notion.so/{database_ids['accounts'].replace('-', '')}")
@@ -518,14 +517,14 @@ DATABASE_URLS = {{
     )
     print(f"🤝 Partnerships: https://www.notion.so/{database_ids['partnerships'].replace('-', '')}")
 
-    print(f"\n✨ ENHANCED FEATURES:")
-    print(f"   📊 Accounts: Complete firmographics + ICP scoring + business model classification")
-    print(f"   👤 Contacts: Verdigris Signals MEDDIC framework + transparent lead scoring")
-    print(f"   ⚡ Trigger Events: Confidence scoring + relevance analysis + source tracking")
-    print(f"   🤝 Partnerships: Strategic opportunity analysis + priority scoring")
+    print("\n✨ ENHANCED FEATURES:")
+    print("   📊 Accounts: Complete firmographics + ICP scoring + business model classification")
+    print("   👤 Contacts: Verdigris Signals MEDDIC framework + transparent lead scoring")
+    print("   ⚡ Trigger Events: Confidence scoring + relevance analysis + source tracking")
+    print("   🤝 Partnerships: Strategic opportunity analysis + priority scoring")
 
-    print(f"\n🔧 Database configuration saved to: enhanced_existing_database_config.py")
-    print(f"🚀 Ready to populate with Genesis Cloud intelligence!")
+    print("\n🔧 Database configuration saved to: enhanced_existing_database_config.py")
+    print("🚀 Ready to populate with Genesis Cloud intelligence!")
 
 
 if __name__ == "__main__":

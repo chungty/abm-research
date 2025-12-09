@@ -6,13 +6,13 @@ Phase 1A: Add new fields (safe, non-breaking changes)
 This script adds all the enhanced intelligence fields from the approved plan.
 """
 
-import os
 import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.integrations.notion_client import NotionClient
 import logging
+
+from abm_research.integrations.notion_client import NotionClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -247,14 +247,14 @@ def add_enhanced_fields():
             print(f"   ➕ Need to add: {len(needed_fields)}")
 
             if existing_fields:
-                print(f"   🔄 Existing enhanced fields:")
+                print("   🔄 Existing enhanced fields:")
                 for field in existing_fields[:3]:  # Show first 3
                     print(f"      • {field}")
                 if len(existing_fields) > 3:
                     print(f"      • ... and {len(existing_fields) - 3} more")
 
             if needed_fields:
-                print(f"   🆕 Fields to add:")
+                print("   🆕 Fields to add:")
                 for field in needed_fields:
                     field_type = list(new_fields[field].keys())[0]
                     print(f"      • '{field}' ({field_type})")
@@ -291,19 +291,19 @@ def add_enhanced_fields():
                 print(f"   📊 Successfully added: {success_count}/{len(needed_fields)} fields")
 
                 if success_count < len(needed_fields):
-                    print(f"   ⚠️  Manual addition needed for remaining fields")
+                    print("   ⚠️  Manual addition needed for remaining fields")
                     print(
-                        f"   💡 Use Notion interface to add missing fields with exact names/types shown above"
+                        "   💡 Use Notion interface to add missing fields with exact names/types shown above"
                     )
             else:
-                print(f"   🎉 All enhanced fields already exist!")
+                print("   🎉 All enhanced fields already exist!")
 
         except Exception as e:
             print(f"   ❌ Error processing {enhancement['name']}: {e}")
 
-    print(f"\n🏁 PHASE 1A COMPLETE")
-    print(f"   Next: Phase 1B will rename fields to match intended schema")
-    print(f"   Then: Phase 2 will update code to use new field names")
+    print("\n🏁 PHASE 1A COMPLETE")
+    print("   Next: Phase 1B will rename fields to match intended schema")
+    print("   Then: Phase 2 will update code to use new field names")
 
 
 if __name__ == "__main__":

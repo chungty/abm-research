@@ -3,8 +3,8 @@
 Test NVIDIA Partnership Classification Fix
 """
 
-import sys
 import os
+import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
@@ -40,14 +40,14 @@ if abm.partnership_classifier:
         "growth_stage": "Mature",
     }
 
-    print(f"📊 Input data preview:")
+    print("📊 Input data preview:")
     print(f"  🏷️  Name: '{company_data['name']}'")
     print(f"  🏗️  Infrastructure: '{company_data['physical_infrastructure'][:60]}...'")
     print()
 
     classification = abm.partnership_classifier.classify_partnership(company_data)
 
-    print(f"✅ Classification Results:")
+    print("✅ Classification Results:")
     print(f"  🏷️  Partnership Type: {classification.partnership_type.value}")
     print(f"  📊 Confidence: {classification.confidence_score:.1f}%")
     print(f"  💭 Reasoning: {classification.reasoning}")
@@ -73,7 +73,7 @@ account_data = full_result.get("account", {})
 classification_type = account_data.get("partnership_classification", "unknown")
 classification_confidence = account_data.get("classification_confidence", 0.0)
 
-print(f"🏢 Full ABM System Result:")
+print("🏢 Full ABM System Result:")
 print(f"  🏷️  Partnership Type: {classification_type}")
 print(f"  📊 Confidence: {classification_confidence:.1f}%")
 

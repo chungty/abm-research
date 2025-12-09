@@ -4,13 +4,9 @@ Contact Value Analyzer
 Analyzes contact data to identify high-ICP contacts, role patterns, and organizational insights
 """
 
-import os
-import json
-import time
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, asdict
-from collections import defaultdict, Counter
+from collections import Counter
+from dataclasses import asdict, dataclass
+from datetime import datetime
 
 
 @dataclass
@@ -45,10 +41,10 @@ class RolePattern:
     """Organizational role pattern"""
 
     pattern_name: str
-    roles_involved: List[str]
+    roles_involved: list[str]
     decision_process: str
     typical_timeline: str
-    success_factors: List[str]
+    success_factors: list[str]
 
 
 @dataclass
@@ -60,9 +56,9 @@ class OrganizationalInsight:
     tier_1_contacts: int
     tier_2_contacts: int
     tier_3_contacts: int
-    dominant_departments: List[str]
-    decision_makers: List[str]
-    champions_identified: List[str]
+    dominant_departments: list[str]
+    decision_makers: list[str]
+    champions_identified: list[str]
     organizational_pattern: RolePattern
     buying_committee_completeness: float  # 0-1 score
 
@@ -121,7 +117,7 @@ class ContactValueAnalyzer:
             "data_analytics": ["analytics", "data", "insights", "reporting"],
         }
 
-    def analyze_contact_value(self, contacts: List[Dict], company_data: Dict = None) -> Dict:
+    def analyze_contact_value(self, contacts: list[dict], company_data: dict = None) -> dict:
         """
         Analyze contact value and organizational patterns
         """
@@ -158,7 +154,7 @@ class ContactValueAnalyzer:
         self._print_value_analysis(analysis_result)
         return analysis_result
 
-    def _analyze_single_contact_value(self, contact: Dict) -> ContactValue:
+    def _analyze_single_contact_value(self, contact: dict) -> ContactValue:
         """Analyze value for a single contact"""
 
         # Extract contact information
@@ -234,7 +230,7 @@ class ContactValueAnalyzer:
             recommended_approach=recommended_approach,
         )
 
-    def _analyze_contact_role(self, contact: Dict) -> ContactRole:
+    def _analyze_contact_role(self, contact: dict) -> ContactRole:
         """Analyze contact role and influence"""
 
         title = contact.get("title", "").lower()
@@ -321,7 +317,7 @@ class ContactValueAnalyzer:
         return (seniority_weight + influence_weight) / 2.0
 
     def _analyze_organizational_patterns(
-        self, contact_values: List[ContactValue], company_data: Dict
+        self, contact_values: list[ContactValue], company_data: dict
     ) -> OrganizationalInsight:
         """Analyze organizational patterns and buying committee completeness"""
 
@@ -366,7 +362,7 @@ class ContactValueAnalyzer:
             buying_committee_completeness=buying_committee_completeness,
         )
 
-    def _determine_org_pattern(self, contact_values: List[ContactValue]) -> RolePattern:
+    def _determine_org_pattern(self, contact_values: list[ContactValue]) -> RolePattern:
         """Determine the organizational decision-making pattern"""
 
         # Analyze role distribution
@@ -422,7 +418,7 @@ class ContactValueAnalyzer:
                 success_factors=["Cross-functional buy-in", "Pilot program", "Gradual rollout"],
             )
 
-    def _calculate_committee_completeness(self, contact_values: List[ContactValue]) -> float:
+    def _calculate_committee_completeness(self, contact_values: list[ContactValue]) -> float:
         """Calculate buying committee completeness score"""
 
         required_roles = ["Decision Maker", "Influencer", "Champion", "User"]
@@ -434,7 +430,7 @@ class ContactValueAnalyzer:
         completeness = len(found_roles.intersection(required_roles)) / len(required_roles)
         return completeness
 
-    def _identify_role_patterns(self, contact_values: List[ContactValue]) -> List[RolePattern]:
+    def _identify_role_patterns(self, contact_values: list[ContactValue]) -> list[RolePattern]:
         """Identify common role patterns in the organization"""
 
         # This is a simplified implementation - could be expanded
@@ -485,7 +481,7 @@ class ContactValueAnalyzer:
         else:
             return "Nurture with relevant content and industry insights until engagement increases"
 
-    def _calculate_summary_metrics(self, contact_values: List[ContactValue]) -> Dict:
+    def _calculate_summary_metrics(self, contact_values: list[ContactValue]) -> dict:
         """Calculate summary metrics for contact value analysis"""
 
         total_contacts = len(contact_values)
@@ -518,13 +514,13 @@ class ContactValueAnalyzer:
             ),
         }
 
-    def _print_value_analysis(self, analysis: Dict):
+    def _print_value_analysis(self, analysis: dict):
         """Print contact value analysis results"""
 
         metrics = analysis["summary_metrics"]
         org_insights = analysis["organizational_insights"]
 
-        print(f"\n📊 CONTACT VALUE ANALYSIS RESULTS")
+        print("\n📊 CONTACT VALUE ANALYSIS RESULTS")
         print("=" * 60)
 
         print(f"🏢 Company: {org_insights['company_name']}")
@@ -540,7 +536,7 @@ class ContactValueAnalyzer:
         print(f"📊 Avg Value Score: {metrics['average_value_score']}")
         print(f"🎯 Verdigris Relevance: {metrics['average_verdigris_relevance']:.1%}")
 
-        print(f"\n🏛️ ORGANIZATIONAL INSIGHTS")
+        print("\n🏛️ ORGANIZATIONAL INSIGHTS")
         print(f"   Primary Departments: {', '.join(org_insights['dominant_departments'][:3])}")
         print(f"   Decision Makers: {', '.join(org_insights['decision_makers'][:3])}")
         print(
@@ -548,7 +544,7 @@ class ContactValueAnalyzer:
         )
         print(f"   Buying Committee: {org_insights['buying_committee_completeness']:.1%} complete")
 
-        print(f"\n🎯 KEY RECOMMENDATIONS:")
+        print("\n🎯 KEY RECOMMENDATIONS:")
         print(
             f"   • Focus on {org_insights['tier_1_contacts']} Tier 1 contacts for immediate outreach"
         )
@@ -558,7 +554,7 @@ class ContactValueAnalyzer:
         print(f"   • Pattern: {org_insights['organizational_pattern']['pattern_name']}")
         print(f"   • Timeline: {org_insights['organizational_pattern']['typical_timeline']}")
 
-    def convert_to_dashboard_format(self, analysis_result: Dict) -> Dict:
+    def convert_to_dashboard_format(self, analysis_result: dict) -> dict:
         """Convert analysis results to dashboard-friendly format"""
 
         contact_values = analysis_result["contact_values"]

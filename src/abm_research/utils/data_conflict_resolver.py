@@ -17,13 +17,12 @@ Usage:
     merged_contact = resolver.resolve_contact_conflicts(apollo_data, linkedin_data)
 """
 
-import re
 import logging
-from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime
+import re
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
-
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -69,11 +68,11 @@ class DataConflict:
 class MergeResult:
     """Result of merging contact data from multiple sources"""
 
-    merged_contact: Dict[str, Any]
-    conflicts_detected: List[DataConflict]
+    merged_contact: dict[str, Any]
+    conflicts_detected: list[DataConflict]
     data_quality_score: float
-    source_summary: Dict[str, int]  # Count of fields from each source
-    merge_notes: List[str]
+    source_summary: dict[str, int]  # Count of fields from each source
+    merge_notes: list[str]
 
 
 class DataConflictResolver:
@@ -117,7 +116,7 @@ class DataConflictResolver:
         }
 
     def resolve_contact_conflicts(
-        self, apollo_data: Dict, linkedin_data: Dict, existing_data: Optional[Dict] = None
+        self, apollo_data: dict, linkedin_data: dict, existing_data: Optional[dict] = None
     ) -> MergeResult:
         """
         Main entry point for resolving conflicts between contact data sources
@@ -252,7 +251,7 @@ class DataConflictResolver:
         linkedin_value: Any,
         apollo_source: DataSource,
         linkedin_source: DataSource,
-    ) -> Tuple[Any, DataSource, str]:
+    ) -> tuple[Any, DataSource, str]:
         """Resolve conflict for a specific field using field-specific strategy"""
 
         # Use field-specific strategy if available
@@ -277,7 +276,7 @@ class DataConflictResolver:
 
     def _merge_email_field(
         self, apollo_val: Any, linkedin_val: Any, apollo_src: DataSource, linkedin_src: DataSource
-    ) -> Tuple[Any, DataSource, str]:
+    ) -> tuple[Any, DataSource, str]:
         """Email-specific merge strategy prioritizing deliverability"""
 
         apollo_email = str(apollo_val).strip() if apollo_val else ""
@@ -307,7 +306,7 @@ class DataConflictResolver:
 
     def _merge_name_field(
         self, apollo_val: Any, linkedin_val: Any, apollo_src: DataSource, linkedin_src: DataSource
-    ) -> Tuple[Any, DataSource, str]:
+    ) -> tuple[Any, DataSource, str]:
         """Name-specific merge strategy prioritizing completeness"""
 
         apollo_name = str(apollo_val).strip() if apollo_val else ""
@@ -325,7 +324,7 @@ class DataConflictResolver:
 
     def _merge_title_field(
         self, apollo_val: Any, linkedin_val: Any, apollo_src: DataSource, linkedin_src: DataSource
-    ) -> Tuple[Any, DataSource, str]:
+    ) -> tuple[Any, DataSource, str]:
         """Title-specific merge strategy balancing structure and detail"""
 
         apollo_title = str(apollo_val).strip() if apollo_val else ""
@@ -344,7 +343,7 @@ class DataConflictResolver:
 
     def _merge_phone_field(
         self, apollo_val: Any, linkedin_val: Any, apollo_src: DataSource, linkedin_src: DataSource
-    ) -> Tuple[Any, DataSource, str]:
+    ) -> tuple[Any, DataSource, str]:
         """Phone-specific merge strategy prioritizing format and validity"""
 
         # Always prefer Apollo for phone numbers (structured API data)
@@ -352,7 +351,7 @@ class DataConflictResolver:
 
     def _merge_url_field(
         self, apollo_val: Any, linkedin_val: Any, apollo_src: DataSource, linkedin_src: DataSource
-    ) -> Tuple[Any, DataSource, str]:
+    ) -> tuple[Any, DataSource, str]:
         """URL-specific merge strategy"""
 
         # For LinkedIn URLs, both sources should be similar
@@ -372,7 +371,7 @@ class DataConflictResolver:
 
     def _merge_score_field(
         self, apollo_val: Any, linkedin_val: Any, apollo_src: DataSource, linkedin_src: DataSource
-    ) -> Tuple[Any, DataSource, str]:
+    ) -> tuple[Any, DataSource, str]:
         """Score-specific merge strategy using highest value"""
 
         try:
@@ -405,7 +404,7 @@ class DataConflictResolver:
         # Low severity conflicts (minor differences)
         return "low"
 
-    def _add_provenance_fields(self, field_sources: Dict[str, str]) -> Dict[str, str]:
+    def _add_provenance_fields(self, field_sources: dict[str, str]) -> dict[str, str]:
         """Add enhanced data provenance fields for schema compliance"""
 
         provenance = {}
@@ -432,7 +431,7 @@ class DataConflictResolver:
         return provenance
 
     def _calculate_data_quality_score(
-        self, contact: Dict, source_counts: Dict, conflicts: List[DataConflict]
+        self, contact: dict, source_counts: dict, conflicts: list[DataConflict]
     ) -> float:
         """Calculate overall data quality score for the merged contact"""
 

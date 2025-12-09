@@ -4,9 +4,9 @@ Engagement Intelligence Models
 Data structures for Phase 4 engagement intelligence analysis
 """
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
-from enum import Enum
 from datetime import datetime
+from enum import Enum
+from typing import Any, Optional
 
 
 class EngagementPriority(Enum):
@@ -35,10 +35,10 @@ class EngagementStrategy:
 
     contact_name: str
     priority: EngagementPriority
-    recommended_channels: List[OutreachChannel]
+    recommended_channels: list[OutreachChannel]
     timing_rationale: str
     approach_summary: str
-    success_metrics: List[str]
+    success_metrics: list[str]
     estimated_response_rate: float  # 0-100
 
 
@@ -61,34 +61,34 @@ class EngagementIntelligence:
     final_lead_score: float
 
     # Problem analysis
-    likely_problems: List[str]
+    likely_problems: list[str]
     problem_confidence: str
     problem_rationale: str
 
     # Content analysis
-    content_themes: List[str]
+    content_themes: list[str]
     content_quality: str
     content_source: str
-    content_hooks: List[ContentHook] = field(default_factory=list)
+    content_hooks: list[ContentHook] = field(default_factory=list)
 
     # Connection analysis
-    connection_pathways: List[str]
+    connection_pathways: list[str]
     mutual_connections: int
-    shared_groups: List[str]
+    shared_groups: list[str]
     connection_confidence: str
 
     # Value-add opportunities
-    value_add_ideas: List[str]
-    recommended_assets: List[str]
+    value_add_ideas: list[str]
+    recommended_assets: list[str]
 
     # Overall strategy
     engagement_strategy: Optional[EngagementStrategy] = None
 
     # Metadata
     analysis_date: datetime = field(default_factory=datetime.now)
-    data_sources: List[str] = field(default_factory=list)
+    data_sources: list[str] = field(default_factory=list)
 
-    def get_engagement_summary(self) -> Dict[str, Any]:
+    def get_engagement_summary(self) -> dict[str, Any]:
         """Get summary of engagement intelligence"""
         return {
             "contact": self.contact_name,

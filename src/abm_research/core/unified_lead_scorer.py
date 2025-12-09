@@ -4,12 +4,12 @@ Unified Lead Scoring Engine - Consolidates 3 duplicate implementations
 Combines organizational hierarchy, geographic scoring, and AI-powered recommendations
 """
 
-import os
-import json
 import logging
-from typing import Dict, List, Optional, Tuple, Any
+import os
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
+
 import openai
 
 logger = logging.getLogger(__name__)
@@ -47,10 +47,10 @@ class InfrastructureBreakdown:
     """Infrastructure scoring breakdown with full traceability"""
 
     score: float  # 0-100
-    breakdown: Dict[str, Dict[str, Any]]  # category -> {detected, points, max_points}
+    breakdown: dict[str, dict[str, Any]]  # category -> {detected, points, max_points}
     raw_text: str  # Original infrastructure text for reference
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to JSON-serializable dict for Notion storage"""
         return {
             "score": round(self.score, 1),
@@ -64,11 +64,11 @@ class BusinessFitBreakdown:
     """Business fit scoring breakdown"""
 
     score: float
-    industry_fit: Dict[str, Any]
-    company_size_fit: Dict[str, Any]
-    geographic_fit: Dict[str, Any]
+    industry_fit: dict[str, Any]
+    company_size_fit: dict[str, Any]
+    geographic_fit: dict[str, Any]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "score": round(self.score, 1),
             "industry_fit": self.industry_fit,
@@ -82,11 +82,11 @@ class BuyingSignalsBreakdown:
     """Buying signals scoring breakdown"""
 
     score: float
-    trigger_events: Dict[str, Any]
-    expansion_signals: Dict[str, Any]
-    hiring_signals: Dict[str, Any]
+    trigger_events: dict[str, Any]
+    expansion_signals: dict[str, Any]
+    hiring_signals: dict[str, Any]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "score": round(self.score, 1),
             "trigger_events": self.trigger_events,
@@ -105,7 +105,7 @@ class AccountScore:
     buying_signals: BuyingSignalsBreakdown
     priority_level: str  # "Very High", "High", "Medium", "Low"
 
-    def get_score_breakdown(self) -> Dict[str, Any]:
+    def get_score_breakdown(self) -> dict[str, Any]:
         """Get full breakdown for dashboard display"""
         return {
             "total_score": round(self.total_score, 1),
@@ -147,7 +147,7 @@ class LeadScore:
     geographic_priority: GeographicPriority
     priority_level: str
 
-    def get_score_breakdown(self) -> Dict[str, float]:
+    def get_score_breakdown(self) -> dict[str, float]:
         """Get detailed breakdown of all score components"""
         return {
             "ICP Fit": round(self.icp_fit_score, 1),
@@ -298,7 +298,7 @@ class AccountScorer:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
 
-    def calculate_account_score(self, account_data: Dict[str, Any]) -> AccountScore:
+    def calculate_account_score(self, account_data: dict[str, Any]) -> AccountScore:
         """
         Calculate comprehensive account score with full traceability.
 
@@ -341,7 +341,7 @@ class AccountScorer:
             priority_level=priority,
         )
 
-    def _score_infrastructure(self, account_data: Dict[str, Any]) -> InfrastructureBreakdown:
+    def _score_infrastructure(self, account_data: dict[str, Any]) -> InfrastructureBreakdown:
         """
         Score infrastructure with full keyword traceability.
         Returns exact keywords detected for dashboard display.
@@ -389,7 +389,7 @@ class AccountScorer:
             score=min(100, score), breakdown=breakdown, raw_text=raw_text
         )
 
-    def _score_business_fit(self, account_data: Dict[str, Any]) -> BusinessFitBreakdown:
+    def _score_business_fit(self, account_data: dict[str, Any]) -> BusinessFitBreakdown:
         """Score business fit based on industry, size, and geography."""
 
         # Industry fit
@@ -481,7 +481,7 @@ class AccountScorer:
             geographic_fit=geographic_fit,
         )
 
-    def _score_buying_signals(self, account_data: Dict[str, Any]) -> BuyingSignalsBreakdown:
+    def _score_buying_signals(self, account_data: dict[str, Any]) -> BuyingSignalsBreakdown:
         """Score buying signals from trigger events and growth indicators."""
 
         # Trigger events
@@ -588,10 +588,10 @@ class MEDDICContactScore:
     champion_potential_level: str  # "Very High", "High", "Medium", "Low"
 
     # For dashboard display
-    why_prioritize: List[str]  # List of reasons to prioritize this contact
+    why_prioritize: list[str]  # List of reasons to prioritize this contact
     recommended_approach: str  # Outreach recommendation
 
-    def get_score_breakdown(self) -> Dict[str, Any]:
+    def get_score_breakdown(self) -> dict[str, Any]:
         return {
             "total_score": round(self.total_score, 1),
             "champion_potential": {
@@ -713,7 +713,7 @@ class MEDDICContactScorer:
         self.logger = logging.getLogger(__name__)
 
     def calculate_contact_score(
-        self, contact: Dict, account_data: Dict = None
+        self, contact: dict, account_data: dict = None
     ) -> MEDDICContactScore:
         """
         Calculate MEDDIC-style contact score prioritizing champion potential.
@@ -770,7 +770,7 @@ class MEDDICContactScorer:
             recommended_approach=recommended_approach,
         )
 
-    def _classify_role(self, title: str) -> Tuple[str, str]:
+    def _classify_role(self, title: str) -> tuple[str, str]:
         """
         Classify contact into MEDDIC role tier and specific role.
 
@@ -868,7 +868,7 @@ class MEDDICContactScorer:
 
         return "entry_point", "Unknown"
 
-    def _score_champion_potential(self, contact: Dict, role_tier: str) -> float:
+    def _score_champion_potential(self, contact: dict, role_tier: str) -> float:
         """
         Score champion potential based on role tier and pain indicators.
         Entry points who feel pain are best champions.
@@ -902,7 +902,7 @@ class MEDDICContactScorer:
         tier_config = self.ROLE_TIERS.get(role_tier, {})
         return tier_config.get("score", 50.0)
 
-    def _score_engagement_potential(self, contact: Dict) -> float:
+    def _score_engagement_potential(self, contact: dict) -> float:
         """Score engagement potential based on LinkedIn activity."""
         score = 30.0  # Base
 
@@ -941,8 +941,8 @@ class MEDDICContactScorer:
         return min(100, score)
 
     def _generate_prioritization_reasons(
-        self, contact: Dict, role_tier: str, role_classification: str, champion_score: float
-    ) -> List[str]:
+        self, contact: dict, role_tier: str, role_classification: str, champion_score: float
+    ) -> list[str]:
         """Generate human-readable reasons for prioritizing this contact."""
         reasons = []
 
@@ -986,7 +986,7 @@ class UnifiedLeadScorer:
     - AI-powered personalized recommendations
     """
 
-    def __init__(self, config: Dict[str, Any] = None):
+    def __init__(self, config: dict[str, Any] = None):
         self.logger = logging.getLogger(__name__)
         self.config = config or self._load_default_config()
 
@@ -1003,7 +1003,7 @@ class UnifiedLeadScorer:
         # Load US geographic indicators
         self.us_indicators = self._load_us_indicators()
 
-    def _load_default_config(self) -> Dict[str, Any]:
+    def _load_default_config(self) -> dict[str, Any]:
         """Load default scoring configuration"""
         return {
             "scoring_formula": {
@@ -1081,7 +1081,7 @@ class UnifiedLeadScorer:
             },
         }
 
-    def _load_decision_influence_map(self) -> Dict[str, DecisionInfluence]:
+    def _load_decision_influence_map(self) -> dict[str, DecisionInfluence]:
         """Map roles to decision influence based on organizational charts"""
         return {
             # TOP TIER - Economic Buyers (Budget Authority + Strategic Alignment)
@@ -1107,7 +1107,7 @@ class UnifiedLeadScorer:
             "Unknown": DecisionInfluence(0.2, 0.5, 0.5, 0.5),
         }
 
-    def _load_us_indicators(self) -> List[str]:
+    def _load_us_indicators(self) -> list[str]:
         """Load US geographic indicators for market fit scoring"""
         return [
             # States
@@ -1217,7 +1217,7 @@ class UnifiedLeadScorer:
         ]
 
     def calculate_comprehensive_lead_score(
-        self, contact: Dict, account_data: Dict = None
+        self, contact: dict, account_data: dict = None
     ) -> LeadScore:
         """
         Calculate comprehensive lead score incorporating all scoring dimensions
@@ -1274,7 +1274,7 @@ class UnifiedLeadScorer:
             priority_level=priority_level,
         )
 
-    def _score_icp_fit(self, contact: Dict) -> float:
+    def _score_icp_fit(self, contact: dict) -> float:
         """Calculate ICP fit score based on title and responsibilities"""
         score = 0.0
         title = contact.get("title", "").lower()
@@ -1327,7 +1327,7 @@ class UnifiedLeadScorer:
         else:
             return 30.0
 
-    def _score_engagement_potential(self, contact: Dict) -> float:
+    def _score_engagement_potential(self, contact: dict) -> float:
         """Calculate engagement potential score"""
         score = 0.0
 
@@ -1367,7 +1367,7 @@ class UnifiedLeadScorer:
 
         return min(score, 100)
 
-    def _score_geographic_fit(self, account_data: Dict) -> Tuple[float, GeographicPriority]:
+    def _score_geographic_fit(self, account_data: dict) -> tuple[float, GeographicPriority]:
         """
         Comprehensive geographic fit scoring based on US market presence
         Enhanced version with sophisticated pattern matching and multi-source analysis
@@ -1571,7 +1571,7 @@ class UnifiedLeadScorer:
 
         return "Unknown"
 
-    def calculate_lead_score(self, contact: Dict, account_data: Dict = None) -> float:
+    def calculate_lead_score(self, contact: dict, account_data: dict = None) -> float:
         """
         Simplified interface for backward compatibility
         Returns just the final score as float

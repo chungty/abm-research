@@ -15,13 +15,13 @@ This script will:
 4. Preserve only real prospect data
 """
 
-import os
 import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.integrations.notion_client import NotionClient
 import logging
+
+from abm_research.integrations.notion_client import NotionClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -106,9 +106,9 @@ def cleanup_test_data():
     print("📊 Cleanup Summary")
     print("=" * 30)
     print(f"🏢 Accounts archived: {accounts_cleaned}")
-    print(f"👥 Contacts: Manual cleanup noted")
-    print(f"🎯 Events: Manual cleanup noted")
-    print(f"🤝 Partnerships: Manual cleanup noted")
+    print("👥 Contacts: Manual cleanup noted")
+    print("🎯 Events: Manual cleanup noted")
+    print("🤝 Partnerships: Manual cleanup noted")
     print()
     if accounts_cleaned > 0:
         print("🎉 Production database cleanup complete!")

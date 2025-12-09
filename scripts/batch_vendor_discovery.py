@@ -14,12 +14,12 @@ Rate Limiting:
     - Full run across 11 accounts: ~10-15 minutes
 """
 
-import requests
-import time
-import json
 import argparse
+import json
+import time
 from datetime import datetime
 
+import requests
 
 API_BASE = "http://localhost:5001/api"
 
@@ -176,7 +176,7 @@ def main():
             )
 
         except requests.exceptions.Timeout:
-            print(f"  ERROR: Request timed out (>120s)")
+            print("  ERROR: Request timed out (>120s)")
             results["failed"] += 1
             results["accounts"].append(
                 {

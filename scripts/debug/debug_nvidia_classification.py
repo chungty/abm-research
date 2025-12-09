@@ -5,12 +5,11 @@ Tests exactly what data the classifier receives and why it fails
 """
 
 import sys
-import os
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.utils.partnership_classifier import partnership_classifier
 from abm_research.core.abm_system import ComprehensiveABMSystem
+from abm_research.utils.partnership_classifier import partnership_classifier
 
 print("🔍 NVIDIA Partnership Classification Debug")
 print("=" * 50)
@@ -22,7 +21,7 @@ print("1. Getting NVIDIA account intelligence...")
 result = abm.conduct_complete_account_research("NVIDIA Corporation", "nvidia.com")
 account_data = result.get("account", {})
 
-print(f"✅ Account intelligence gathered")
+print("✅ Account intelligence gathered")
 print(f"📊 Data keys: {list(account_data.keys())}")
 print()
 
@@ -48,7 +47,7 @@ infrastructure = classifier_input.get("physical_infrastructure", "").lower()
 announcements = classifier_input.get("recent_announcements", "").lower()
 
 combined_text = f"{company_name} {business_model} {infrastructure} {announcements}"
-print(f"3. Combined text for classification:")
+print("3. Combined text for classification:")
 print(f"  📄 Text: '{combined_text}'")
 print(f"  📏 Length: {len(combined_text)} characters")
 print()

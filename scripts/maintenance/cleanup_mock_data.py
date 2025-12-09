@@ -4,8 +4,8 @@ Clean up mock data entries (like CoreWeave) from the Notion database
 Ensures production database contains only real company data
 """
 
-import sys
 import os
+import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
@@ -22,10 +22,10 @@ def cleanup_mock_data():
     try:
         # Initialize Notion client
         notion_client = NotionClient()
-        print(f"✅ Notion client initialized")
+        print("✅ Notion client initialized")
 
         # Get all accounts from Notion
-        print(f"\n📋 Scanning accounts for mock data...")
+        print("\n📋 Scanning accounts for mock data...")
         all_accounts = notion_client.query_all_accounts()
         print(f"Found {len(all_accounts)} total accounts")
 
@@ -58,7 +58,7 @@ def cleanup_mock_data():
                 print(f"  - {entry['name']} ({entry['domain']})")
 
             # Ask for confirmation (in a real scenario)
-            print(f"\n🗑️  Removing mock entries...")
+            print("\n🗑️  Removing mock entries...")
             removed_count = 0
 
             for entry in mock_entries:
@@ -75,10 +75,10 @@ def cleanup_mock_data():
             )
 
         else:
-            print(f"✅ No mock data entries found - database is clean!")
+            print("✅ No mock data entries found - database is clean!")
 
         # Verify data quality
-        print(f"\n📊 Data Quality Check:")
+        print("\n📊 Data Quality Check:")
         clean_count = len(all_accounts) - len(mock_entries)
         print(f"  Real companies: {clean_count}")
         print(f"  Mock entries: {len(mock_entries)}")

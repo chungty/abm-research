@@ -12,7 +12,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: NOTION_API_KEY
-        sync: false  # Set manually in Render dashboard
+        sync: false # Set manually in Render dashboard
       - key: NOTION_ACCOUNTS_DB
         sync: false
       - key: NOTION_CONTACTS_DB

@@ -6,13 +6,13 @@ Removes test data just added by the background GPU infrastructure test
 that added 52 new test contacts for NVIDIA, CoreWeave, and Lambda Labs.
 """
 
-import os
 import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.integrations.notion_client import NotionClient
 import logging
+
+from abm_research.integrations.notion_client import NotionClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -167,7 +167,7 @@ def emergency_gpu_test_cleanup():
 
     # SUMMARY
     total_cleaned = accounts_cleaned + contacts_cleaned + events_cleaned + partnerships_cleaned
-    print(f"\n📊 EMERGENCY CLEANUP SUMMARY")
+    print("\n📊 EMERGENCY CLEANUP SUMMARY")
     print("=" * 40)
     print(f"🏢 Accounts archived: {accounts_cleaned}")
     print(f"👥 Contacts archived: {contacts_cleaned}")

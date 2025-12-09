@@ -13,11 +13,12 @@ Provides:
 - Centralized validation
 - Environment variable loading
 """
-import os
 import json
 import logging
+import os
 from pathlib import Path
-from typing import Dict, Optional, Any, List
+from typing import Any, Optional
+
 from dotenv import load_dotenv
 
 # Configure logging
@@ -106,7 +107,7 @@ class ConfigManager:
         # Load lead scoring configuration
         lead_config_path = root_dir / "references" / "lead_scoring_config.json"
         if lead_config_path.exists():
-            with open(lead_config_path, "r") as f:
+            with open(lead_config_path) as f:
                 self.lead_scoring_config = json.load(f)
         else:
             logger.warning(f"⚠️ Lead scoring config not found: {lead_config_path}")
@@ -221,12 +222,12 @@ class ConfigManager:
             raise ValueError(f"Unknown database type: {database_type}")
         return self.database_ids[database_type]
 
-    def get_all_database_ids(self) -> Dict[str, str]:
+    def get_all_database_ids(self) -> dict[str, str]:
         """Get all database IDs"""
         return self.database_ids.copy()
 
     # Header Generation Methods (consolidates duplication)
-    def get_notion_headers(self) -> Dict[str, str]:
+    def get_notion_headers(self) -> dict[str, str]:
         """Generate Notion API headers"""
         return {
             "Authorization": f"Bearer {self.notion_api_key}",
@@ -235,7 +236,7 @@ class ConfigManager:
             "User-Agent": "ABM-Research-System/1.0",
         }
 
-    def get_apollo_headers(self) -> Dict[str, str]:
+    def get_apollo_headers(self) -> dict[str, str]:
         """Generate Apollo API headers"""
         return {
             "Content-Type": "application/json",
@@ -243,7 +244,7 @@ class ConfigManager:
             "X-Api-Key": self.apollo_api_key,
         }
 
-    def get_openai_headers(self) -> Dict[str, str]:
+    def get_openai_headers(self) -> dict[str, str]:
         """Generate OpenAI API headers"""
         return {
             "Authorization": f"Bearer {self.openai_api_key}",
@@ -251,11 +252,11 @@ class ConfigManager:
         }
 
     # External Configuration Access
-    def get_lead_scoring_config(self) -> Dict[str, Any]:
+    def get_lead_scoring_config(self) -> dict[str, Any]:
         """Get lead scoring configuration"""
         return self.lead_scoring_config
 
-    def get_partnership_categories(self) -> Dict[str, Dict[str, Any]]:
+    def get_partnership_categories(self) -> dict[str, dict[str, Any]]:
         """Get partnership categories configuration"""
         return self.partnership_categories
 

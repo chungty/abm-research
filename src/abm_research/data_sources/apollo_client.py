@@ -2,10 +2,10 @@
 Apollo.io API client for company and contact data
 """
 import asyncio
-import aiohttp
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+from typing import Any, Optional
+
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +35,8 @@ class ApolloClient:
             await self.session.close()
 
     async def _make_request(
-        self, method: str, endpoint: str, params: Dict = None, data: Dict = None
-    ) -> Optional[Dict[str, Any]]:
+        self, method: str, endpoint: str, params: dict = None, data: dict = None
+    ) -> Optional[dict[str, Any]]:
         """Make authenticated request to Apollo API"""
         if not self.session:
             raise RuntimeError("Apollo client not initialized. Use 'async with' context manager.")
@@ -67,7 +67,7 @@ class ApolloClient:
             logger.error(f"Apollo API request failed: {e}")
             return None
 
-    async def get_company_by_domain(self, domain: str) -> Optional[Dict[str, Any]]:
+    async def get_company_by_domain(self, domain: str) -> Optional[dict[str, Any]]:
         """Get company information by domain"""
         logger.info(f"Fetching company data for domain: {domain}")
 
@@ -99,8 +99,8 @@ class ApolloClient:
         return None
 
     async def search_contacts(
-        self, domain: str, titles: List[str], limit: int = 50
-    ) -> List[Dict[str, Any]]:
+        self, domain: str, titles: list[str], limit: int = 50
+    ) -> list[dict[str, Any]]:
         """Search for contacts at a company by domain and titles"""
         logger.info(f"Searching contacts for domain: {domain}, titles: {titles[:3]}...")
 
@@ -144,7 +144,7 @@ class ApolloClient:
         logger.warning(f"No contacts found for {domain}")
         return []
 
-    async def get_contact_by_id(self, contact_id: str) -> Optional[Dict[str, Any]]:
+    async def get_contact_by_id(self, contact_id: str) -> Optional[dict[str, Any]]:
         """Get detailed contact information by ID"""
         logger.info(f"Fetching detailed contact data for ID: {contact_id}")
 
@@ -159,7 +159,7 @@ class ApolloClient:
 
     async def enrich_contact(
         self, email: str = None, linkedin_url: str = None
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Enrich contact data by email or LinkedIn URL"""
         if not email and not linkedin_url:
             raise ValueError("Either email or linkedin_url must be provided")
@@ -179,7 +179,7 @@ class ApolloClient:
 
         return None
 
-    async def get_target_titles(self) -> List[str]:
+    async def get_target_titles(self) -> list[str]:
         """Get default target titles for data center operations contacts"""
         return [
             "Vice President of Data Center Operations",

@@ -2,9 +2,9 @@
 Trigger Event model for ABM Research System
 """
 from dataclasses import dataclass, field
-from datetime import datetime, date
-from typing import Optional, Dict, Any
+from datetime import date, datetime
 from enum import Enum
+from typing import Any, Optional
 
 
 class EventType(Enum):
@@ -211,7 +211,7 @@ class TriggerEvent:
             self.event_type, "General data center monitoring and optimization opportunity"
         )
 
-    def to_notion_format(self) -> Dict[str, Any]:
+    def to_notion_format(self) -> dict[str, Any]:
         """Convert to Notion database format"""
         return {
             "Event description": {"title": [{"text": {"content": self.description}}]},

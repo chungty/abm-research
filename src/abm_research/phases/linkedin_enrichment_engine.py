@@ -5,14 +5,11 @@ Implements Phase 3 requirements from skill specification
 Deep LinkedIn profile analysis for engagement scoring and intelligence
 """
 
-import os
 import json
-import time
-import requests
-import re
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+import os
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+
 import openai
 
 
@@ -22,7 +19,7 @@ class LinkedInEnrichmentData:
 
     # Bio analysis
     bio_text: str
-    responsibility_keywords: List[str]
+    responsibility_keywords: list[str]
     responsibility_bonus_points: int
 
     # Activity analysis (past 90 days)
@@ -30,20 +27,20 @@ class LinkedInEnrichmentData:
     activity_points: int  # 0-50 based on frequency
 
     # Content theme analysis
-    content_themes: List[str]  # AI infrastructure, power optimization, etc.
+    content_themes: list[str]  # AI infrastructure, power optimization, etc.
     content_relevance_points: int  # 0-25 based on theme alignment
 
     # Network quality
-    network_connections: List[str]
+    network_connections: list[str]
     network_quality_score: int  # 0-25 based on industry connections
 
     # Final engagement score
     engagement_potential_score: int  # Sum of activity + content + network (0-100)
 
     # Connection intelligence
-    mutual_connections: List[str]
+    mutual_connections: list[str]
     connection_pathways: str
-    warm_introduction_opportunities: List[str]
+    warm_introduction_opportunities: list[str]
 
     # Data source metadata
     data_source: str = "unknown"  # 'real_data', 'simulation', or 'cached'
@@ -63,7 +60,7 @@ class LinkedInEnrichmentEngine:
         """Load scoring rules from skill specification"""
         try:
             with open(
-                "/Users/chungty/Projects/abm-research/references/lead_scoring_config.json", "r"
+                "/Users/chungty/Projects/abm-research/references/lead_scoring_config.json"
             ) as f:
                 self.skill_config = json.load(f)
         except FileNotFoundError:
@@ -84,7 +81,7 @@ class LinkedInEnrichmentEngine:
             "network_quality"
         ]
 
-    def enrich_high_priority_contacts(self, contacts: List[Dict]) -> List[Dict]:
+    def enrich_high_priority_contacts(self, contacts: list[dict]) -> list[dict]:
         """
         Main entry point for LinkedIn enrichment
         Only enrich contacts with lead_score > 60 per skill specification
@@ -120,7 +117,7 @@ class LinkedInEnrichmentEngine:
 
         return enriched_contacts
 
-    def enrich_contact(self, contact: Dict) -> Dict:
+    def enrich_contact(self, contact: dict) -> dict:
         """
         Single contact enrichment method expected by ABM system
         Wrapper around enrich_linkedin_profile for compatibility
@@ -144,7 +141,7 @@ class LinkedInEnrichmentEngine:
             contact["enrichment_error"] = str(e)
             return contact
 
-    def enrich_linkedin_profile(self, contact: Dict) -> LinkedInEnrichmentData:
+    def enrich_linkedin_profile(self, contact: dict) -> LinkedInEnrichmentData:
         """
         Deep LinkedIn profile analysis following skill specification
         """
@@ -193,7 +190,7 @@ class LinkedInEnrichmentEngine:
             profile_complete=profile_data.get("profile_complete", False),
         )
 
-    def _fetch_real_linkedin_profile(self, contact: Dict, linkedin_url: str) -> Dict:
+    def _fetch_real_linkedin_profile(self, contact: dict, linkedin_url: str) -> dict:
         """
         Fetch real LinkedIn profile data using the LinkedIn data collector
         Falls back to enhanced simulation if real data unavailable
@@ -226,7 +223,7 @@ class LinkedInEnrichmentEngine:
             print(f"Falling back to simulation for {contact.get('name')}")
             return self._simulate_linkedin_profile_fetch(contact, linkedin_url)
 
-    def _format_connections_for_analysis(self, profile) -> List[Dict]:
+    def _format_connections_for_analysis(self, profile) -> list[dict]:
         """Format real connections data for network analysis"""
         formatted_connections = []
 
@@ -258,7 +255,7 @@ class LinkedInEnrichmentEngine:
 
         return formatted_connections
 
-    def _simulate_linkedin_profile_fetch(self, contact: Dict, linkedin_url: str) -> Dict:
+    def _simulate_linkedin_profile_fetch(self, contact: dict, linkedin_url: str) -> dict:
         """
         Enhanced simulation fallback when real data is unavailable
         Now marked as simulation data for transparency
@@ -284,7 +281,7 @@ class LinkedInEnrichmentEngine:
             "profile_complete": False,
         }
 
-    def _analyze_bio_for_keywords(self, bio_text: str) -> Dict:
+    def _analyze_bio_for_keywords(self, bio_text: str) -> dict:
         """
         Analyze LinkedIn bio for responsibility keywords per skill specification
         Keywords: power/energy (+20), reliability/uptime (+20), capacity planning (+20)
@@ -309,7 +306,7 @@ class LinkedInEnrichmentEngine:
 
         return {"keywords": found_keywords, "bonus_points": bonus_points}
 
-    def _analyze_linkedin_activity(self, recent_posts: List[Dict]) -> Dict:
+    def _analyze_linkedin_activity(self, recent_posts: list[dict]) -> dict:
         """
         Analyze LinkedIn posting frequency per skill specification
         Weekly+ (50 points), Monthly (30), Quarterly (10), Inactive (0)
@@ -339,7 +336,7 @@ class LinkedInEnrichmentEngine:
         else:
             return {"level": "Inactive", "points": self.activity_scoring["inactive"]}
 
-    def _analyze_content_themes(self, recent_posts: List[Dict]) -> Dict:
+    def _analyze_content_themes(self, recent_posts: list[dict]) -> dict:
         """
         Analyze content themes for Verdigris relevance per skill specification
         High relevance topics get 25 points, medium 15, low 0
@@ -406,7 +403,7 @@ class LinkedInEnrichmentEngine:
             print(f"⚠️ Error analyzing content themes: {e}")
             return {"themes": ["Unable to analyze"], "points": 0}
 
-    def _assess_network_quality(self, connections: List[Dict]) -> Dict:
+    def _assess_network_quality(self, connections: list[dict]) -> dict:
         """
         Assess network quality based on industry connections per skill specification
         Connected to DC operators, vendors, industry groups = +25 points
@@ -446,7 +443,7 @@ class LinkedInEnrichmentEngine:
 
         return {"connections": quality_connections, "points": min(points, 25)}  # Cap at 25 points
 
-    def _analyze_connection_pathways(self, profile_data: Dict) -> Dict:
+    def _analyze_connection_pathways(self, profile_data: dict) -> dict:
         """
         Analyze connection pathways for warm introduction opportunities
         """
@@ -488,18 +485,18 @@ class LinkedInEnrichmentEngine:
         title_lower = title.lower()
 
         if "cto" in title_lower:
-            return f"Technology leader focused on scalable infrastructure and operational excellence. Passionate about sustainable technology solutions and team development. Currently driving infrastructure modernization initiatives at scale."
+            return "Technology leader focused on scalable infrastructure and operational excellence. Passionate about sustainable technology solutions and team development. Currently driving infrastructure modernization initiatives at scale."
 
         elif "director" in title_lower and "operations" in title_lower:
-            return f"Data center operations professional with expertise in critical systems management, capacity planning, and operational efficiency. Focus on maintaining 99.99% uptime while optimizing energy consumption and operational costs."
+            return "Data center operations professional with expertise in critical systems management, capacity planning, and operational efficiency. Focus on maintaining 99.99% uptime while optimizing energy consumption and operational costs."
 
         elif "engineer" in title_lower:
-            return f"Infrastructure engineer specializing in critical systems design and reliability engineering. Experience with power systems, cooling optimization, and predictive maintenance technologies."
+            return "Infrastructure engineer specializing in critical systems design and reliability engineering. Experience with power systems, cooling optimization, and predictive maintenance technologies."
 
         else:
             return f"Experienced {title} with focus on operational excellence and infrastructure optimization."
 
-    def _generate_realistic_activity(self, title: str) -> List[Dict]:
+    def _generate_realistic_activity(self, title: str) -> list[dict]:
         """Generate realistic LinkedIn activity based on role"""
         posts = []
         base_date = datetime.now()
@@ -573,7 +570,7 @@ class LinkedInEnrichmentEngine:
 
         return posts
 
-    def _generate_realistic_connections(self, title: str) -> List[Dict]:
+    def _generate_realistic_connections(self, title: str) -> list[dict]:
         """Generate realistic professional connections"""
         connections = [
             {
@@ -611,8 +608,8 @@ class LinkedInEnrichmentEngine:
         return connections
 
     def _update_contact_with_enrichment(
-        self, contact: Dict, enrichment: LinkedInEnrichmentData
-    ) -> Dict:
+        self, contact: dict, enrichment: LinkedInEnrichmentData
+    ) -> dict:
         """Update contact with LinkedIn enrichment data"""
         contact.update(
             {
@@ -649,7 +646,7 @@ class LinkedInEnrichmentEngine:
 
         return contact
 
-    def _recalculate_final_lead_score(self, contact: Dict) -> Dict:
+    def _recalculate_final_lead_score(self, contact: dict) -> dict:
         """
         Recalculate final lead score with engagement dimension per skill specification
         Formula: (ICP Fit × 0.40) + (Buying Power × 0.30) + (Engagement × 0.30)
@@ -692,7 +689,7 @@ class LinkedInEnrichmentEngine:
             warm_introduction_opportunities=[],
         )
 
-    def _get_default_config(self) -> Dict:
+    def _get_default_config(self) -> dict:
         """Default configuration if skill config file is missing"""
         return {
             "scoring_formula": {

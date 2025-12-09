@@ -6,13 +6,13 @@ Analyzes the specific TensorFlow page that appears as a partnership instead of a
 to understand the database structure issue.
 """
 
-import os
 import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.integrations.notion_client import NotionClient
 import logging
+
+from abm_research.integrations.notion_client import NotionClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -166,7 +166,7 @@ def investigate_tensorflow_page():
 
                     # Check if this matches the page we're investigating
                     if entry_id.replace("-", "") == page_id:
-                        print(f"     🎯 MATCH: This is the page from your URL!")
+                        print("     🎯 MATCH: This is the page from your URL!")
             else:
                 print(f"   ❌ No TensorFlow entries found in {db_name}")
 

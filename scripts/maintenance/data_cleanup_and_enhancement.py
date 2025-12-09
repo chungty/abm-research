@@ -4,21 +4,16 @@ ABM Data Cleanup and Enhancement System
 Fixes deduplication, account linking, trigger events, and partnerships discovery
 """
 
-import os
-import requests
-import json
-import time
-from datetime import datetime
-from typing import List, Dict, Set, Optional
 from collections import defaultdict
-import hashlib
+from typing import Optional
 
+import requests
 from abm_config import config
 from config.settings import (
     NOTION_ACCOUNTS_DB_ID,
     NOTION_CONTACTS_DB_ID,
-    NOTION_TRIGGER_EVENTS_DB_ID,
     NOTION_PARTNERSHIPS_DB_ID,
+    NOTION_TRIGGER_EVENTS_DB_ID,
 )
 
 
@@ -44,7 +39,7 @@ class ABMDataCleanup:
                 f"Please set NOTION_*_DB_ID environment variables in .env file."
             )
 
-    def fetch_all_data(self) -> Dict:
+    def fetch_all_data(self) -> dict:
         """Fetch all data from Notion databases"""
         print("🔍 FETCHING ALL ABM DATA FROM NOTION")
         print("=" * 50)
@@ -87,7 +82,7 @@ class ABMDataCleanup:
 
         return data
 
-    def analyze_duplicates(self, data: Dict) -> Dict:
+    def analyze_duplicates(self, data: dict) -> dict:
         """Analyze duplicate accounts and contacts"""
         print("\n🔍 ANALYZING DUPLICATES")
         print("=" * 30)
@@ -167,7 +162,7 @@ class ABMDataCleanup:
 
         return analysis
 
-    def deduplicate_accounts(self, data: Dict, analysis: Dict) -> str:
+    def deduplicate_accounts(self, data: dict, analysis: dict) -> str:
         """Deduplicate accounts and return primary account ID"""
         print("\n🔧 DEDUPLICATING ACCOUNTS")
         print("=" * 30)
@@ -222,7 +217,7 @@ class ABMDataCleanup:
 
         return primary_account_id
 
-    def deduplicate_contacts(self, data: Dict, analysis: Dict, primary_account_id: str):
+    def deduplicate_contacts(self, data: dict, analysis: dict, primary_account_id: str):
         """Deduplicate contacts and link to primary account"""
         print("\n🔧 DEDUPLICATING CONTACTS")
         print("=" * 30)
@@ -286,7 +281,7 @@ class ABMDataCleanup:
 
         # Update contacts to link to primary account
         if primary_account_id and contacts_to_update:
-            print(f"\n🔗 LINKING CONTACTS TO PRIMARY ACCOUNT")
+            print("\n🔗 LINKING CONTACTS TO PRIMARY ACCOUNT")
             print("=" * 40)
 
             for contact_id in contacts_to_update:
@@ -298,7 +293,7 @@ class ABMDataCleanup:
                 else:
                     print(f"   ❌ Failed to link contact {contact_id[:8]}...")
 
-    def fix_trigger_events(self, data: Dict, analysis: Dict):
+    def fix_trigger_events(self, data: dict, analysis: dict):
         """Fix trigger events with missing fields"""
         print("\n🔧 FIXING TRIGGER EVENTS")
         print("=" * 30)
@@ -324,7 +319,7 @@ class ABMDataCleanup:
             else:
                 print(f"   ❌ Failed to update: {event_name}")
 
-    def discover_partnerships(self, primary_account_id: str) -> List[Dict]:
+    def discover_partnerships(self, primary_account_id: str) -> list[dict]:
         """Discover strategic partnerships for the account"""
         print("\n🤝 DISCOVERING STRATEGIC PARTNERSHIPS")
         print("=" * 40)
@@ -372,10 +367,10 @@ class ABMDataCleanup:
 
         return created_partnerships
 
-    def _create_partnership_entry(self, partnership: Dict, account_id: str) -> Optional[str]:
+    def _create_partnership_entry(self, partnership: dict, account_id: str) -> Optional[str]:
         """Create partnership entry in Notion"""
         try:
-            url = f"https://api.notion.com/v1/pages"
+            url = "https://api.notion.com/v1/pages"
 
             properties = {
                 "Name": {
@@ -468,7 +463,7 @@ class ABMDataCleanup:
             print(f"      ❌ Trigger event update error: {e}")
             return False
 
-    def _extract_title(self, prop: Dict) -> str:
+    def _extract_title(self, prop: dict) -> str:
         """Extract title from Notion property"""
         if not prop or prop.get("type") != "title":
             return ""
@@ -477,7 +472,7 @@ class ABMDataCleanup:
             return "".join([item.get("plain_text", "") for item in title_list])
         return ""
 
-    def _extract_rich_text(self, prop: Dict) -> str:
+    def _extract_rich_text(self, prop: dict) -> str:
         """Extract rich text from Notion property"""
         if not prop or prop.get("type") != "rich_text":
             return ""
@@ -486,13 +481,13 @@ class ABMDataCleanup:
             return "".join([item.get("plain_text", "") for item in rich_text_list])
         return ""
 
-    def _extract_number(self, prop: Dict) -> Optional[float]:
+    def _extract_number(self, prop: dict) -> Optional[float]:
         """Extract number from Notion property"""
         if not prop or prop.get("type") != "number":
             return None
         return prop.get("number")
 
-    def _extract_select(self, prop: Dict) -> str:
+    def _extract_select(self, prop: dict) -> str:
         """Extract select value from Notion property"""
         if not prop or prop.get("type") != "select":
             return ""
@@ -501,13 +496,13 @@ class ABMDataCleanup:
             return select_obj.get("name", "")
         return ""
 
-    def _extract_email(self, prop: Dict) -> str:
+    def _extract_email(self, prop: dict) -> str:
         """Extract email from Notion property"""
         if not prop or prop.get("type") != "email":
             return ""
         return prop.get("email", "")
 
-    def _extract_url(self, prop: Dict) -> str:
+    def _extract_url(self, prop: dict) -> str:
         """Extract URL from Notion property"""
         if not prop or prop.get("type") != "url":
             return ""
@@ -538,12 +533,12 @@ class ABMDataCleanup:
         if primary_account_id:
             partnerships = self.discover_partnerships(primary_account_id)
 
-        print(f"\n✅ DATA CLEANUP COMPLETE!")
+        print("\n✅ DATA CLEANUP COMPLETE!")
         print(
             f"🎯 Primary account established: {primary_account_id[:8] if primary_account_id else 'None'}..."
         )
-        print(f"🔧 Issues identified and resolved")
-        print(f"🤝 Strategic partnerships discovered")
+        print("🔧 Issues identified and resolved")
+        print("🤝 Strategic partnerships discovered")
 
 
 def main():

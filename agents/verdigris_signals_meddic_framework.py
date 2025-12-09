@@ -4,7 +4,6 @@ Verdigris Signals-Specific MEDDIC Framework
 Data center power monitoring decision process based on industry research
 """
 
-from typing import Dict, List, Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -26,10 +25,10 @@ class VerdigrisSignalsPersona:
 
     name: str
     persona_type: PersonaType
-    title_patterns: List[str]
-    responsibilities: List[str]
-    pain_points: List[str]
-    value_props: List[str]
+    title_patterns: list[str]
+    responsibilities: list[str]
+    pain_points: list[str]
+    value_props: list[str]
     engagement_approach: str
     buying_power_score: int  # 0-100
     influence_score: int  # 0-100
@@ -43,7 +42,7 @@ class VerdigrisSignalsMEDDIC:
         self.decision_criteria = self._build_decision_criteria()
         self.buying_process = self._build_buying_process()
 
-    def _build_signals_personas(self) -> Dict[str, VerdigrisSignalsPersona]:
+    def _build_signals_personas(self) -> dict[str, VerdigrisSignalsPersona]:
         """Build personas based on data center power monitoring research"""
 
         return {
@@ -250,7 +249,7 @@ class VerdigrisSignalsMEDDIC:
             ),
         }
 
-    def _build_decision_criteria(self) -> Dict[str, Dict]:
+    def _build_decision_criteria(self) -> dict[str, dict]:
         """Build decision criteria based on data center power monitoring research"""
 
         return {
@@ -295,7 +294,7 @@ class VerdigrisSignalsMEDDIC:
             },
         }
 
-    def _build_buying_process(self) -> Dict[str, Dict]:
+    def _build_buying_process(self) -> dict[str, dict]:
         """Build typical buying process for data center monitoring tools"""
 
         return {
@@ -362,7 +361,7 @@ class VerdigrisSignalsMEDDIC:
             },
         }
 
-    def classify_contact(self, contact: Dict) -> Dict:
+    def classify_contact(self, contact: dict) -> dict:
         """Classify a contact into MEDDIC personas based on title and role"""
 
         title = (contact.get("title") or "").lower()

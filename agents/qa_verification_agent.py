@@ -4,12 +4,11 @@ QA Verification Agent - Tests Every Claim Before Marking Tasks Complete
 Prevents the cycle of claiming success without independent verification
 """
 
-import os
 import json
-import requests
-from typing import Dict, List, Optional, Tuple
+import os
 from datetime import datetime
-import subprocess
+
+import requests
 
 
 class QAVerificationAgent:
@@ -39,7 +38,7 @@ class QAVerificationAgent:
         print("🔍 QA Verification Agent initialized")
         print("🎯 Mission: Test every claim, prevent false success reporting")
 
-    def verify_notion_databases_exist_and_accessible(self) -> Dict:
+    def verify_notion_databases_exist_and_accessible(self) -> dict:
         """Verify that all 4 Notion databases actually exist and are accessible"""
 
         print("\n🔍 QA TEST: Verifying Notion databases exist and are accessible...")
@@ -124,7 +123,7 @@ class QAVerificationAgent:
         self.verification_log.append(results)
         return results
 
-    def verify_genesis_cloud_data_populated(self) -> Dict:
+    def verify_genesis_cloud_data_populated(self) -> dict:
         """Verify that Genesis Cloud data is actually in all 4 databases"""
 
         print("\n🔍 QA TEST: Verifying Genesis Cloud data is populated in databases...")
@@ -199,7 +198,7 @@ class QAVerificationAgent:
         self.verification_log.append(results)
         return results
 
-    def verify_dashboard_reads_from_notion(self, dashboard_url: str) -> Dict:
+    def verify_dashboard_reads_from_notion(self, dashboard_url: str) -> dict:
         """Verify that dashboard actually reads data from Notion (not hardcoded)"""
 
         print(f"\n🔍 QA TEST: Verifying dashboard reads from Notion: {dashboard_url}")
@@ -242,10 +241,10 @@ class QAVerificationAgent:
         self.verification_log.append(results)
         return results
 
-    def verify_five_phase_workflow_complete(self, research_data_file: str) -> Dict:
+    def verify_five_phase_workflow_complete(self, research_data_file: str) -> dict:
         """Verify that research data contains all 5 phases per skill specification"""
 
-        print(f"\n🔍 QA TEST: Verifying 5-phase workflow completeness...")
+        print("\n🔍 QA TEST: Verifying 5-phase workflow completeness...")
 
         results = {
             "test_name": "five_phase_workflow_complete",
@@ -258,7 +257,7 @@ class QAVerificationAgent:
             if not os.path.exists(research_data_file):
                 return self._fail_test(f"Research data file not found: {research_data_file}")
 
-            with open(research_data_file, "r") as f:
+            with open(research_data_file) as f:
                 research = json.load(f)
 
             # Check Phase 1: Account Intelligence Baseline
@@ -326,7 +325,7 @@ class QAVerificationAgent:
         self.verification_log.append(results)
         return results
 
-    def generate_qa_report(self) -> Dict:
+    def generate_qa_report(self) -> dict:
         """Generate comprehensive QA report with pass/fail status"""
 
         total_tests = len(self.verification_log)
@@ -343,7 +342,7 @@ class QAVerificationAgent:
             "report_timestamp": datetime.now().isoformat(),
         }
 
-        print(f"\n📋 QA VERIFICATION REPORT")
+        print("\n📋 QA VERIFICATION REPORT")
         print("=" * 50)
         print(f"Tests Run: {total_tests}")
         print(f"Passed: {passed_tests}")
@@ -358,7 +357,7 @@ class QAVerificationAgent:
 
         return report
 
-    def _verify_genesis_cloud_records(self, db_type: str, records: List[Dict]) -> bool:
+    def _verify_genesis_cloud_records(self, db_type: str, records: list[dict]) -> bool:
         """Check if records contain Genesis Cloud specific data"""
 
         for record in records:
@@ -391,7 +390,7 @@ class QAVerificationAgent:
 
         return False
 
-    def _sample_record_data(self, db_type: str, records: List[Dict]) -> List[str]:
+    def _sample_record_data(self, db_type: str, records: list[dict]) -> list[str]:
         """Extract sample data from records for verification"""
 
         samples = []
@@ -414,7 +413,7 @@ class QAVerificationAgent:
 
         return samples
 
-    def _fail_test(self, error_message: str) -> Dict:
+    def _fail_test(self, error_message: str) -> dict:
         """Helper to create failed test result"""
         return {"passed": False, "errors": [error_message]}
 

@@ -12,16 +12,15 @@ Designed to provide actionable intelligence for sales teams while maintaining
 performance through caching and parallel data gathering.
 """
 
-import os
-import re
-import json
-import time
 import logging
-import requests
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
-from dataclasses import dataclass
+import re
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Optional
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,7 @@ class AccountIntelligence:
 
     # Metadata
     intelligence_date: str = ""  # When this intelligence was gathered
-    data_sources: List[str] = None  # ["linkedin", "website", "news", "jobs"]
+    data_sources: list[str] = None  # ["linkedin", "website", "news", "jobs"]
     confidence_score: float = 0.0  # 0-100 overall confidence in data quality
 
     def __post_init__(self):
@@ -233,7 +232,7 @@ class AccountIntelligenceEngine:
         }
 
     def gather_account_intelligence(
-        self, company_name: str, company_domain: str, apollo_data: Optional[Dict] = None
+        self, company_name: str, company_domain: str, apollo_data: Optional[dict] = None
     ) -> AccountIntelligence:
         """
         Main entry point for comprehensive account intelligence gathering
@@ -295,7 +294,7 @@ class AccountIntelligenceEngine:
 
         return intelligence
 
-    def _analyze_company_website(self, domain: str, company_name: str) -> Dict:
+    def _analyze_company_website(self, domain: str, company_name: str) -> dict:
         """Analyze company website for tech stack and announcements"""
         try:
             self.logger.debug(f"🌐 Analyzing website: {domain}")
@@ -341,7 +340,7 @@ class AccountIntelligenceEngine:
                             )
                             if job_count > 10:
                                 website_data["hiring_signals"].append(
-                                    f"10+ technical positions open"
+                                    "10+ technical positions open"
                                 )
 
                 except requests.RequestException:
@@ -353,7 +352,7 @@ class AccountIntelligenceEngine:
             self.logger.warning(f"Website analysis failed for {domain}: {e}")
             return {}
 
-    def _search_company_news(self, company_name: str) -> Dict:
+    def _search_company_news(self, company_name: str) -> dict:
         """Search for recent company news and funding information"""
         try:
             # This would ideally use a news API like NewsAPI, Google News API, etc.
@@ -384,7 +383,7 @@ class AccountIntelligenceEngine:
             self.logger.warning(f"News search failed for {company_name}: {e}")
             return {}
 
-    def _analyze_job_postings(self, company_name: str) -> Dict:
+    def _analyze_job_postings(self, company_name: str) -> dict:
         """Analyze job postings for hiring velocity and tech needs"""
         try:
             jobs_data = {"hiring_velocity": "", "tech_requirements": [], "growth_indicators": []}
@@ -404,7 +403,7 @@ class AccountIntelligenceEngine:
             self.logger.warning(f"Job posting analysis failed for {company_name}: {e}")
             return {}
 
-    def _search_linkedin_company(self, company_name: str) -> Dict:
+    def _search_linkedin_company(self, company_name: str) -> dict:
         """Search LinkedIn for company page intelligence"""
         try:
             linkedin_data = {"leadership_updates": [], "company_updates": [], "employee_growth": ""}
@@ -425,7 +424,7 @@ class AccountIntelligenceEngine:
             return {}
 
     def _merge_intelligence_results(
-        self, intelligence: AccountIntelligence, results: Dict, apollo_data: Optional[Dict]
+        self, intelligence: AccountIntelligence, results: dict, apollo_data: Optional[dict]
     ):
         """Merge all intelligence sources into final result"""
 
@@ -552,7 +551,7 @@ class AccountIntelligenceEngine:
 
         return min(score, 100.0)  # Cap at 100
 
-    def convert_to_notion_format(self, intelligence: AccountIntelligence) -> Dict:
+    def convert_to_notion_format(self, intelligence: AccountIntelligence) -> dict:
         """Convert intelligence to enhanced schema format with confidence indicators"""
 
         # Helper function to add confidence indicators

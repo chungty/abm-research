@@ -4,11 +4,8 @@ Work with Existing Notion Databases
 Use the existing databases and enhance them with missing schema fields
 """
 
-import os
-from pathlib import Path
-from dotenv import load_dotenv
-from notion_client import Client
 from datetime import datetime
+
 from abm_config import config
 
 
@@ -51,7 +48,7 @@ def find_related_databases(parent_page_id: str):
 
     client = config.get_notion_client()
 
-    print(f"🔍 FINDING RELATED DATABASES...")
+    print("🔍 FINDING RELATED DATABASES...")
     print("-" * 40)
 
     try:
@@ -79,7 +76,7 @@ def find_related_databases(parent_page_id: str):
                 elif "partnership" in title_lower:
                     databases_found["partnerships"] = db_id
 
-        print(f"\n📋 Categorized Databases:")
+        print("\n📋 Categorized Databases:")
         for category, db_id in databases_found.items():
             print(f"   {category}: {db_id}")
 
@@ -95,7 +92,7 @@ def enhance_accounts_database(database_id: str):
 
     client = config.get_notion_client()
 
-    print(f"🔧 ENHANCING ACCOUNTS DATABASE...")
+    print("🔧 ENHANCING ACCOUNTS DATABASE...")
     print("-" * 40)
 
     try:
@@ -178,7 +175,7 @@ def main():
         return
 
     # Step 2: Find related databases
-    print(f"\n🔍 LOOKING FOR RELATED DATABASES...")
+    print("\n🔍 LOOKING FOR RELATED DATABASES...")
 
     # Try to find the parent page ID from the accounts database
     # The parent page should contain other databases too
@@ -208,11 +205,11 @@ def main():
     success = enhance_accounts_database(accounts_database_id)
 
     if success:
-        print(f"\n🎉 SUCCESS!")
+        print("\n🎉 SUCCESS!")
         print(
             f"📊 Enhanced Accounts database: https://www.notion.so/{accounts_database_id.replace('-', '')}"
         )
-        print(f"🚀 Ready to populate with Genesis Cloud data!")
+        print("🚀 Ready to populate with Genesis Cloud data!")
 
         # Save the database configuration
         config_content = f"""# Existing Database Configuration
@@ -231,7 +228,7 @@ DATABASE_IDS = {{
         with open("existing_database_config.py", "w") as f:
             f.write(config_content)
 
-        print(f"🔧 Database configuration saved to: existing_database_config.py")
+        print("🔧 Database configuration saved to: existing_database_config.py")
 
 
 if __name__ == "__main__":

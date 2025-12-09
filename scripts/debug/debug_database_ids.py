@@ -5,13 +5,13 @@ Debug Database ID Issues
 Since permissions are correct, investigate if database IDs are wrong or API calls are malformed.
 """
 
-import os
 import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.integrations.notion_client import NotionClient
 import logging
+
+from abm_research.integrations.notion_client import NotionClient
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -54,7 +54,7 @@ def debug_database_ids():
                 actual_id = db_data.get("id", "unknown")
                 api_url = db_data.get("url", "No URL")
 
-                print(f"   ✅ Metadata call works")
+                print("   ✅ Metadata call works")
                 print(f"   API returns ID: {actual_id}")
                 print(f"   API returns URL: {api_url}")
 
@@ -63,9 +63,9 @@ def debug_database_ids():
                 actual_id_clean = actual_id.replace("-", "")
 
                 if config_id_clean == actual_id_clean:
-                    print(f"   ✅ Database IDs match")
+                    print("   ✅ Database IDs match")
                 else:
-                    print(f"   ❌ DATABASE ID MISMATCH!")
+                    print("   ❌ DATABASE ID MISMATCH!")
                     print(f"      Expected: {config_id_clean}")
                     print(f"      Actual:   {actual_id_clean}")
 
@@ -93,7 +93,7 @@ def debug_database_ids():
             print(f"   ❌ Exception: {e}")
 
     # Test 2: Check if there are multiple databases with same name
-    print(f"\n🔍 STEP 2: Search for Database Name Conflicts")
+    print("\n🔍 STEP 2: Search for Database Name Conflicts")
     print("-" * 50)
 
     try:
@@ -127,7 +127,7 @@ def debug_database_ids():
                     "🤝 Strategic Partnerships",
                 ]
                 if title in expected_titles:
-                    print(f"      ⭐ This is one of our target databases!")
+                    print("      ⭐ This is one of our target databases!")
 
         else:
             print(f"   ❌ Search failed: {search_response.status_code}")
@@ -136,7 +136,7 @@ def debug_database_ids():
         print(f"   ❌ Search error: {e}")
 
     # Test 3: Raw API call test
-    print(f"\n🔍 STEP 3: Direct API Authentication Test")
+    print("\n🔍 STEP 3: Direct API Authentication Test")
     print("-" * 50)
 
     try:
@@ -145,7 +145,7 @@ def debug_database_ids():
 
         if me_response.status_code == 200:
             user_data = me_response.json()
-            print(f"✅ API authentication working")
+            print("✅ API authentication working")
             print(f"   User: {user_data.get('name', 'Unknown')}")
             print(f"   Type: {user_data.get('type', 'Unknown')}")
 

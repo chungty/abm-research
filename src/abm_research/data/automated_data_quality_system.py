@@ -4,17 +4,15 @@ Automated ABM Data Quality System
 Prevents duplicates, ensures data consistency, and maintains clean databases
 """
 
-import os
-import requests
 import json
-import time
-import hashlib
-import schedule
 import logging
-from datetime import datetime, timedelta
-from typing import List, Dict, Set, Optional, Tuple
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Optional
+
+import requests
+import schedule
 
 from ..config.manager import config_manager
 
@@ -163,7 +161,7 @@ class ABMDataQualitySystem:
         print(f"   ✅ Cached {len(self.dedup_cache['contacts'])} contact keys")
         print(f"   ✅ Cached {len(self.dedup_cache['trigger_events'])} event keys")
 
-    def check_before_create_account(self, account_data: Dict) -> Optional[str]:
+    def check_before_create_account(self, account_data: dict) -> Optional[str]:
         """Check if account already exists before creating"""
         domain = account_data.get("domain", "").lower()
         name = account_data.get("name", "").lower()
@@ -181,7 +179,7 @@ class ABMDataQualitySystem:
 
         return None  # Safe to create
 
-    def check_before_create_contact(self, contact_data: Dict) -> Optional[str]:
+    def check_before_create_contact(self, contact_data: dict) -> Optional[str]:
         """Check if contact already exists before creating"""
         email = contact_data.get("email", "").lower() if contact_data.get("email") else ""
         linkedin_url = contact_data.get("linkedin_url", "")
@@ -213,7 +211,7 @@ class ABMDataQualitySystem:
 
         return None  # Safe to create
 
-    def check_before_create_trigger_event(self, event_data: Dict, account_id: str) -> Optional[str]:
+    def check_before_create_trigger_event(self, event_data: dict, account_id: str) -> Optional[str]:
         """Check if trigger event already exists before creating"""
         description = event_data.get("event_description", "").lower()
         account_key = account_id or "no_account"
@@ -227,7 +225,7 @@ class ABMDataQualitySystem:
 
         return None  # Safe to create
 
-    def run_quality_checks(self) -> Dict:
+    def run_quality_checks(self) -> dict:
         """Run all data quality checks"""
         print("🔍 RUNNING DATA QUALITY CHECKS")
         print("=" * 45)
@@ -273,7 +271,7 @@ class ABMDataQualitySystem:
                         f"      🔴 Found {len(issues)} issues (Fixed: {issue_result.get('auto_fixed', 0)})"
                     )
                 else:
-                    print(f"      ✅ No issues found")
+                    print("      ✅ No issues found")
 
             except Exception as e:
                 print(f"      ❌ Check failed: {e}")
@@ -287,14 +285,14 @@ class ABMDataQualitySystem:
 
         results["issues_fixed"] = total_fixed
 
-        print(f"\n📊 QUALITY SUMMARY:")
+        print("\n📊 QUALITY SUMMARY:")
         print(f"   Total Issues: {total_issues}")
         print(f"   Auto-Fixed: {total_fixed}")
         print(f"   Quality Score: {results['quality_score']:.1f}/100")
 
         return results
 
-    def check_duplicate_accounts(self) -> List[Dict]:
+    def check_duplicate_accounts(self) -> list[dict]:
         """Check for duplicate accounts"""
         accounts = self._fetch_all_accounts()
         domain_groups = defaultdict(list)
@@ -315,7 +313,7 @@ class ABMDataQualitySystem:
 
         return duplicates
 
-    def check_duplicate_contacts(self) -> List[Dict]:
+    def check_duplicate_contacts(self) -> list[dict]:
         """Check for duplicate contacts"""
         contacts = self._fetch_all_contacts()
         contact_groups = defaultdict(list)
@@ -345,7 +343,7 @@ class ABMDataQualitySystem:
 
         return duplicates
 
-    def check_orphaned_contacts(self) -> List[Dict]:
+    def check_orphaned_contacts(self) -> list[dict]:
         """Check for contacts without account relationships"""
         contacts = self._fetch_all_contacts()
         orphaned = []
@@ -360,7 +358,7 @@ class ABMDataQualitySystem:
 
         return orphaned
 
-    def check_incomplete_trigger_events(self) -> List[Dict]:
+    def check_incomplete_trigger_events(self) -> list[dict]:
         """Check for trigger events missing required fields"""
         events = self._fetch_all_trigger_events()
         incomplete = []
@@ -387,7 +385,7 @@ class ABMDataQualitySystem:
 
         return incomplete
 
-    def check_broken_relationships(self) -> List[Dict]:
+    def check_broken_relationships(self) -> list[dict]:
         """Check for broken account-contact relationships"""
         accounts = self._fetch_all_accounts()
         account_ids = {acc["id"] for acc in accounts}
@@ -409,7 +407,7 @@ class ABMDataQualitySystem:
 
         return broken
 
-    def check_data_freshness(self) -> List[Dict]:
+    def check_data_freshness(self) -> list[dict]:
         """Check for stale data (older than 30 days)"""
         cutoff_date = datetime.now() - timedelta(days=30)
         stale = []
@@ -431,7 +429,7 @@ class ABMDataQualitySystem:
 
         return stale
 
-    def check_invalid_emails(self) -> List[Dict]:
+    def check_invalid_emails(self) -> list[dict]:
         """Check for invalid email formats"""
         import re
 
@@ -451,7 +449,7 @@ class ABMDataQualitySystem:
 
         return invalid
 
-    def check_missing_linkedin(self) -> List[Dict]:
+    def check_missing_linkedin(self) -> list[dict]:
         """Check for contacts missing LinkedIn URLs"""
         contacts = self._fetch_all_contacts()
         missing = []
@@ -466,7 +464,7 @@ class ABMDataQualitySystem:
 
         return missing
 
-    def _auto_fix_issues(self, rule_name: str, issues: List[Dict]) -> int:
+    def _auto_fix_issues(self, rule_name: str, issues: list[dict]) -> int:
         """Auto-fix issues where possible"""
         fixed_count = 0
 
@@ -528,7 +526,7 @@ class ABMDataQualitySystem:
         # Generate quality report
         self._generate_quality_report(results)
 
-    def _generate_quality_report(self, results: Dict):
+    def _generate_quality_report(self, results: dict):
         """Generate data quality report"""
         report_filename = f"abm_quality_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
 
@@ -609,7 +607,7 @@ class ABMDataQualitySystem:
             return False
 
     # Property extraction methods (reuse from cleanup script)
-    def _extract_title(self, prop: Dict) -> str:
+    def _extract_title(self, prop: dict) -> str:
         if not prop or prop.get("type") != "title":
             return ""
         title_list = prop.get("title", [])
@@ -617,7 +615,7 @@ class ABMDataQualitySystem:
             return "".join([item.get("plain_text", "") for item in title_list])
         return ""
 
-    def _extract_rich_text(self, prop: Dict) -> str:
+    def _extract_rich_text(self, prop: dict) -> str:
         if not prop or prop.get("type") != "rich_text":
             return ""
         rich_text_list = prop.get("rich_text", [])
@@ -625,12 +623,12 @@ class ABMDataQualitySystem:
             return "".join([item.get("plain_text", "") for item in rich_text_list])
         return ""
 
-    def _extract_number(self, prop: Dict) -> Optional[float]:
+    def _extract_number(self, prop: dict) -> Optional[float]:
         if not prop or prop.get("type") != "number":
             return None
         return prop.get("number")
 
-    def _extract_select(self, prop: Dict) -> str:
+    def _extract_select(self, prop: dict) -> str:
         if not prop or prop.get("type") != "select":
             return ""
         select_obj = prop.get("select")
@@ -638,12 +636,12 @@ class ABMDataQualitySystem:
             return select_obj.get("name", "")
         return ""
 
-    def _extract_email(self, prop: Dict) -> str:
+    def _extract_email(self, prop: dict) -> str:
         if not prop or prop.get("type") != "email":
             return ""
         return prop.get("email", "")
 
-    def _extract_url(self, prop: Dict) -> str:
+    def _extract_url(self, prop: dict) -> str:
         if not prop or prop.get("type") != "url":
             return ""
         return prop.get("url", "")
@@ -665,10 +663,10 @@ def main():
     # Schedule ongoing checks
     quality_system.schedule_quality_checks()
 
-    print(f"\n🎯 AUTOMATED QUALITY SYSTEM ACTIVE")
+    print("\n🎯 AUTOMATED QUALITY SYSTEM ACTIVE")
     print(f"✅ Initial scan complete - Quality Score: {results['quality_score']:.1f}/100")
-    print(f"📅 Scheduled checks will run automatically")
-    print(f"🔄 Use quality_system.check_before_create_*() methods in ABM workflows")
+    print("📅 Scheduled checks will run automatically")
+    print("🔄 Use quality_system.check_before_create_*() methods in ABM workflows")
 
 
 if __name__ == "__main__":

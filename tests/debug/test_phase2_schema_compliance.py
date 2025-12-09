@@ -4,17 +4,17 @@ Phase 2 Schema Compliance Validation Test
 Tests that all enhanced intelligence engines output schema-compliant data with confidence indicators
 """
 
-import sys
 import os
+import sys
 
 sys.path.append("/Users/chungty/Projects/abm-research/src")
 
-from abm_research.utils.account_intelligence_engine import account_intelligence_engine
+from abm_research.phases.apollo_contact_discovery import apollo_discovery
 from abm_research.phases.enhanced_trigger_event_detector import enhanced_trigger_detector
 from abm_research.phases.strategic_partnership_intelligence import (
     strategic_partnership_intelligence,
 )
-from abm_research.phases.apollo_contact_discovery import apollo_discovery
+from abm_research.utils.account_intelligence_engine import account_intelligence_engine
 
 
 def test_account_intelligence_schema():
@@ -65,8 +65,9 @@ def test_trigger_events_schema():
     """Test Enhanced Trigger Event Detector schema compliance"""
     print("\n⚡ Testing Trigger Events Schema Compliance...")
 
-    from abm_research.phases.enhanced_trigger_event_detector import TriggerEvent
     from datetime import datetime
+
+    from abm_research.phases.enhanced_trigger_event_detector import TriggerEvent
 
     # Create mock trigger events
     mock_events = [
@@ -114,8 +115,9 @@ def test_partnerships_schema():
     """Test Strategic Partnership Intelligence schema compliance"""
     print("\n🤝 Testing Partnership Intelligence Schema Compliance...")
 
-    from abm_research.phases.strategic_partnership_intelligence import StrategicPartnership
     from datetime import datetime
+
+    from abm_research.phases.strategic_partnership_intelligence import StrategicPartnership
 
     # Create mock partnership
     mock_partnership = StrategicPartnership(
@@ -163,8 +165,9 @@ def test_contacts_schema():
     """Test Apollo Contact Discovery schema compliance"""
     print("\n👤 Testing Contact Discovery Schema Compliance...")
 
-    from abm_research.phases.apollo_contact_discovery import ApolloContact
     from datetime import datetime
+
+    from abm_research.phases.apollo_contact_discovery import ApolloContact
 
     # Create mock contact
     mock_contact = ApolloContact(

@@ -5,14 +5,15 @@ Fetches public LinkedIn activity without requiring LinkedIn API access.
 Uses Brave Search to discover posts, activity, and professional insights.
 """
 
+import logging
 import os
 import re
 import time
-import requests
-import logging
-from typing import Dict, List, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Optional
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +26,10 @@ class LinkedInActivity:
     linkedin_url: Optional[str] = None
 
     # Discovered activity
-    recent_posts: List[str] = field(default_factory=list)
-    topics_of_interest: List[str] = field(default_factory=list)
-    engagement_signals: List[str] = field(default_factory=list)
-    professional_updates: List[str] = field(default_factory=list)
+    recent_posts: list[str] = field(default_factory=list)
+    topics_of_interest: list[str] = field(default_factory=list)
+    engagement_signals: list[str] = field(default_factory=list)
+    professional_updates: list[str] = field(default_factory=list)
 
     # Metadata
     activity_score: int = 0  # 0-100 activity level
@@ -186,7 +187,7 @@ class LinkedInBraveEnrichment:
             logger.warning(f"Error finding LinkedIn profile: {e}")
             return None
 
-    def _search_linkedin_posts(self, person_name: str, company_name: Optional[str]) -> List[str]:
+    def _search_linkedin_posts(self, person_name: str, company_name: Optional[str]) -> list[str]:
         """Search for LinkedIn posts by this person"""
         posts = []
 
@@ -235,7 +236,7 @@ class LinkedInBraveEnrichment:
 
     def _discover_professional_topics(
         self, person_name: str, company_name: Optional[str], title: Optional[str]
-    ) -> List[str]:
+    ) -> list[str]:
         """Discover professional topics this person writes/speaks about"""
         topics = []
 
@@ -282,7 +283,7 @@ class LinkedInBraveEnrichment:
 
     def _search_engagement_signals(
         self, person_name: str, company_name: Optional[str]
-    ) -> List[str]:
+    ) -> list[str]:
         """Search for engagement signals (mentions, features, interviews)"""
         signals = []
 
@@ -328,7 +329,7 @@ class LinkedInBraveEnrichment:
 
     def _search_professional_updates(
         self, person_name: str, company_name: Optional[str], title: Optional[str]
-    ) -> List[str]:
+    ) -> list[str]:
         """Search for professional updates (promotions, awards, speaking)"""
         updates = []
 

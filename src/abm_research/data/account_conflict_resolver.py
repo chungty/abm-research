@@ -2,8 +2,10 @@
 Smart Account Conflict Resolution System
 Prevents duplicate accounts and intelligently merges data
 """
-import requests
 from difflib import SequenceMatcher
+
+import requests
+
 from ..config.manager import config_manager
 
 
@@ -178,7 +180,7 @@ class AccountConflictResolver:
             resolution.update(
                 {
                     "action": "MANUAL_REVIEW",
-                    "reasoning": f"High similarity but not exact - requires human decision",
+                    "reasoning": "High similarity but not exact - requires human decision",
                     "manual_review": True,
                     "comparison": {
                         "new": new_account,
@@ -192,7 +194,7 @@ class AccountConflictResolver:
             resolution.update(
                 {
                     "action": "CREATE_NEW",
-                    "reasoning": f"Similarity below threshold - create new account",
+                    "reasoning": "Similarity below threshold - create new account",
                     "note": f"Monitor for potential relationship with {existing['name']}",
                 }
             )
@@ -271,7 +273,7 @@ class AccountConflictResolver:
         if not conflict_result["conflicts_found"]:
             return "✅ No conflicts found - proceed with account creation"
 
-        report = f"⚠️ ACCOUNT CONFLICT DETECTED\n"
+        report = "⚠️ ACCOUNT CONFLICT DETECTED\n"
         report += f"Conflicts found: {conflict_result['conflicts_count']}\n"
         report += f"Recommended action: {conflict_result['recommended_action']}\n"
         report += f"Reasoning: {conflict_result['reasoning']}\n\n"

@@ -5,9 +5,10 @@ Saves all data to Notion
 """
 import asyncio
 import os
-import requests
 import time
+
 import aiohttp
+import requests
 
 # Load env from file
 with open(".env") as f:

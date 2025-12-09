@@ -4,11 +4,9 @@ Product Design Agent - Ensures Implementation Compliance with SKILL.md
 Validates that all implementations follow the 5-phase ABM research specification
 """
 
-import os
 import json
-from pathlib import Path
-from typing import Dict, List, Any
 from datetime import datetime
+from pathlib import Path
 
 
 class ProductDesignAgent:
@@ -24,7 +22,7 @@ class ProductDesignAgent:
         print(f"🎯 Specification: {self.skill_spec_path}")
         print(f"📚 References: {self.references_path}")
 
-    def validate_skill_compliance(self) -> Dict:
+    def validate_skill_compliance(self) -> dict:
         """Validate current implementation against SKILL.md specification"""
 
         print("\n🔍 VALIDATING SKILL.MD COMPLIANCE...")
@@ -75,7 +73,7 @@ class ProductDesignAgent:
         self._print_compliance_summary(validation_results)
         return validation_results
 
-    def _validate_phase_implementations(self, validation_results: Dict):
+    def _validate_phase_implementations(self, validation_results: dict):
         """Check if all 5 phases are properly implemented"""
 
         print("   📊 Validating 5-phase workflow implementation...")
@@ -85,7 +83,7 @@ class ProductDesignAgent:
 
         if abm_research_file.exists():
             try:
-                with open(abm_research_file, "r") as f:
+                with open(abm_research_file) as f:
                     content = f.read()
 
                 # Check for each phase implementation
@@ -117,7 +115,7 @@ class ProductDesignAgent:
                 "comprehensive_abm_research.py not found"
             )
 
-    def _validate_notion_structure(self, validation_results: Dict):
+    def _validate_notion_structure(self, validation_results: dict):
         """Validate Notion database structure matches specification"""
 
         print("   🗄️ Validating Notion database structure...")
@@ -127,7 +125,7 @@ class ProductDesignAgent:
 
         if qa_agent_file.exists():
             try:
-                with open(qa_agent_file, "r") as f:
+                with open(qa_agent_file) as f:
                     content = f.read()
 
                 # Check for actual database IDs (not None or empty)
@@ -158,7 +156,7 @@ class ProductDesignAgent:
             print("      ❌ QA Verification Agent not found")
             validation_results["missing_components"].append("QA Verification Agent missing")
 
-    def _validate_scoring_formulas(self, validation_results: Dict):
+    def _validate_scoring_formulas(self, validation_results: dict):
         """Validate scoring formula implementation matches lead_scoring_config.json"""
 
         print("   🧮 Validating scoring formula implementation...")
@@ -167,7 +165,7 @@ class ProductDesignAgent:
 
         if scoring_config_file.exists():
             try:
-                with open(scoring_config_file, "r") as f:
+                with open(scoring_config_file) as f:
                     scoring_config = json.load(f)
 
                 # Check if weights are properly configured
@@ -192,7 +190,7 @@ class ProductDesignAgent:
             print("      ❌ lead_scoring_config.json not found")
             validation_results["missing_components"].append("lead_scoring_config.json missing")
 
-    def _validate_api_integrations(self, validation_results: Dict):
+    def _validate_api_integrations(self, validation_results: dict):
         """Check if required API integrations are properly implemented"""
 
         print("   🔗 Validating API integrations...")
@@ -207,7 +205,7 @@ class ProductDesignAgent:
 
         for file_path in python_files:
             try:
-                with open(file_path, "r") as f:
+                with open(file_path) as f:
                     content = f.read()
 
                 if "apollo" in content.lower() or "apollo_api_key" in content:
@@ -240,7 +238,7 @@ class ProductDesignAgent:
 
         validation_results["api_integration_compliance"] = all_integrations_found
 
-    def _calculate_overall_compliance(self, validation_results: Dict) -> bool:
+    def _calculate_overall_compliance(self, validation_results: dict) -> bool:
         """Calculate overall compliance score"""
 
         # Count compliant components
@@ -266,7 +264,7 @@ class ProductDesignAgent:
 
         return compliance_score >= 0.8  # 80% compliance threshold
 
-    def _generate_compliance_recommendations(self, validation_results: Dict) -> List[str]:
+    def _generate_compliance_recommendations(self, validation_results: dict) -> list[str]:
         """Generate specific recommendations to improve compliance"""
 
         recommendations = []
@@ -308,10 +306,10 @@ class ProductDesignAgent:
 
         return recommendations
 
-    def _print_compliance_summary(self, validation_results: Dict):
+    def _print_compliance_summary(self, validation_results: dict):
         """Print comprehensive compliance summary"""
 
-        print(f"\n📋 SKILL.MD COMPLIANCE REPORT")
+        print("\n📋 SKILL.MD COMPLIANCE REPORT")
         print("=" * 50)
 
         overall_status = (
@@ -319,13 +317,13 @@ class ProductDesignAgent:
         )
         print(f"Overall Status: {overall_status}")
 
-        print(f"\n🔄 PHASE COMPLIANCE:")
+        print("\n🔄 PHASE COMPLIANCE:")
         for phase, compliant in validation_results["phase_compliance"].items():
             status = "✅" if compliant else "❌"
             phase_name = phase.replace("_", " ").title()
             print(f"   {status} {phase_name}")
 
-        print(f"\n🏗️ INFRASTRUCTURE COMPLIANCE:")
+        print("\n🏗️ INFRASTRUCTURE COMPLIANCE:")
         structure_status = "✅" if validation_results["notion_structure_compliance"] else "❌"
         scoring_status = "✅" if validation_results["scoring_formula_compliance"] else "❌"
         api_status = "✅" if validation_results["api_integration_compliance"] else "❌"
@@ -335,15 +333,15 @@ class ProductDesignAgent:
         print(f"   {api_status} API Integration Completeness")
 
         if validation_results["missing_components"]:
-            print(f"\n⚠️ MISSING COMPONENTS:")
+            print("\n⚠️ MISSING COMPONENTS:")
             for i, component in enumerate(validation_results["missing_components"], 1):
                 print(f"   {i}. {component}")
 
-        print(f"\n🎯 COMPLIANCE RECOMMENDATIONS:")
+        print("\n🎯 COMPLIANCE RECOMMENDATIONS:")
         for i, rec in enumerate(validation_results["recommendations"], 1):
             print(f"   {i}. {rec}")
 
-    def approve_implementation_gate(self, component_name: str) -> Dict:
+    def approve_implementation_gate(self, component_name: str) -> dict:
         """Gate approval for implementation components"""
 
         print(f"\n🚪 EVALUATING IMPLEMENTATION GATE: {component_name}")
@@ -405,7 +403,7 @@ class ProductDesignAgent:
 
         return gate_result
 
-    def generate_implementation_blueprint(self) -> Dict:
+    def generate_implementation_blueprint(self) -> dict:
         """Generate detailed implementation blueprint based on SKILL.md"""
 
         print("\n📐 GENERATING IMPLEMENTATION BLUEPRINT...")
@@ -527,10 +525,10 @@ class ProductDesignAgent:
         self._print_blueprint_summary(blueprint)
         return blueprint
 
-    def _print_blueprint_summary(self, blueprint: Dict):
+    def _print_blueprint_summary(self, blueprint: dict):
         """Print implementation blueprint summary"""
 
-        print(f"\n📐 IMPLEMENTATION BLUEPRINT")
+        print("\n📐 IMPLEMENTATION BLUEPRINT")
         print("=" * 50)
 
         for phase_key, phase_data in blueprint["phases"].items():
@@ -540,13 +538,13 @@ class ProductDesignAgent:
             print(f"   Output: {phase_data['output_format']}")
             print(f"   QA: {phase_data['qa_criteria']}")
 
-        print(f"\n🗄️ NOTION DATABASE STRUCTURE")
+        print("\n🗄️ NOTION DATABASE STRUCTURE")
         for db_name, db_spec in blueprint["notion_databases"].items():
             print(
                 f"   {db_name.title()}: {len(db_spec['required_fields'])} fields, {len(db_spec['relations'])} relations"
             )
 
-        print(f"\n🚪 SEQUENTIAL GATES")
+        print("\n🚪 SEQUENTIAL GATES")
         for i, gate in enumerate(blueprint["sequential_gates"], 1):
             print(f"   {i}. {gate}")
 

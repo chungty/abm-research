@@ -2,9 +2,9 @@
   "scoring_formula": {
     "description": "Contact Score = (ICP Fit × icp_fit_weight) + (Buying Power × buying_power_weight) + (Engagement Potential × engagement_weight)",
     "component_weights": {
-      "icp_fit_weight": 0.40,
-      "buying_power_weight": 0.30,
-      "engagement_weight": 0.30
+      "icp_fit_weight": 0.4,
+      "buying_power_weight": 0.3,
+      "engagement_weight": 0.3
     }
   },
   "icp_fit_scoring": {
@@ -24,15 +24,37 @@
         "description": "Bonus points for key responsibility indicators in bio/about section",
         "keywords": {
           "power_energy": {
-            "terms": ["power", "energy", "electrical", "capacity", "PUE", "kW", "MW"],
+            "terms": [
+              "power",
+              "energy",
+              "electrical",
+              "capacity",
+              "PUE",
+              "kW",
+              "MW"
+            ],
             "points": 20
           },
           "reliability_uptime": {
-            "terms": ["reliability", "uptime", "availability", "SLA", "downtime", "MTTR", "MTBF"],
+            "terms": [
+              "reliability",
+              "uptime",
+              "availability",
+              "SLA",
+              "downtime",
+              "MTTR",
+              "MTBF"
+            ],
             "points": 20
           },
           "capacity_planning": {
-            "terms": ["capacity planning", "infrastructure planning", "scaling", "growth", "expansion"],
+            "terms": [
+              "capacity planning",
+              "infrastructure planning",
+              "scaling",
+              "growth",
+              "expansion"
+            ],
             "points": 20
           }
         },
@@ -85,7 +107,17 @@
       },
       "content_relevance": {
         "description": "Topics discussed align with Verdigris value props",
-        "high_relevance_topics": ["power", "energy", "AI infrastructure", "capacity planning", "uptime", "reliability", "cost optimization", "sustainability", "PUE"],
+        "high_relevance_topics": [
+          "power",
+          "energy",
+          "AI infrastructure",
+          "capacity planning",
+          "uptime",
+          "reliability",
+          "cost optimization",
+          "sustainability",
+          "PUE"
+        ],
         "scoring": {
           "high_relevance": 25,
           "medium_relevance": 15,
@@ -94,7 +126,12 @@
       },
       "network_quality": {
         "description": "Connected to relevant industry professionals",
-        "indicators": ["data center operators", "infrastructure vendors", "industry groups", "peer companies"],
+        "indicators": [
+          "data center operators",
+          "infrastructure vendors",
+          "industry groups",
+          "peer companies"
+        ],
         "score": 25
       }
     }

@@ -8,9 +8,10 @@ Run with: pytest tests/unit/test_meddic_scorer.py -v
 """
 
 import pytest
+
 from abm_research.core.unified_lead_scorer import (
-    MEDDICContactScorer,
     MEDDICContactScore,
+    MEDDICContactScorer,
     meddic_contact_scorer,
 )
 

@@ -12,7 +12,6 @@ Example:
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
 
@@ -55,7 +54,7 @@ class PartnershipClassification:
     reasoning: str
     recommended_approach: str
     potential_value: str  # High, Medium, Low
-    next_actions: List[str]
+    next_actions: list[str]
 
 
 class PartnershipClassifier:
@@ -185,7 +184,7 @@ class PartnershipClassifier:
             "verdigris",
         ]
 
-    def classify_partnership(self, company_data: Dict) -> PartnershipClassification:
+    def classify_partnership(self, company_data: dict) -> PartnershipClassification:
         """
         Classify a company's partnership potential based on their business model,
         industry, and infrastructure.
@@ -247,7 +246,7 @@ class PartnershipClassifier:
         self.logger.info(f"✅ Classified as {best_type.value} with {confidence:.1f}% confidence")
         return classification
 
-    def _score_direct_icp(self, text: str, company_data: Dict) -> float:
+    def _score_direct_icp(self, text: str, company_data: dict) -> float:
         """Score likelihood of being a direct ICP target customer"""
         score = 0.0
 
@@ -275,7 +274,7 @@ class PartnershipClassifier:
 
         return min(score, 100)
 
-    def _score_strategic_partner(self, text: str, company_data: Dict) -> float:
+    def _score_strategic_partner(self, text: str, company_data: dict) -> float:
         """Score likelihood of being a strategic partner"""
         score = 0.0
 
@@ -321,7 +320,7 @@ class PartnershipClassifier:
 
         return min(score, 100)
 
-    def _score_referral_partner(self, text: str, company_data: Dict) -> float:
+    def _score_referral_partner(self, text: str, company_data: dict) -> float:
         """Score likelihood of being a referral partner"""
         score = 0.0
 
@@ -342,7 +341,7 @@ class PartnershipClassifier:
 
         return min(score, 100)
 
-    def _score_competitive(self, text: str, company_data: Dict) -> float:
+    def _score_competitive(self, text: str, company_data: dict) -> float:
         """Score likelihood of being competitive"""
         score = 0.0
 
@@ -352,7 +351,7 @@ class PartnershipClassifier:
 
         return min(score, 100)
 
-    def _determine_industry_category(self, text: str, company_data: Dict) -> IndustryCategory:
+    def _determine_industry_category(self, text: str, company_data: dict) -> IndustryCategory:
         """Determine the industry category based on company data"""
 
         # Check for specific industry indicators
@@ -397,7 +396,7 @@ class PartnershipClassifier:
         partnership_type: PartnershipType,
         industry_category: IndustryCategory,
         confidence: float,
-        company_data: Dict,
+        company_data: dict,
     ) -> PartnershipClassification:
         """Generate comprehensive classification result with recommendations"""
 
@@ -470,7 +469,7 @@ class PartnershipClassifier:
             next_actions=actions,
         )
 
-    def classify_from_account_intelligence(self, account_intel: Dict) -> PartnershipClassification:
+    def classify_from_account_intelligence(self, account_intel: dict) -> PartnershipClassification:
         """
         Convenience method to classify partnership from AccountIntelligenceEngine output
 

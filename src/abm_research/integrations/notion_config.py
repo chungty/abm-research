@@ -10,11 +10,12 @@ Resolves API key naming confusion by standardizing on NOTION_API_KEY
 and providing clear migration guidance for legacy NOTION_ABM_API_KEY usage.
 """
 
-import os
 import logging
-from pathlib import Path
-from typing import Dict, Optional, Any
+import os
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Optional
+
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
@@ -25,10 +26,10 @@ class NotionConfiguration:
     """Complete Notion configuration dataclass"""
 
     api_key: str
-    database_ids: Dict[str, Optional[str]]
-    rate_limits: Dict[str, float]
-    headers: Dict[str, str]
-    validation_results: Dict[str, bool]
+    database_ids: dict[str, Optional[str]]
+    rate_limits: dict[str, float]
+    headers: dict[str, str]
+    validation_results: dict[str, bool]
 
 
 class NotionConfigManager:
@@ -140,7 +141,7 @@ class NotionConfigManager:
                 "Legacy: NOTION_ABM_API_KEY is also supported but deprecated"
             )
 
-    def _load_database_ids(self) -> Dict[str, Optional[str]]:
+    def _load_database_ids(self) -> dict[str, Optional[str]]:
         """Load all database IDs from environment variables"""
 
         # Standard database ID mappings
@@ -179,7 +180,7 @@ class NotionConfigManager:
 
         return database_ids
 
-    def _configure_rate_limits(self) -> Dict[str, float]:
+    def _configure_rate_limits(self) -> dict[str, float]:
         """Configure rate limiting settings"""
         return {
             "request_delay": float(os.getenv("NOTION_REQUEST_DELAY", "0.5")),  # 500ms default
@@ -187,7 +188,7 @@ class NotionConfigManager:
             "timeout": float(os.getenv("NOTION_TIMEOUT", "30.0")),  # 30 seconds
         }
 
-    def _generate_headers(self, api_key: str) -> Dict[str, str]:
+    def _generate_headers(self, api_key: str) -> dict[str, str]:
         """Generate Notion API headers"""
         return {
             "Authorization": f"Bearer {api_key}",
@@ -197,8 +198,8 @@ class NotionConfigManager:
         }
 
     def _validate_configuration(
-        self, api_key: str, database_ids: Dict[str, Optional[str]]
-    ) -> Dict[str, bool]:
+        self, api_key: str, database_ids: dict[str, Optional[str]]
+    ) -> dict[str, bool]:
         """Validate configuration completeness and format"""
 
         validation_results = {}
@@ -243,17 +244,17 @@ class NotionConfigManager:
         return self._config.api_key
 
     @property
-    def database_ids(self) -> Dict[str, Optional[str]]:
+    def database_ids(self) -> dict[str, Optional[str]]:
         """Get all database IDs"""
         return self._config.database_ids.copy()
 
     @property
-    def headers(self) -> Dict[str, str]:
+    def headers(self) -> dict[str, str]:
         """Get Notion API headers"""
         return self._config.headers.copy()
 
     @property
-    def rate_limits(self) -> Dict[str, float]:
+    def rate_limits(self) -> dict[str, float]:
         """Get rate limiting configuration"""
         return self._config.rate_limits.copy()
 
@@ -273,7 +274,7 @@ class NotionConfigManager:
         """Check if a specific database is configured"""
         return bool(self.get_database_id(database_name))
 
-    def get_health_status(self) -> Dict[str, Any]:
+    def get_health_status(self) -> dict[str, Any]:
         """Get complete health status of configuration"""
         return {
             "api_key_configured": bool(self._config.api_key),
@@ -319,7 +320,7 @@ class NotionConfigManager:
             f"\n🏥 Overall Health: {'✅ Healthy' if self._config.validation_results.get('configuration_healthy', False) else '⚠️  Issues detected'}"
         )
 
-    def validate_and_migrate(self) -> Dict[str, str]:
+    def validate_and_migrate(self) -> dict[str, str]:
         """
         Validate current configuration and provide migration recommendations
 
@@ -379,7 +380,7 @@ def get_database_id(database_name: str) -> Optional[str]:
     return get_notion_config().get_database_id(database_name)
 
 
-def get_headers() -> Dict[str, str]:
+def get_headers() -> dict[str, str]:
     """Convenience function to get API headers"""
     return get_notion_config().headers
 
@@ -393,11 +394,11 @@ if __name__ == "__main__":
         # Show migration recommendations
         recommendations = config.validate_and_migrate()
         if recommendations:
-            print(f"\n💡 RECOMMENDATIONS:")
+            print("\n💡 RECOMMENDATIONS:")
             for area, recommendation in recommendations.items():
                 print(f"  {area}: {recommendation}")
         else:
-            print(f"\n✅ Configuration is optimal!")
+            print("\n✅ Configuration is optimal!")
 
     except Exception as e:
         print(f"❌ Configuration error: {e}")

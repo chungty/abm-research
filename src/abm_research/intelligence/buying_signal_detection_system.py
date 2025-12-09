@@ -4,23 +4,10 @@ Automated Buying Signal Detection System
 Real-time monitoring of news, website changes, and social signals for trigger events
 """
 
-import os
-import requests
-import json
-import time
-import re
-from pathlib import Path
-from dotenv import load_dotenv
-from datetime import datetime, timedelta
-from typing import List, Dict, Optional, Set, Tuple
-from urllib.parse import urlparse, urljoin
-from dataclasses import dataclass, asdict
 import random
-from bs4 import BeautifulSoup
-import hashlib
-import openai
-
-from abm_config import config
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Optional
 
 
 @dataclass
@@ -37,7 +24,7 @@ class TriggerEvent:
     relevance_score: float  # 0-100 (relevance to Verdigris Signals)
     urgency_level: str  # 'High', 'Medium', 'Low'
     potential_impact: str
-    follow_up_actions: List[str]
+    follow_up_actions: list[str]
 
 
 @dataclass
@@ -47,7 +34,7 @@ class BuyingSignal:
     signal_type: str
     strength: float  # 0-100
     description: str
-    evidence: List[str]
+    evidence: list[str]
     timeline: str
     probability: float
 
@@ -136,7 +123,7 @@ class NewsMonitor:
             ],
         }
 
-    def monitor_news_for_company(self, company_name: str, domain: str) -> List[TriggerEvent]:
+    def monitor_news_for_company(self, company_name: str, domain: str) -> list[TriggerEvent]:
         """Monitor news sources for company-specific trigger events"""
 
         print(f"   📰 Monitoring news for: {company_name}")
@@ -154,7 +141,7 @@ class NewsMonitor:
         print(f"      ✅ Found {len(trigger_events)} trigger events")
         return trigger_events
 
-    def _generate_realistic_news_events(self, company_name: str, domain: str) -> List[Dict]:
+    def _generate_realistic_news_events(self, company_name: str, domain: str) -> list[dict]:
         """Generate realistic news events for demonstration"""
 
         # Simulate different types of news events
@@ -199,7 +186,7 @@ class NewsMonitor:
         return news_events
 
     def _analyze_news_for_triggers(
-        self, news_item: Dict, company_name: str
+        self, news_item: dict, company_name: str
     ) -> Optional[TriggerEvent]:
         """Analyze news item for trigger events"""
 
@@ -265,7 +252,7 @@ class NewsMonitor:
 
         return trigger_event
 
-    def _generate_follow_up_actions(self, event_type: str, urgency_level: str) -> List[str]:
+    def _generate_follow_up_actions(self, event_type: str, urgency_level: str) -> list[str]:
         """Generate appropriate follow-up actions"""
 
         base_actions = {
@@ -349,7 +336,7 @@ class WebsiteChangeDetector:
             ],
         }
 
-    def monitor_website_changes(self, company_name: str, domain: str) -> List[TriggerEvent]:
+    def monitor_website_changes(self, company_name: str, domain: str) -> list[TriggerEvent]:
         """Monitor website for changes indicating buying signals"""
 
         print(f"   🌐 Monitoring website changes for: {domain}")
@@ -367,7 +354,7 @@ class WebsiteChangeDetector:
         print(f"      ✅ Found {len(trigger_events)} website signals")
         return trigger_events
 
-    def _simulate_website_changes(self, company_name: str, domain: str) -> List[Dict]:
+    def _simulate_website_changes(self, company_name: str, domain: str) -> list[dict]:
         """Simulate website changes for demonstration"""
 
         changes = []
@@ -399,7 +386,7 @@ class WebsiteChangeDetector:
         return changes
 
     def _analyze_change_for_signals(
-        self, change: Dict, company_name: str
+        self, change: dict, company_name: str
     ) -> Optional[TriggerEvent]:
         """Analyze website change for buying signals"""
 
@@ -462,7 +449,7 @@ class SocialSignalDetector:
             "Chief Technology",
         ]
 
-    def monitor_social_signals(self, company_name: str) -> List[TriggerEvent]:
+    def monitor_social_signals(self, company_name: str) -> list[TriggerEvent]:
         """Monitor social media for buying signals"""
 
         print(f"   📱 Monitoring social signals for: {company_name}")
@@ -480,7 +467,7 @@ class SocialSignalDetector:
         print(f"      ✅ Found {len(trigger_events)} social signals")
         return trigger_events
 
-    def _simulate_social_activity(self, company_name: str) -> List[Dict]:
+    def _simulate_social_activity(self, company_name: str) -> list[dict]:
         """Simulate social media activity"""
 
         posts = []
@@ -501,7 +488,7 @@ class SocialSignalDetector:
         return posts
 
     def _analyze_social_post_for_signals(
-        self, post: Dict, company_name: str
+        self, post: dict, company_name: str
     ) -> Optional[TriggerEvent]:
         """Analyze social post for buying signals"""
 
@@ -543,7 +530,7 @@ class SocialSignalDetector:
 
         trigger_event = TriggerEvent(
             event_type="Energy Pressure",
-            event_description=f"Executive social post indicates power monitoring challenges",
+            event_description="Executive social post indicates power monitoring challenges",
             company_name=company_name,
             source_type="social",
             source_url=f"https://{post['platform']}.com/posts/example",
@@ -571,7 +558,7 @@ class BuyingSignalDetection:
         self.website_detector = WebsiteChangeDetector()
         self.social_detector = SocialSignalDetector()
 
-    def detect_signals_for_account(self, company_name: str, domain: str) -> Dict:
+    def detect_signals_for_account(self, company_name: str, domain: str) -> dict:
         """Comprehensive buying signal detection"""
 
         print(f"⚡ BUYING SIGNAL DETECTION: {company_name}")
@@ -581,7 +568,7 @@ class BuyingSignalDetection:
         source_stats = {}
 
         # 1. News Monitoring
-        print(f"\n📰 SOURCE 1: NEWS MONITORING")
+        print("\n📰 SOURCE 1: NEWS MONITORING")
         print("-" * 30)
 
         try:
@@ -595,7 +582,7 @@ class BuyingSignalDetection:
             source_stats["news"] = 0
 
         # 2. Website Change Detection
-        print(f"\n🌐 SOURCE 2: WEBSITE MONITORING")
+        print("\n🌐 SOURCE 2: WEBSITE MONITORING")
         print("-" * 35)
 
         try:
@@ -609,7 +596,7 @@ class BuyingSignalDetection:
             source_stats["website"] = 0
 
         # 3. Social Media Monitoring
-        print(f"\n📱 SOURCE 3: SOCIAL MONITORING")
+        print("\n📱 SOURCE 3: SOCIAL MONITORING")
         print("-" * 35)
 
         try:
@@ -623,13 +610,13 @@ class BuyingSignalDetection:
             source_stats["social"] = 0
 
         # 4. Signal Analysis and Prioritization
-        print(f"\n🎯 SIGNAL ANALYSIS & PRIORITIZATION")
+        print("\n🎯 SIGNAL ANALYSIS & PRIORITIZATION")
         print("-" * 40)
 
         prioritized_signals = self._prioritize_signals(all_signals)
         high_priority_signals = [s for s in prioritized_signals if s.urgency_level == "High"]
 
-        print(f"📊 SIGNAL SUMMARY:")
+        print("📊 SIGNAL SUMMARY:")
         print(f"   📥 Total signals: {len(all_signals)}")
         print(f"   🚨 High priority: {len(high_priority_signals)}")
         print(f"   📈 Average relevance: {self._calculate_average_relevance(all_signals):.1f}%")
@@ -641,7 +628,7 @@ class BuyingSignalDetection:
             "total_signals": len(all_signals),
         }
 
-    def _prioritize_signals(self, signals: List[TriggerEvent]) -> List[TriggerEvent]:
+    def _prioritize_signals(self, signals: list[TriggerEvent]) -> list[TriggerEvent]:
         """Prioritize signals by urgency, relevance, and confidence"""
 
         # Calculate priority score for each signal
@@ -655,7 +642,7 @@ class BuyingSignalDetection:
         # Sort by priority score
         return sorted(signals, key=lambda s: getattr(s, "priority_score", 0), reverse=True)
 
-    def _calculate_average_relevance(self, signals: List[TriggerEvent]) -> float:
+    def _calculate_average_relevance(self, signals: list[TriggerEvent]) -> float:
         """Calculate average relevance score"""
         if not signals:
             return 0.0
@@ -674,16 +661,16 @@ def main():
     detector = BuyingSignalDetection()
     results = detector.detect_signals_for_account("Genesis Cloud", "genesiscloud.com")
 
-    print(f"\n🎉 SIGNAL DETECTION COMPLETE!")
+    print("\n🎉 SIGNAL DETECTION COMPLETE!")
     print(f"⚡ Found {results['total_signals']} total signals")
     print(f"🚨 {results['high_priority_count']} high-priority signals")
 
-    print(f"\n📈 Source Breakdown:")
+    print("\n📈 Source Breakdown:")
     for source, count in results["source_stats"].items():
         print(f"   {source}: {count} signals")
 
     # Show top signals
-    print(f"\n🚨 TOP PRIORITY SIGNALS:")
+    print("\n🚨 TOP PRIORITY SIGNALS:")
     for i, signal in enumerate(results["signals"][:3], 1):
         print(f"   {i}. {signal.event_type}: {signal.event_description}")
         print(f"      Source: {signal.source_type} | Urgency: {signal.urgency_level}")

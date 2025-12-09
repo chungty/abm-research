@@ -5,12 +5,12 @@ Executes complete 5-phase ABM research and populates Notion databases correctly
 """
 
 import os
-import json
 import time
-import requests
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional
-from datetime import datetime, timedelta
+from typing import Optional
+
+import requests
 
 
 class DataPipelineAgent:
@@ -56,7 +56,7 @@ class DataPipelineAgent:
         else:
             print("✅ All API keys configured")
 
-    def execute_full_abm_pipeline(self, company_domain: str) -> Dict:
+    def execute_full_abm_pipeline(self, company_domain: str) -> dict:
         """Execute complete 5-phase ABM research pipeline"""
 
         print(f"\n🚀 EXECUTING FULL ABM PIPELINE FOR: {company_domain}")
@@ -127,7 +127,7 @@ class DataPipelineAgent:
         self._print_pipeline_summary(pipeline_results)
         return pipeline_results
 
-    def _execute_comprehensive_workflow(self, company_domain: str) -> Optional[Dict]:
+    def _execute_comprehensive_workflow(self, company_domain: str) -> Optional[dict]:
         """Execute complete 5-phase workflow using comprehensive method"""
 
         try:
@@ -141,14 +141,14 @@ class DataPipelineAgent:
             research = VerdigrisABMResearch()
             comprehensive_results = research.research_account_comprehensive(company_domain)
 
-            print(f"   ✅ Comprehensive workflow completed")
+            print("   ✅ Comprehensive workflow completed")
             return comprehensive_results
 
         except Exception as e:
             print(f"   ❌ Comprehensive workflow execution failed: {e}")
             return None
 
-    def _execute_phase1(self, company_domain: str) -> Optional[Dict]:
+    def _execute_phase1(self, company_domain: str) -> Optional[dict]:
         """Phase 1: Account Intelligence Baseline"""
 
         try:
@@ -166,7 +166,7 @@ class DataPipelineAgent:
                 research = VerdigrisABMResearch()
                 account_data = research.phase1_account_intelligence_baseline(company_domain)
 
-                print(f"   ✅ Account intelligence baseline completed")
+                print("   ✅ Account intelligence baseline completed")
                 print(f"   📊 ICP Fit Score: {account_data.get('icp_fit_score', 'Not calculated')}")
                 print(f"   🎯 Trigger Events: {len(account_data.get('trigger_events', []))}")
 
@@ -179,7 +179,7 @@ class DataPipelineAgent:
             print(f"   ❌ Phase 1 execution failed: {e}")
             return None
 
-    def _execute_phase2(self, company_domain: str, phase1_data: Dict) -> Optional[List[Dict]]:
+    def _execute_phase2(self, company_domain: str, phase1_data: dict) -> Optional[list[dict]]:
         """Phase 2: Contact Discovery & Segmentation"""
 
         try:
@@ -192,7 +192,7 @@ class DataPipelineAgent:
             research = VerdigrisABMResearch()
             contacts_data = research.phase2_contact_discovery_segmentation(company_domain)
 
-            print(f"   ✅ Contact discovery completed")
+            print("   ✅ Contact discovery completed")
             print(f"   👥 Contacts Found: {len(contacts_data)}")
 
             # Count by buying committee role
@@ -210,7 +210,7 @@ class DataPipelineAgent:
             print(f"   ❌ Phase 2 execution failed: {e}")
             return None
 
-    def _execute_phase3(self, phase2_data: List[Dict]) -> Optional[List[Dict]]:
+    def _execute_phase3(self, phase2_data: list[dict]) -> Optional[list[dict]]:
         """Phase 3: High-Priority Contact Enrichment"""
 
         try:
@@ -239,7 +239,7 @@ class DataPipelineAgent:
             print(f"   ❌ Phase 3 execution failed: {e}")
             return None
 
-    def _execute_phase4(self, phase3_data: List[Dict]) -> Optional[List[Dict]]:
+    def _execute_phase4(self, phase3_data: list[dict]) -> Optional[list[dict]]:
         """Phase 4: Engagement Intelligence"""
 
         try:
@@ -266,7 +266,7 @@ class DataPipelineAgent:
             print(f"   ❌ Phase 4 execution failed: {e}")
             return None
 
-    def _execute_phase5(self, company_domain: str) -> Optional[List[Dict]]:
+    def _execute_phase5(self, company_domain: str) -> Optional[list[dict]]:
         """Phase 5: Strategic Partnership Intelligence"""
 
         try:
@@ -279,7 +279,7 @@ class DataPipelineAgent:
             research = VerdigrisABMResearch()
             partnerships_data = research.phase5_strategic_partnership_intelligence(company_domain)
 
-            print(f"   ✅ Strategic partnership intelligence completed")
+            print("   ✅ Strategic partnership intelligence completed")
             print(f"   🤝 Partnerships Found: {len(partnerships_data)}")
 
             # Count by category
@@ -297,7 +297,7 @@ class DataPipelineAgent:
             print(f"   ❌ Phase 5 execution failed: {e}")
             return None
 
-    def _calculate_engagement_potential(self, contact: Dict) -> int:
+    def _calculate_engagement_potential(self, contact: dict) -> int:
         """Calculate engagement potential score based on available data"""
 
         # Simplified scoring for demo (would use LinkedIn API in real implementation)
@@ -322,7 +322,7 @@ class DataPipelineAgent:
 
         return min(score, 100)
 
-    def _calculate_final_lead_score(self, contact: Dict) -> float:
+    def _calculate_final_lead_score(self, contact: dict) -> float:
         """Calculate final lead score using the specification formula"""
 
         icp_fit = contact.get("icp_fit_score", 0)
@@ -334,7 +334,7 @@ class DataPipelineAgent:
 
         return round(final_score, 1)
 
-    def _generate_engagement_intelligence(self, contact: Dict) -> Dict:
+    def _generate_engagement_intelligence(self, contact: dict) -> dict:
         """Generate engagement intelligence using OpenAI"""
 
         # Simplified intelligence generation (placeholder for OpenAI integration)
@@ -344,13 +344,13 @@ class DataPipelineAgent:
         intelligence = {
             "problems_they_likely_own": self._map_problems_from_title(title),
             "content_themes_they_value": self._identify_content_themes(title),
-            "connection_pathways": f"Research mutual connections in data center operations space",
+            "connection_pathways": "Research mutual connections in data center operations space",
             "value_add_ideas": self._generate_value_add_ideas(title, company),
         }
 
         return intelligence
 
-    def _map_problems_from_title(self, title: str) -> List[str]:
+    def _map_problems_from_title(self, title: str) -> list[str]:
         """Map problems based on title keywords"""
 
         title_lower = title.lower()
@@ -367,7 +367,7 @@ class DataPipelineAgent:
 
         return problems[:4]  # Limit to top problems
 
-    def _identify_content_themes(self, title: str) -> List[str]:
+    def _identify_content_themes(self, title: str) -> list[str]:
         """Identify content themes they would value"""
 
         themes = ["Power optimization", "Reliability engineering"]
@@ -385,7 +385,7 @@ class DataPipelineAgent:
 
         return themes
 
-    def _generate_value_add_ideas(self, title: str, company: str) -> List[str]:
+    def _generate_value_add_ideas(self, title: str, company: str) -> list[str]:
         """Generate specific value-add ideas"""
 
         ideas = []
@@ -409,7 +409,7 @@ class DataPipelineAgent:
 
         return ideas
 
-    def _populate_all_notion_databases(self, pipeline_results: Dict) -> Dict:
+    def _populate_all_notion_databases(self, pipeline_results: dict) -> dict:
         """Populate all 4 Notion databases with pipeline results"""
 
         population_status = {
@@ -452,7 +452,7 @@ class DataPipelineAgent:
 
         return population_status
 
-    def _populate_accounts_database(self, account_data: Dict) -> bool:
+    def _populate_accounts_database(self, account_data: dict) -> bool:
         """Populate Notion Accounts database"""
 
         try:
@@ -460,7 +460,7 @@ class DataPipelineAgent:
                 print("   ⚠️ Notion API key not configured")
                 return False
 
-            notion_url = f"https://api.notion.com/v1/pages"
+            notion_url = "https://api.notion.com/v1/pages"
 
             headers = {
                 "Authorization": f"Bearer {self.notion_api_key}",
@@ -498,7 +498,7 @@ class DataPipelineAgent:
             print(f"   ❌ Accounts population error: {e}")
             return False
 
-    def _populate_contacts_database(self, contacts_data: List[Dict]) -> bool:
+    def _populate_contacts_database(self, contacts_data: list[dict]) -> bool:
         """Populate Notion Contacts database"""
 
         try:
@@ -534,11 +534,11 @@ class DataPipelineAgent:
             print(f"   ❌ Contacts population error: {e}")
             return False
 
-    def _insert_contact_to_notion(self, contact: Dict) -> bool:
+    def _insert_contact_to_notion(self, contact: dict) -> bool:
         """Insert single contact into Notion"""
 
         try:
-            notion_url = f"https://api.notion.com/v1/pages"
+            notion_url = "https://api.notion.com/v1/pages"
 
             headers = {
                 "Authorization": f"Bearer {self.notion_api_key}",
@@ -582,20 +582,20 @@ class DataPipelineAgent:
             print(f"      ⚠️ Contact insert error: {e}")
             return False
 
-    def _populate_trigger_events_database(self, trigger_events: List[Dict]) -> bool:
+    def _populate_trigger_events_database(self, trigger_events: list[dict]) -> bool:
         """Populate Notion Trigger Events database"""
         # Implementation similar to contacts but for trigger events
         print("   📊 Trigger Events database population (placeholder)")
         return True
 
-    def _populate_partnerships_database(self, partnerships_data: List[Dict]) -> bool:
+    def _populate_partnerships_database(self, partnerships_data: list[dict]) -> bool:
         """Populate Notion Strategic Partnerships database"""
         # Implementation similar to contacts but for partnerships
         print("   🤝 Partnerships database population (placeholder)")
         return True
 
     def _make_api_request(
-        self, method: str, url: str, headers: Dict, payload: Dict = None
+        self, method: str, url: str, headers: dict, payload: dict = None
     ) -> Optional[requests.Response]:
         """Make API request with retry logic"""
 
@@ -629,10 +629,10 @@ class DataPipelineAgent:
 
         return None
 
-    def _print_pipeline_summary(self, results: Dict):
+    def _print_pipeline_summary(self, results: dict):
         """Print comprehensive pipeline execution summary"""
 
-        print(f"\n📋 DATA PIPELINE EXECUTION SUMMARY")
+        print("\n📋 DATA PIPELINE EXECUTION SUMMARY")
         print("=" * 50)
 
         success_status = "✅ SUCCESS" if results["overall_success"] else "❌ FAILED"
@@ -654,13 +654,13 @@ class DataPipelineAgent:
             print(f"   {status} Phase {i}: {phase_name}")
 
         if results.get("notion_population_status"):
-            print(f"\n📝 NOTION DATABASE POPULATION:")
+            print("\n📝 NOTION DATABASE POPULATION:")
             for db_name, status in results["notion_population_status"].items():
                 status_icon = "✅" if status else "❌"
                 print(f"   {status_icon} {db_name.title()}")
 
         if results.get("errors"):
-            print(f"\n⚠️ ERRORS ENCOUNTERED:")
+            print("\n⚠️ ERRORS ENCOUNTERED:")
             for i, error in enumerate(results["errors"], 1):
                 print(f"   {i}. {error}")
 

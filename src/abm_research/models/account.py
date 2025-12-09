@@ -3,8 +3,8 @@ Account model for ABM Research System
 """
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional, Dict, Any
 from enum import Enum
+from typing import Any, Optional
 
 
 class AccountResearchStatus(Enum):
@@ -29,12 +29,12 @@ class Account:
     ] = None  # cloud provider, colocation, hyperscaler, AI infrastructure
 
     # Geographic and facility data
-    data_center_locations: List[str] = field(default_factory=list)
+    data_center_locations: list[str] = field(default_factory=list)
     facility_capacity: Optional[str] = None  # MW, sq ft, etc.
 
     # Financial and growth indicators
     recent_funding: Optional[str] = None
-    growth_indicators: List[str] = field(
+    growth_indicators: list[str] = field(
         default_factory=list
     )  # hiring trends, expansion announcements
 
@@ -50,8 +50,8 @@ class Account:
     buying_signals_score: float = 0.0  # 0-100 buying signals
 
     # Full breakdown for dashboard traceability (JSON serializable)
-    infrastructure_breakdown: Dict[str, Any] = field(default_factory=dict)
-    account_score_breakdown: Dict[str, Any] = field(default_factory=dict)
+    infrastructure_breakdown: dict[str, Any] = field(default_factory=dict)
+    account_score_breakdown: dict[str, Any] = field(default_factory=dict)
 
     # Research tracking
     research_status: AccountResearchStatus = AccountResearchStatus.NOT_STARTED
@@ -59,9 +59,9 @@ class Account:
     researcher_notes: str = ""
 
     # Relations (will be populated by research phases)
-    trigger_events: List["TriggerEvent"] = field(default_factory=list)
-    contacts: List["Contact"] = field(default_factory=list)
-    strategic_partnerships: List["StrategicPartnership"] = field(default_factory=list)
+    trigger_events: list["TriggerEvent"] = field(default_factory=list)
+    contacts: list["Contact"] = field(default_factory=list)
+    strategic_partnerships: list["StrategicPartnership"] = field(default_factory=list)
 
     # Metadata
     apollo_company_id: Optional[str] = None
@@ -114,11 +114,11 @@ class Account:
         self.strategic_partnerships.append(partnership)
         partnership.account = self
 
-    def get_high_priority_contacts(self, min_score: float = 70.0) -> List["Contact"]:
+    def get_high_priority_contacts(self, min_score: float = 70.0) -> list["Contact"]:
         """Get contacts with lead score above threshold"""
         return [c for c in self.contacts if c.final_lead_score >= min_score]
 
-    def get_buying_committee(self) -> Dict[str, List["Contact"]]:
+    def get_buying_committee(self) -> dict[str, list["Contact"]]:
         """Get contacts organized by buying committee role"""
         committee = {
             "Economic Buyer": [],
@@ -133,7 +133,7 @@ class Account:
 
         return committee
 
-    def to_notion_format(self) -> Dict[str, Any]:
+    def to_notion_format(self) -> dict[str, Any]:
         """Convert to Notion database format"""
         return {
             "Company name": {"title": [{"text": {"content": self.name}}]},

@@ -2,10 +2,10 @@
 Configuration settings for ABM Research System
 Follows VDG monorepo patterns - loads from root .env file
 """
+import json
 import os
 from pathlib import Path
-from typing import Dict, Any, Optional
-import json
+from typing import Any
 
 # Get the root directory of the monorepo (parent of parent of config)
 ROOT_DIR = Path(__file__).parent.parent.parent
@@ -15,7 +15,7 @@ def load_env():
     """Load environment variables from root .env file"""
     env_file = ROOT_DIR / ".env"
     if env_file.exists():
-        with open(env_file, "r") as f:
+        with open(env_file) as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith("#"):
@@ -64,17 +64,17 @@ TEMP_DIR = DATA_DIR / "temp"
 TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def load_lead_scoring_config() -> Dict[str, Any]:
+def load_lead_scoring_config() -> dict[str, Any]:
     """Load lead scoring configuration from JSON file"""
     config_file = REFERENCES_DIR / "lead_scoring_config.json"
     if not config_file.exists():
         raise FileNotFoundError(f"Lead scoring config not found: {config_file}")
 
-    with open(config_file, "r") as f:
+    with open(config_file) as f:
         return json.load(f)
 
 
-def load_trigger_events_config() -> Dict[str, Any]:
+def load_trigger_events_config() -> dict[str, Any]:
     """Load trigger events configuration"""
     # For now, return basic config - can be expanded to JSON if needed
     return {
@@ -92,7 +92,7 @@ def load_trigger_events_config() -> Dict[str, Any]:
     }
 
 
-def load_partnership_categories() -> Dict[str, Dict[str, Any]]:
+def load_partnership_categories() -> dict[str, dict[str, Any]]:
     """Load strategic partnership categories and detection rules"""
     return {
         "DCIM": {

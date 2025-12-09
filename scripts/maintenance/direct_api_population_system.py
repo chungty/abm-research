@@ -4,24 +4,21 @@ Direct API Population System
 Populate enhanced databases using only direct API calls - no notion-client library
 """
 
-import os
-import requests
-import json
-from pathlib import Path
-from dotenv import load_dotenv
 from datetime import datetime
+
+import requests
 from abm_config import config
 from config.settings import (
     NOTION_ACCOUNTS_DB_ID,
     NOTION_CONTACTS_DB_ID,
-    NOTION_TRIGGER_EVENTS_DB_ID,
     NOTION_PARTNERSHIPS_DB_ID,
+    NOTION_TRIGGER_EVENTS_DB_ID,
 )
+from enhanced_deduplication_system import EnhancedDeduplicationSystem
 
 # Import our working components
 from production_apollo_integration import ProductionApolloIntegration
 from verdigris_signals_meddic_framework import VerdigrisSignalsMEDDIC
-from enhanced_deduplication_system import EnhancedDeduplicationSystem
 
 
 class DirectNotionAPI:
@@ -51,7 +48,7 @@ class DirectNotionAPI:
         """Create account entry in Notion using direct API"""
 
         try:
-            url = f"https://api.notion.com/v1/pages"
+            url = "https://api.notion.com/v1/pages"
 
             # Build properties based on enhanced schema
             properties = {
@@ -124,7 +121,7 @@ class DirectNotionAPI:
         """Create contact entry in Notion using direct API"""
 
         try:
-            url = f"https://api.notion.com/v1/pages"
+            url = "https://api.notion.com/v1/pages"
 
             properties = {
                 "Name": {
@@ -260,14 +257,14 @@ class CleanABMSystem:
         print(f"✅ Found {len(contacts)} contacts from Apollo")
 
         # 2. Apply deduplication
-        print(f"\n🔧 STEP 2: APPLYING DEDUPLICATION")
+        print("\n🔧 STEP 2: APPLYING DEDUPLICATION")
         print("-" * 30)
 
         deduplicated_contacts = self.deduplication.deduplicate_contacts(contacts)
         print(f"✅ After deduplication: {len(deduplicated_contacts)} unique contacts")
 
         # 3. Apply MEDDIC classification and scoring
-        print(f"\n🎯 STEP 3: APPLYING VERDIGRIS SIGNALS MEDDIC")
+        print("\n🎯 STEP 3: APPLYING VERDIGRIS SIGNALS MEDDIC")
         print("-" * 45)
 
         classified_contacts = []
@@ -287,11 +284,11 @@ class CleanABMSystem:
         # Sort by lead score (highest first)
         classified_contacts.sort(key=lambda c: c.get("final_lead_score", 0), reverse=True)
 
-        print(f"✅ Applied MEDDIC classification to all contacts")
+        print("✅ Applied MEDDIC classification to all contacts")
         print(f"📊 Top lead score: {classified_contacts[0].get('final_lead_score', 0):.1f}")
 
         # 4. Create account entry in Notion
-        print(f"\n📊 STEP 4: CREATING GENESIS CLOUD ACCOUNT")
+        print("\n📊 STEP 4: CREATING GENESIS CLOUD ACCOUNT")
         print("-" * 40)
 
         account_data = {
@@ -309,7 +306,7 @@ class CleanABMSystem:
             return
 
         # 5. Create contact entries in Notion
-        print(f"\n👤 STEP 5: CREATING CONTACT ENTRIES (Direct API)")
+        print("\n👤 STEP 5: CREATING CONTACT ENTRIES (Direct API)")
         print("-" * 45)
 
         successful_contacts = 0
@@ -323,7 +320,7 @@ class CleanABMSystem:
                 successful_contacts += 1
 
         # 6. Generate summary
-        print(f"\n🎉 GENESIS CLOUD PROCESSING COMPLETE!")
+        print("\n🎉 GENESIS CLOUD PROCESSING COMPLETE!")
         print("=" * 50)
         print(f"📊 Account created: Genesis Cloud ({account_id})")
         print(f"👤 Contacts created: {successful_contacts}/{min(10, len(classified_contacts))}")
@@ -331,7 +328,7 @@ class CleanABMSystem:
         print(f"🏆 Best persona: {classified_contacts[0].get('buying_committee_role', 'Unknown')}")
 
         # Show top 3 contacts
-        print(f"\n🌟 TOP 3 CONTACTS:")
+        print("\n🌟 TOP 3 CONTACTS:")
         for i, contact in enumerate(classified_contacts[:3]):
             score = contact.get("final_lead_score", 0)
             role = contact.get("buying_committee_role", "Unknown")
@@ -339,7 +336,7 @@ class CleanABMSystem:
             print(f"   {i+1}. {contact.get('name', 'Unknown')} - {title}")
             print(f"      Score: {score:.1f} pts | Role: {role}")
 
-        print(f"\n🔗 View in Notion:")
+        print("\n🔗 View in Notion:")
         print(
             f"   📊 Accounts: https://www.notion.so/{self.notion.database_ids['accounts'].replace('-', '')}"
         )
@@ -366,7 +363,7 @@ def main():
     print("No notion-client library - pure HTTP API integration")
 
     # Test configuration first
-    print(f"\n🔧 Configuration Check:")
+    print("\n🔧 Configuration Check:")
     config.print_config_status()
 
     # Initialize and run system
@@ -374,16 +371,16 @@ def main():
     results = system.process_genesis_cloud()
 
     if results:
-        print(f"\n✅ SYSTEM SUCCESSFULLY POPULATED DATABASES!")
+        print("\n✅ SYSTEM SUCCESSFULLY POPULATED DATABASES!")
         print(
             f"🚀 Sales team can now engage with {results['contacts_created']} Genesis Cloud contacts!"
         )
         print(f"📈 Lead scores range from {results['top_lead_score']:.1f} down")
 
-        print(f"\n💡 NEXT STEPS:")
-        print(f"   1. Review contacts in Notion and validate MEDDIC classifications")
-        print(f"   2. Begin outreach with highest-scoring Economic Buyers and Champions")
-        print(f"   3. Use personalized value propositions based on their likely problems")
+        print("\n💡 NEXT STEPS:")
+        print("   1. Review contacts in Notion and validate MEDDIC classifications")
+        print("   2. Begin outreach with highest-scoring Economic Buyers and Champions")
+        print("   3. Use personalized value propositions based on their likely problems")
 
 
 if __name__ == "__main__":

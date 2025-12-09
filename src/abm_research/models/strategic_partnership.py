@@ -2,9 +2,9 @@
 Strategic Partnership model for ABM Research System
 """
 from dataclasses import dataclass, field
-from datetime import datetime, date
-from typing import Optional, Dict, Any
+from datetime import date, datetime
 from enum import Enum
+from typing import Any, Optional
 
 
 class PartnershipCategory(Enum):
@@ -216,7 +216,7 @@ class StrategicPartnership:
             f"Integration opportunity with {self.partner_name} {self.category.value} solutions",
         )
 
-    def to_notion_format(self) -> Dict[str, Any]:
+    def to_notion_format(self) -> dict[str, Any]:
         """Convert to Notion database format"""
         return {
             "Partner name": {"title": [{"text": {"content": self.partner_name}}]},

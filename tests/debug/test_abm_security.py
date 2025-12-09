@@ -3,14 +3,15 @@ Comprehensive Security Test Suite for ABM Dashboard
 Tests authentication, authorization, input validation, and XSS prevention
 """
 
-import pytest
 import json
 import re
-from unittest.mock import patch, MagicMock
-from flask import Flask
-from flask.testing import FlaskClient
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
+from flask import Flask
+from flask.testing import FlaskClient
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent))

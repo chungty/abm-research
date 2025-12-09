@@ -2,8 +2,8 @@
 Trigger Event Enhancement System
 Adds timing context, relevance decay, and actionable insights to trigger events
 """
-import requests
 from datetime import datetime, timedelta
+
 from ..config.manager import config_manager
 
 
@@ -234,7 +234,7 @@ class TriggerEventEnhancer:
         enhanced_events = self.enhance_trigger_events()
         sales_actions = self.generate_sales_actions(enhanced_events)
 
-        print(f"\n📊 ENRICHED TRIGGER EVENTS ANALYSIS")
+        print("\n📊 ENRICHED TRIGGER EVENTS ANALYSIS")
         print("=" * 60)
 
         for i, event in enumerate(enhanced_events, 1):
@@ -248,7 +248,7 @@ class TriggerEventEnhancer:
             print(f"   🎯 Verdigris Angle: {event['verdigris_angle']}")
             print(f"   👥 Key Stakeholders: {', '.join(event['stakeholders_impacted'])}")
 
-        print(f"\n🚀 PRIORITIZED SALES ACTIONS")
+        print("\n🚀 PRIORITIZED SALES ACTIONS")
         print("=" * 60)
 
         for i, action in enumerate(sales_actions, 1):
@@ -256,7 +256,7 @@ class TriggerEventEnhancer:
             print(f"   Event: {action['event_description']}")
             print(f"   ⚡ Urgency: {action['urgency_reason']}")
             print(f"   🎯 Key Message: {action['key_message']}")
-            print(f"   📋 Actions:")
+            print("   📋 Actions:")
             for rec_action in action["recommended_actions"]:
                 print(f"      • {rec_action}")
             print(f"   ⏰ Timing: {action['timing_window']}")
@@ -281,7 +281,7 @@ def main():
     result = enhancer.generate_enriched_report()
 
     summary = result["summary"]
-    print(f"\n📈 SUMMARY")
+    print("\n📈 SUMMARY")
     print("=" * 30)
     print(f"Total Events: {summary['total_events']}")
     print(f"Actionable Events: {summary['actionable_events']}")

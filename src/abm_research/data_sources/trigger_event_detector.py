@@ -2,13 +2,11 @@
 Trigger Event Detection System
 Implements the detection methodology from trigger_events.md
 """
-import asyncio
-from typing import List, Dict, Any, Optional
-from datetime import datetime, date, timedelta
 import logging
-import re
+from datetime import date
+from typing import Any, Optional
 
-from ..models.trigger_event import TriggerEvent, EventType, ConfidenceLevel
+from ..models.trigger_event import ConfidenceLevel, EventType, TriggerEvent
 from .web_scraper import WebScraper
 
 logger = logging.getLogger(__name__)
@@ -104,7 +102,7 @@ class TriggerEventDetector:
             "low_confidence": ["twitter.com", "linkedin.com/posts", "reddit.com"],
         }
 
-    async def scan_company_website(self, domain: str, since_date: date) -> List[TriggerEvent]:
+    async def scan_company_website(self, domain: str, since_date: date) -> list[TriggerEvent]:
         """Scan company website for trigger events"""
         logger.info(f"Scanning {domain} website for trigger events since {since_date}")
 
@@ -134,7 +132,7 @@ class TriggerEventDetector:
 
         return events
 
-    async def search_news_sources(self, company_name: str, since_date: date) -> List[TriggerEvent]:
+    async def search_news_sources(self, company_name: str, since_date: date) -> list[TriggerEvent]:
         """Search industry news sources for company mentions"""
         logger.info(f"Searching news sources for {company_name} since {since_date}")
 
@@ -148,7 +146,7 @@ class TriggerEventDetector:
 
     async def scan_linkedin_company(
         self, linkedin_url: str, since_date: date
-    ) -> List[TriggerEvent]:
+    ) -> list[TriggerEvent]:
         """Scan LinkedIn company page for announcements"""
         logger.info(f"Scanning LinkedIn company page: {linkedin_url}")
 
@@ -165,7 +163,7 @@ class TriggerEventDetector:
 
         return events
 
-    async def scan_job_postings(self, domain: str, since_date: date) -> List[TriggerEvent]:
+    async def scan_job_postings(self, domain: str, since_date: date) -> list[TriggerEvent]:
         """Scan job postings for growth/turnover signals"""
         logger.info(f"Scanning job postings for {domain}")
 
@@ -193,8 +191,8 @@ class TriggerEventDetector:
         return events
 
     def _analyze_article_for_events(
-        self, article: Dict[str, Any], domain: str, source_confidence: int
-    ) -> List[TriggerEvent]:
+        self, article: dict[str, Any], domain: str, source_confidence: int
+    ) -> list[TriggerEvent]:
         """Analyze article content for trigger events"""
         events = []
 
@@ -217,7 +215,7 @@ class TriggerEventDetector:
 
         return events
 
-    def _text_contains_keywords(self, text: str, keywords: List[str]) -> bool:
+    def _text_contains_keywords(self, text: str, keywords: list[str]) -> bool:
         """Check if text contains any of the keywords"""
         for keyword in keywords:
             if keyword.lower() in text:
@@ -225,7 +223,7 @@ class TriggerEventDetector:
         return False
 
     def _create_trigger_event(
-        self, event_type: EventType, article: Dict[str, Any], domain: str, source_confidence: int
+        self, event_type: EventType, article: dict[str, Any], domain: str, source_confidence: int
     ) -> Optional[TriggerEvent]:
         """Create trigger event from article"""
         try:
@@ -357,7 +355,7 @@ class TriggerEventDetector:
         # Default confidence for unknown sources
         return 50
 
-    async def get_trigger_event_summary(self, events: List[TriggerEvent]) -> Dict[str, Any]:
+    async def get_trigger_event_summary(self, events: list[TriggerEvent]) -> dict[str, Any]:
         """Generate summary of detected trigger events"""
         if not events:
             return {

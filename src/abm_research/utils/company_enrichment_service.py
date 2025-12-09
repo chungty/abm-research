@@ -5,14 +5,15 @@ Dynamically fetches company data using Apollo API and other sources
 Replaces hardcoded lookup tables with scalable API-based enrichment
 """
 
+import logging
 import os
 import re
 import time
-import requests
-import logging
-from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
+
+import requests
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -155,7 +156,7 @@ class CompanyEnrichmentService:
 
         return None
 
-    def _parse_apollo_enrichment(self, org_data: Dict, domain: str) -> CompanyData:
+    def _parse_apollo_enrichment(self, org_data: dict, domain: str) -> CompanyData:
         """
         Parse Apollo Organization Enrichment API response into CompanyData
         This endpoint returns much richer data than the search endpoint.
@@ -258,7 +259,7 @@ class CompanyEnrichmentService:
 
         return None
 
-    def _parse_apollo_organization(self, org_data: Dict, domain: str) -> CompanyData:
+    def _parse_apollo_organization(self, org_data: dict, domain: str) -> CompanyData:
         """
         Parse Apollo organization data into CompanyData structure
         """
@@ -292,7 +293,7 @@ class CompanyEnrichmentService:
             enriched_at=datetime.now(),
         )
 
-    def _parse_apollo_organization_from_person(self, org_data: Dict, domain: str) -> CompanyData:
+    def _parse_apollo_organization_from_person(self, org_data: dict, domain: str) -> CompanyData:
         """
         Parse Apollo organization data from person search results
         """
@@ -530,7 +531,7 @@ class CompanyEnrichmentService:
             time.sleep(self.request_delay - elapsed)
         self.last_request_time = time.time()
 
-    def get_enrichment_stats(self) -> Dict:
+    def get_enrichment_stats(self) -> dict:
         """Get statistics about enriched companies"""
         total = len(self.company_cache)
         sources = {}

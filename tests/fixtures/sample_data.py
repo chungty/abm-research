@@ -1,7 +1,7 @@
 """Sample test data for ABM Research System tests."""
 
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 # Sample account data
 SAMPLE_ACCOUNT = {
@@ -133,21 +133,21 @@ TEST_CONFIG = {
 }
 
 
-def get_sample_account() -> Dict[str, Any]:
+def get_sample_account() -> dict[str, Any]:
     """Get sample account data."""
     return SAMPLE_ACCOUNT.copy()
 
 
-def get_sample_contacts() -> List[Dict[str, Any]]:
+def get_sample_contacts() -> list[dict[str, Any]]:
     """Get sample contacts data."""
     return [contact.copy() for contact in SAMPLE_CONTACTS]
 
 
-def get_sample_trigger_events() -> List[Dict[str, Any]]:
+def get_sample_trigger_events() -> list[dict[str, Any]]:
     """Get sample trigger events data."""
     return [event.copy() for event in SAMPLE_TRIGGER_EVENTS]
 
 
-def get_expected_dashboard_data() -> Dict[str, Any]:
+def get_expected_dashboard_data() -> dict[str, Any]:
     """Get expected dashboard API response data."""
     return EXPECTED_DASHBOARD_DATA.copy()

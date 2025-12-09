@@ -5,11 +5,9 @@ Creates comprehensive account plans with ICP composition, signal links, and reco
 """
 
 import os
-import json
-import time
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, asdict
+from typing import Optional
 
 # OpenAI for custom outreach generation
 try:
@@ -29,11 +27,11 @@ class ICPComposition:
     tier_1_contacts: int
     tier_2_contacts: int
     tier_3_contacts: int
-    decision_makers: List[str]
-    influencers: List[str]
-    champions: List[str]
+    decision_makers: list[str]
+    influencers: list[str]
+    champions: list[str]
     icp_coverage_score: float  # 0-1 score
-    missing_roles: List[str]
+    missing_roles: list[str]
 
 
 @dataclass
@@ -43,7 +41,7 @@ class SignalContactMapping:
     signal_id: str
     signal_description: str
     priority_level: str
-    relevant_contacts: List[str]  # Contact names who should act on this signal
+    relevant_contacts: list[str]  # Contact names who should act on this signal
     recommended_approach: str
     timing_window: str
 
@@ -56,8 +54,8 @@ class RecommendedAction:
     priority: str  # "Critical", "High", "Medium", "Low"
     action_type: str  # "Immediate Outreach", "Nurture", "Research", "Meeting"
     description: str
-    target_contacts: List[str]
-    success_metrics: List[str]
+    target_contacts: list[str]
+    success_metrics: list[str]
     timeline: str
     estimated_effort: str  # "Low", "Medium", "High"
 
@@ -68,11 +66,11 @@ class AccountStrategy:
 
     strategy_type: str  # "Executive-Led", "Operations-Driven", etc.
     primary_value_prop: str
-    key_stakeholders: List[str]
+    key_stakeholders: list[str]
     decision_timeline: str
     budget_expectations: str
     competitive_considerations: str
-    risk_factors: List[str]
+    risk_factors: list[str]
 
 
 @dataclass
@@ -83,11 +81,11 @@ class EnhancedAccountPlan:
     generated_date: str
     plan_confidence: float  # 0-1 score based on data quality
     icp_composition: ICPComposition
-    signal_mappings: List[SignalContactMapping]
-    recommended_actions: List[RecommendedAction]
+    signal_mappings: list[SignalContactMapping]
+    recommended_actions: list[RecommendedAction]
     account_strategy: AccountStrategy
     next_review_date: str
-    contact_information: Dict  # Easy reference contact info
+    contact_information: dict  # Easy reference contact info
 
 
 class EnhancedAccountPlanGenerator:
@@ -102,8 +100,8 @@ class EnhancedAccountPlanGenerator:
         # Import intelligence engines
         try:
             from contact_value_analyzer import contact_value_analyzer
-            from enhanced_buying_signals_analyzer import enhanced_buying_signals_analyzer
             from dashboard_data_service import notion_service
+            from enhanced_buying_signals_analyzer import enhanced_buying_signals_analyzer
 
             self.contact_analyzer = contact_value_analyzer
             self.signals_analyzer = enhanced_buying_signals_analyzer
@@ -121,7 +119,7 @@ class EnhancedAccountPlanGenerator:
         """
         Generate comprehensive account plan with ICP composition, signal links, and recommended actions
         """
-        print(f"\n📋 Generating enhanced account plan...")
+        print("\n📋 Generating enhanced account plan...")
         print("=" * 60)
 
         # Convert account_id to string if it's a number
@@ -187,7 +185,7 @@ class EnhancedAccountPlanGenerator:
             traceback.print_exc()
             return None
 
-    def _gather_account_data(self, account_id: str, company_name: str) -> Optional[Dict]:
+    def _gather_account_data(self, account_id: str, company_name: str) -> Optional[dict]:
         """Gather account data"""
         try:
             accounts = self.data_service.fetch_accounts()
@@ -203,7 +201,7 @@ class EnhancedAccountPlanGenerator:
             print(f"⚠️ Error gathering account data: {e}")
             return None
 
-    def _gather_contacts_data(self, account_id: str, company_name: str) -> List[Dict]:
+    def _gather_contacts_data(self, account_id: str, company_name: str) -> list[dict]:
         """Gather contacts with value analysis"""
         try:
             # Get raw contacts
@@ -225,7 +223,7 @@ class EnhancedAccountPlanGenerator:
             print(f"⚠️ Error gathering contacts data: {e}")
             return []
 
-    def _gather_signals_data(self, account_id: str, company_name: str) -> List[Dict]:
+    def _gather_signals_data(self, account_id: str, company_name: str) -> list[dict]:
         """Gather enhanced buying signals"""
         try:
             # Get basic events first
@@ -249,7 +247,7 @@ class EnhancedAccountPlanGenerator:
             print(f"⚠️ Error gathering signals data: {e}")
             return []
 
-    def _gather_partnerships_data(self, account_id: str, company_name: str) -> List[Dict]:
+    def _gather_partnerships_data(self, account_id: str, company_name: str) -> list[dict]:
         """Gather partnerships data"""
         try:
             partnerships = self.data_service.fetch_partnerships()
@@ -265,7 +263,7 @@ class EnhancedAccountPlanGenerator:
             return []
 
     def _analyze_icp_composition(
-        self, contacts_data: List[Dict], account_data: Dict
+        self, contacts_data: list[dict], account_data: dict
     ) -> ICPComposition:
         """Analyze ICP composition from contact value analysis"""
 
@@ -335,8 +333,8 @@ class EnhancedAccountPlanGenerator:
         )
 
     def _map_signals_to_contacts(
-        self, signals_data: List[Dict], contacts_data: List[Dict]
-    ) -> List[SignalContactMapping]:
+        self, signals_data: list[dict], contacts_data: list[dict]
+    ) -> list[SignalContactMapping]:
         """Map buying signals to relevant contacts"""
 
         mappings = []
@@ -369,8 +367,8 @@ class EnhancedAccountPlanGenerator:
         return mappings
 
     def _find_relevant_contacts_for_signal(
-        self, signal: Dict, contacts_data: List[Dict]
-    ) -> List[str]:
+        self, signal: dict, contacts_data: list[dict]
+    ) -> list[str]:
         """Find contacts most relevant to a specific signal"""
 
         relevant_contacts = []
@@ -433,7 +431,7 @@ class EnhancedAccountPlanGenerator:
 
         return relevant_contacts[:3]  # Limit to top 3 relevant contacts
 
-    def _generate_signal_approach(self, signal: Dict, relevant_contacts: List[str]) -> str:
+    def _generate_signal_approach(self, signal: dict, relevant_contacts: list[str]) -> str:
         """Generate recommended approach for a signal"""
 
         priority = signal.get("priority_level", "Medium")
@@ -450,10 +448,10 @@ class EnhancedAccountPlanGenerator:
     def _generate_recommended_actions(
         self,
         icp_composition: ICPComposition,
-        signal_mappings: List[SignalContactMapping],
-        contacts_data: List[Dict],
-        signals_data: List[Dict],
-    ) -> List[RecommendedAction]:
+        signal_mappings: list[SignalContactMapping],
+        contacts_data: list[dict],
+        signals_data: list[dict],
+    ) -> list[RecommendedAction]:
         """Generate specific recommended actions"""
 
         actions = []
@@ -535,10 +533,10 @@ class EnhancedAccountPlanGenerator:
 
     def _develop_account_strategy(
         self,
-        account_data: Dict,
-        contacts_data: List[Dict],
-        signals_data: List[Dict],
-        partnerships_data: List[Dict],
+        account_data: dict,
+        contacts_data: list[dict],
+        signals_data: list[dict],
+        partnerships_data: list[dict],
         icp_composition: ICPComposition,
     ) -> AccountStrategy:
         """Develop overall account strategy"""
@@ -618,7 +616,7 @@ class EnhancedAccountPlanGenerator:
             risk_factors=risk_factors or ["Standard competitive and timing risks"],
         )
 
-    def _create_contact_reference(self, contacts_data: List[Dict]) -> Dict:
+    def _create_contact_reference(self, contacts_data: list[dict]) -> dict:
         """Create easy reference contact information"""
 
         contact_reference = {
@@ -659,7 +657,7 @@ class EnhancedAccountPlanGenerator:
         return contact_reference
 
     def _calculate_plan_confidence(
-        self, contacts_data: List[Dict], signals_data: List[Dict], icp_composition: ICPComposition
+        self, contacts_data: list[dict], signals_data: list[dict], icp_composition: ICPComposition
     ) -> float:
         """Calculate confidence score for the account plan"""
 
@@ -695,10 +693,10 @@ class EnhancedAccountPlanGenerator:
 
         return sum(confidence_factors)
 
-    def _print_account_plan_summary(self, plan_dict: Dict):
+    def _print_account_plan_summary(self, plan_dict: dict):
         """Print comprehensive account plan summary"""
 
-        print(f"\n📋 ENHANCED ACCOUNT PLAN SUMMARY")
+        print("\n📋 ENHANCED ACCOUNT PLAN SUMMARY")
         print("=" * 60)
 
         print(f"🏢 Account: {plan_dict['account_name']}")
@@ -707,7 +705,7 @@ class EnhancedAccountPlanGenerator:
         print(f"📋 Next Review: {plan_dict['next_review_date'][:10]}")
 
         icp = plan_dict["icp_composition"]
-        print(f"\n👥 ICP COMPOSITION")
+        print("\n👥 ICP COMPOSITION")
         print(f"   Total Contacts: {icp['total_contacts']}")
         print(f"   Tier 1: {icp['tier_1_contacts']}, Tier 2: {icp['tier_2_contacts']}")
         print(f"   Decision Makers: {len(icp['decision_makers'])}")
@@ -716,7 +714,7 @@ class EnhancedAccountPlanGenerator:
             print(f"   Missing Roles: {', '.join(icp['missing_roles'])}")
 
         signals = plan_dict["signal_mappings"]
-        print(f"\n📊 SIGNAL-CONTACT MAPPINGS")
+        print("\n📊 SIGNAL-CONTACT MAPPINGS")
         print(f"   Total Signals: {len(signals)}")
         critical_signals = [s for s in signals if s["priority_level"] == "Critical"]
         if critical_signals:
@@ -731,7 +729,7 @@ class EnhancedAccountPlanGenerator:
             print(f"            {action['description'][:70]}...")
 
         strategy = plan_dict["account_strategy"]
-        print(f"\n🏛️ ACCOUNT STRATEGY")
+        print("\n🏛️ ACCOUNT STRATEGY")
         print(f"   Strategy Type: {strategy['strategy_type']}")
         print(f"   Timeline: {strategy['decision_timeline']}")
         print(f"   Budget Range: {strategy['budget_expectations']}")
@@ -740,7 +738,7 @@ class EnhancedAccountPlanGenerator:
             print(f"   Risk Factors: {len(strategy['risk_factors'])}")
 
         contact_info = plan_dict["contact_information"]
-        print(f"\n📞 CONTACT REFERENCE")
+        print("\n📞 CONTACT REFERENCE")
         print(f"   Tier 1 Contacts: {len(contact_info['tier_1_contacts'])}")
         print(f"   Tier 2 Contacts: {len(contact_info['tier_2_contacts'])}")
         print(f"   Decision Makers: {len(contact_info['decision_makers'])}")

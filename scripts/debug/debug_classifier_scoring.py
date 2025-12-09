@@ -37,7 +37,7 @@ tech_stack = company_data.get("tech_stack", "").lower()
 announcements = company_data.get("recent_announcements", "").lower()
 
 combined_text = f"{company_name} {business_model} {infrastructure} {tech_stack} {announcements}"
-print(f"🔤 Combined Text for Analysis:")
+print("🔤 Combined Text for Analysis:")
 print(f"'{combined_text}'")
 print(f"Length: {len(combined_text)} characters")
 print()
@@ -75,7 +75,7 @@ for category, indicators in strategic_indicators.items():
     total_score += category_score
 
 print(f"\n📊 Manual Total Strategic Partner Score: {total_score}")
-print(f"🎯 Threshold for classification: 30 points")
+print("🎯 Threshold for classification: 30 points")
 
 if total_score >= 30:
     print("✅ Should classify as strategic_partner")
@@ -94,8 +94,8 @@ print(f"  💭 Reasoning: {classification.reasoning}")
 
 # Compare results
 if total_score != classification.confidence_score:
-    print(f"\n⚠️  SCORING MISMATCH!")
+    print("\n⚠️  SCORING MISMATCH!")
     print(f"   Manual calculation: {total_score}")
     print(f"   Classifier result: {classification.confidence_score}")
 else:
-    print(f"\n✅ Scoring matches manual calculation")
+    print("\n✅ Scoring matches manual calculation")

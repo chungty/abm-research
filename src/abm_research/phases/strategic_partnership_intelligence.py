@@ -6,14 +6,12 @@ Vendor relationship detection for co-sell/integration opportunities
 """
 
 import os
-import re
-import json
 import time
-import requests
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
 from dataclasses import dataclass
+from datetime import datetime
+
 import openai
+import requests
 
 
 @dataclass
@@ -179,7 +177,7 @@ class StrategicPartnershipIntelligence:
             "cloud_only": ["AWS", "Azure", "GCP", "Alibaba Cloud"],
         }
 
-    def analyze_partnerships(self, company_name: str, company_domain: str) -> List[Dict]:
+    def analyze_partnerships(self, company_name: str, company_domain: str) -> list[dict]:
         """
         Analyze strategic partnerships for a company (wrapper for ABM system compatibility)
         Returns partnerships in dictionary format for Notion integration
@@ -189,7 +187,7 @@ class StrategicPartnershipIntelligence:
 
     def detect_strategic_partnerships(
         self, company_name: str, company_domain: str
-    ) -> List[StrategicPartnership]:
+    ) -> list[StrategicPartnership]:
         """
         Main entry point for partnership detection
         Scans multiple sources for vendor relationships per skill specification
@@ -226,7 +224,7 @@ class StrategicPartnershipIntelligence:
 
     def _scan_company_website(
         self, company_name: str, company_domain: str
-    ) -> List[StrategicPartnership]:
+    ) -> list[StrategicPartnership]:
         """Scan company website for partnership mentions"""
         partnerships = []
 
@@ -257,14 +255,14 @@ class StrategicPartnershipIntelligence:
                         )
                     )
 
-            except Exception as e:
+            except Exception:
                 continue  # Try next page
 
         return partnerships
 
     def _search_press_releases(
         self, company_name: str, company_domain: str
-    ) -> List[StrategicPartnership]:
+    ) -> list[StrategicPartnership]:
         """Search for partnership announcements in press releases"""
         partnerships = []
 
@@ -288,14 +286,14 @@ class StrategicPartnershipIntelligence:
                         )
                     )
 
-            except Exception as e:
+            except Exception:
                 continue
 
         return partnerships
 
     def _analyze_job_postings(
         self, company_name: str, company_domain: str
-    ) -> List[StrategicPartnership]:
+    ) -> list[StrategicPartnership]:
         """Analyze job postings for technology stack mentions"""
         partnerships = []
 
@@ -320,7 +318,7 @@ class StrategicPartnershipIntelligence:
 
     def _search_linkedin_company_posts(
         self, company_name: str, company_domain: str
-    ) -> List[StrategicPartnership]:
+    ) -> list[StrategicPartnership]:
         """Search LinkedIn company page for partnership posts"""
         partnerships = []
 
@@ -335,7 +333,7 @@ class StrategicPartnershipIntelligence:
 
     def _extract_partnerships_from_content(
         self, content: str, source_url: str, company_name: str, source_type: str
-    ) -> List[StrategicPartnership]:
+    ) -> list[StrategicPartnership]:
         """Use AI to extract partnerships from webpage content"""
         partnerships = []
 
@@ -404,7 +402,7 @@ class StrategicPartnershipIntelligence:
 
     def _extract_tech_stack_from_jobs(
         self, jobs_content: str, source_url: str, company_name: str
-    ) -> List[StrategicPartnership]:
+    ) -> list[StrategicPartnership]:
         """Extract technology stack from job postings"""
         partnerships = []
 
@@ -462,7 +460,7 @@ class StrategicPartnershipIntelligence:
 
     def _generate_realistic_partnerships(
         self, company_name: str, company_domain: str
-    ) -> List[StrategicPartnership]:
+    ) -> list[StrategicPartnership]:
         """Generate realistic partnerships based on company profile"""
         partnerships = []
 
@@ -560,8 +558,8 @@ class StrategicPartnershipIntelligence:
         return False
 
     def _filter_and_deduplicate(
-        self, partnerships: List[StrategicPartnership]
-    ) -> List[StrategicPartnership]:
+        self, partnerships: list[StrategicPartnership]
+    ) -> list[StrategicPartnership]:
         """
         Remove duplicates, ensure category diversity for BD exploration.
 
@@ -576,7 +574,7 @@ class StrategicPartnershipIntelligence:
             return []
 
         # Group by category first
-        by_category: Dict[str, List[StrategicPartnership]] = {}
+        by_category: dict[str, list[StrategicPartnership]] = {}
         for p in partnerships:
             if p.category not in by_category:
                 by_category[p.category] = []
@@ -609,8 +607,8 @@ class StrategicPartnershipIntelligence:
         return filtered
 
     def _rank_partnerships(
-        self, partnerships: List[StrategicPartnership]
-    ) -> List[StrategicPartnership]:
+        self, partnerships: list[StrategicPartnership]
+    ) -> list[StrategicPartnership]:
         """Rank partnerships by priority and confidence"""
 
         def priority_score(partnership):
@@ -620,7 +618,7 @@ class StrategicPartnershipIntelligence:
 
         return sorted(partnerships, key=priority_score, reverse=True)
 
-    def convert_to_notion_format(self, partnerships: List[StrategicPartnership]) -> List[Dict]:
+    def convert_to_notion_format(self, partnerships: list[StrategicPartnership]) -> list[dict]:
         """Convert partnerships to enhanced schema format with confidence indicators"""
         notion_partnerships = []
 
@@ -629,7 +627,7 @@ class StrategicPartnershipIntelligence:
 
         return notion_partnerships
 
-    def convert_to_enhanced_schema(self, partnership: StrategicPartnership) -> Dict:
+    def convert_to_enhanced_schema(self, partnership: StrategicPartnership) -> dict:
         """Convert single partnership to enhanced schema format with business intelligence"""
 
         # Helper function for confidence indicators
@@ -639,7 +637,7 @@ class StrategicPartnershipIntelligence:
             if not searched:
                 return "N/A - not searched in this analysis"
             elif not value or value.strip() == "":
-                return f"Not found (searched multiple sources, 95% confidence)"
+                return "Not found (searched multiple sources, 95% confidence)"
             else:
                 conf = (
                     f"({confidence}% confidence)"

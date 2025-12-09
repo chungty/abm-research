@@ -8,15 +8,16 @@ Identifies "trusted paths" into target accounts via shared vendor relationships.
 Based on the strategy: inputs → actions → outputs with deterministic scoring.
 """
 
+import json
+import logging
 import os
 import re
 import time
-import json
-import requests
-import logging
-from typing import Dict, List, Optional, Set
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Optional
+
+import requests
 
 # OpenAI for LLM-powered vendor extraction
 try:
@@ -51,7 +52,7 @@ class VendorCustomerSignal:
 
     # Metadata
     recency: Optional[str] = None  # Year or date text
-    people_involved: List[str] = field(default_factory=list)  # Names/titles if extractable
+    people_involved: list[str] = field(default_factory=list)  # Names/titles if extractable
 
     # Scoring context
     is_cobranded: bool = False
@@ -73,10 +74,10 @@ class VendorIntroScore:
     fit_weight: float
 
     # Details
-    customer_signals: Dict[str, List[VendorCustomerSignal]] = field(default_factory=dict)
+    customer_signals: dict[str, list[VendorCustomerSignal]] = field(default_factory=dict)
 
     # Intro candidates (people from evidence)
-    intro_candidates: List[Dict] = field(default_factory=list)
+    intro_candidates: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -94,8 +95,8 @@ class DiscoveredVendor:
     vendor_name: str
     category: str  # competitors_power, channel_electrical, complementary_compute, etc.
     mention_count: int  # How many times mentioned across searches
-    evidence_urls: List[str] = field(default_factory=list)
-    evidence_snippets: List[str] = field(default_factory=list)
+    evidence_urls: list[str] = field(default_factory=list)
+    evidence_snippets: list[str] = field(default_factory=list)
     relationship_type: str = "unknown"  # customer, partner, integration, competitor
     confidence: float = 0.0  # 0-1 confidence score
     discovered_at: str = field(default_factory=lambda: datetime.now().isoformat())
@@ -376,7 +377,7 @@ class VendorRelationshipDiscovery:
         self.max_retries = 3  # Max retries on rate limit
 
         # Cache to avoid duplicate searches
-        self._search_cache: Dict[str, List[Dict]] = {}
+        self._search_cache: dict[str, list[dict]] = {}
 
         # OpenAI client for LLM-powered extraction
         self.openai_client = None
@@ -390,7 +391,7 @@ class VendorRelationshipDiscovery:
         self._notion_client = notion_client
 
         # Dynamic vendor list (starts with KNOWN_VENDORS, extended by discovered vendors)
-        self._dynamic_vendors: Dict[str, List[str]] = {}
+        self._dynamic_vendors: dict[str, list[str]] = {}
         self._init_dynamic_vendors()
 
     def _init_dynamic_vendors(self):
@@ -415,9 +416,9 @@ class VendorRelationshipDiscovery:
             f"Dynamic vendor list initialized with {total_vendors} vendors across {len(self._dynamic_vendors)} categories"
         )
 
-    def _load_discovered_vendors_from_notion(self) -> Dict[str, List[str]]:
+    def _load_discovered_vendors_from_notion(self) -> dict[str, list[str]]:
         """Load discovered vendors from Notion Partnerships database."""
-        discovered: Dict[str, List[str]] = {}
+        discovered: dict[str, list[str]] = {}
 
         if not self._notion_client:
             return discovered
@@ -459,7 +460,7 @@ class VendorRelationshipDiscovery:
 
         return discovered
 
-    def extract_vendors_from_text(self, text: str, account_name: str) -> List[Dict]:
+    def extract_vendors_from_text(self, text: str, account_name: str) -> list[dict]:
         """
         WORKFLOW 3 STEP 1: Use LLM to extract company names from text and classify them.
 
@@ -555,10 +556,10 @@ Return JSON array only, no markdown:"""
 
     def extract_vendors_from_texts_batch(
         self,
-        texts: List[Dict[str, str]],  # List of {text, url} dicts
+        texts: list[dict[str, str]],  # List of {text, url} dicts
         account_name: str,
         batch_size: int = 5,
-    ) -> Dict[str, List[Dict]]:
+    ) -> dict[str, list[dict]]:
         """
         Extract vendors from multiple texts in a single LLM call (batch processing).
 
@@ -575,7 +576,7 @@ Return JSON array only, no markdown:"""
         if not self.openai_client or not texts:
             return {}
 
-        results: Dict[str, List[Dict]] = {}
+        results: dict[str, list[dict]] = {}
 
         # Build category descriptions once
         category_descriptions = []
@@ -675,7 +676,7 @@ Return JSON object only, no markdown:"""
 
     def discover_unknown_vendors(
         self, account_name: str, save_to_notion: bool = True, min_confidence: float = 0.6
-    ) -> Dict:
+    ) -> dict:
         """
         WORKFLOW 3: Discover NEW vendors not in KNOWN_VENDORS using LLM extraction.
 
@@ -719,8 +720,8 @@ Return JSON object only, no markdown:"""
             }
 
         # Collect all search results
-        all_results: List[Dict] = []
-        search_errors: List[Dict] = []  # Track any API errors
+        all_results: list[dict] = []
+        search_errors: list[dict] = []  # Track any API errors
 
         # Run account-centric searches
         for template in self.VENDOR_DISCOVERY_TEMPLATES:
@@ -750,20 +751,20 @@ Return JSON object only, no markdown:"""
             all_results.extend(results)
 
         # Build list of all known vendor names for filtering
-        known_vendor_names: Set[str] = set()
+        known_vendor_names: set[str] = set()
         for category, vendors in self._dynamic_vendors.items():
             for v in vendors:
                 known_vendor_names.add(v.lower())
                 known_vendor_names.add(self._normalize_company(v))
 
         # Extract vendors via LLM from each result (using BATCH processing)
-        llm_extracted: Dict[
-            str, Dict
+        llm_extracted: dict[
+            str, dict
         ] = {}  # vendor_name -> {count, evidence, category, confidence}
-        known_vendors_found: Dict[str, Dict] = {}
+        known_vendors_found: dict[str, dict] = {}
 
         # Step 1: Collect all texts that pass the account name filter
-        texts_to_process: List[Dict[str, str]] = []
+        texts_to_process: list[dict[str, str]] = []
         for result in all_results:
             title = result.get("title", "")
             description = result.get("description", "")
@@ -819,7 +820,7 @@ Return JSON object only, no markdown:"""
                     target_dict[vendor_name]["confidence"] = vendor["confidence"]
 
         # Convert to DiscoveredVendor objects
-        discovered_vendors: List[DiscoveredVendor] = []
+        discovered_vendors: list[DiscoveredVendor] = []
         saved_to_notion = 0
         added_to_runtime = 0
 
@@ -883,9 +884,9 @@ Return JSON object only, no markdown:"""
             "category_summary": self._summarize_by_category(discovered_vendors),
         }
 
-    def _summarize_by_category(self, vendors: List[DiscoveredVendor]) -> Dict[str, int]:
+    def _summarize_by_category(self, vendors: list[DiscoveredVendor]) -> dict[str, int]:
         """Summarize vendors by category."""
-        summary: Dict[str, int] = {}
+        summary: dict[str, int] = {}
         for v in vendors:
             cat = v.category
             summary[cat] = summary.get(cat, 0) + 1
@@ -916,7 +917,7 @@ Return JSON object only, no markdown:"""
 
         self._notion_client.save_partnerships([partnership_data], account_name)
 
-    def get_all_vendors(self) -> Dict[str, List[str]]:
+    def get_all_vendors(self) -> dict[str, list[str]]:
         """Get the complete dynamic vendor list (KNOWN + discovered)."""
         return dict(self._dynamic_vendors)
 
@@ -926,10 +927,10 @@ Return JSON object only, no markdown:"""
 
     def discover_relationships(
         self,
-        vendors: List[str],
-        customers: List[str],
-        fit_weights: Optional[Dict[str, float]] = None,
-    ) -> Dict:
+        vendors: list[str],
+        customers: list[str],
+        fit_weights: Optional[dict[str, float]] = None,
+    ) -> dict:
         """
         Discover vendor-customer relationships from public data.
 
@@ -957,8 +958,8 @@ Return JSON object only, no markdown:"""
             }
 
         fit_weights = fit_weights or {}
-        all_signals: List[VendorCustomerSignal] = []
-        search_failures: List[Dict] = []
+        all_signals: list[VendorCustomerSignal] = []
+        search_failures: list[dict] = []
 
         # Search for each vendor-customer pair
         for vendor in vendors:
@@ -1000,8 +1001,8 @@ Return JSON object only, no markdown:"""
         }
 
     def discover_for_account(
-        self, account_name: str, candidate_vendors: Optional[List[str]] = None
-    ) -> Dict:
+        self, account_name: str, candidate_vendors: Optional[list[str]] = None
+    ) -> dict:
         """
         WORKFLOW 1: Discover vendor relationships for a single target account.
         Uses either provided vendors or default infrastructure/tech vendors.
@@ -1019,7 +1020,7 @@ Return JSON object only, no markdown:"""
 
         return self.discover_relationships(vendors=candidate_vendors, customers=[account_name])
 
-    def discover_account_vendors(self, account_name: str) -> Dict:
+    def discover_account_vendors(self, account_name: str) -> dict:
         """
         WORKFLOW 2: Account-centric vendor discovery.
         Discovers WHO the vendors are for a target account without prior knowledge.
@@ -1052,8 +1053,8 @@ Return JSON object only, no markdown:"""
             }
 
         # Collect all search results
-        all_results: List[Dict] = []
-        search_errors: List[Dict] = []  # Track any API errors
+        all_results: list[dict] = []
+        search_errors: list[dict] = []  # Track any API errors
 
         # Run account-centric searches
         for template in self.VENDOR_DISCOVERY_TEMPLATES:
@@ -1084,7 +1085,7 @@ Return JSON object only, no markdown:"""
             all_results.extend(results)
 
         # Extract vendors from results
-        vendor_mentions: Dict[str, Dict] = {}  # vendor_name -> {count, urls, snippets, category}
+        vendor_mentions: dict[str, dict] = {}  # vendor_name -> {count, urls, snippets, category}
 
         for result in all_results:
             title = result.get("title", "")
@@ -1123,8 +1124,8 @@ Return JSON object only, no markdown:"""
                                 vendor_mentions[vendor]["snippets"].append(snippet)
 
         # Convert to DiscoveredVendor objects
-        discovered_vendors: List[DiscoveredVendor] = []
-        vendors_by_category: Dict[str, List[DiscoveredVendor]] = {}
+        discovered_vendors: list[DiscoveredVendor] = []
+        vendors_by_category: dict[str, list[DiscoveredVendor]] = {}
 
         for vendor_name, data in vendor_mentions.items():
             # Calculate confidence based on mention count and evidence quality
@@ -1207,7 +1208,7 @@ Return JSON object only, no markdown:"""
 
         return min(1.0, base_score + source_boost + snippet_boost)
 
-    def _detect_relationship_type(self, account: str, vendor: str, snippets: List[str]) -> str:
+    def _detect_relationship_type(self, account: str, vendor: str, snippets: list[str]) -> str:
         """
         Detect the type of relationship from evidence snippets.
         Returns: customer, partner, integration, competitor, or unknown
@@ -1263,7 +1264,7 @@ Return JSON object only, no markdown:"""
 
         return "unknown"
 
-    def _get_default_vendor_list(self) -> List[str]:
+    def _get_default_vendor_list(self) -> list[str]:
         """Default list of vendors relevant to Verdigris ICP."""
         return [
             # Power & Energy
@@ -1297,7 +1298,7 @@ Return JSON object only, no markdown:"""
             "Microsoft Sustainability",
         ]
 
-    def _search_vendor_customer(self, vendor: str, customer: str) -> Dict:
+    def _search_vendor_customer(self, vendor: str, customer: str) -> dict:
         """
         Search for relationship signals between a vendor and customer.
 
@@ -1342,7 +1343,7 @@ Return JSON object only, no markdown:"""
 
         return {"signals": signals, "errors": search_errors}
 
-    def _brave_search(self, query: str) -> Dict:
+    def _brave_search(self, query: str) -> dict:
         """
         Execute Brave Search API request with retry logic for rate limiting.
 
@@ -1442,7 +1443,7 @@ Return JSON object only, no markdown:"""
         }
 
     def _parse_result_to_signal(
-        self, result: Dict, vendor: str, customer: str
+        self, result: dict, vendor: str, customer: str
     ) -> Optional[VendorCustomerSignal]:
         """Parse a search result into a VendorCustomerSignal."""
         try:
@@ -1599,7 +1600,7 @@ Return JSON object only, no markdown:"""
         ]
         return any(re.search(p, text, re.IGNORECASE) for p in deployment_patterns)
 
-    def _extract_people(self, text: str) -> List[str]:
+    def _extract_people(self, text: str) -> list[str]:
         """Extract people names/titles from text (basic extraction)."""
         # Look for common title patterns
         title_patterns = [
@@ -1625,10 +1626,10 @@ Return JSON object only, no markdown:"""
         return normalized.strip()
 
     def _deduplicate_signals(
-        self, signals: List[VendorCustomerSignal]
-    ) -> List[VendorCustomerSignal]:
+        self, signals: list[VendorCustomerSignal]
+    ) -> list[VendorCustomerSignal]:
         """Deduplicate signals by URL, keeping highest strength."""
-        url_to_signal: Dict[str, VendorCustomerSignal] = {}
+        url_to_signal: dict[str, VendorCustomerSignal] = {}
 
         for signal in signals:
             url = signal.evidence_url
@@ -1640,14 +1641,14 @@ Return JSON object only, no markdown:"""
         return list(url_to_signal.values())
 
     def _calculate_vendor_scores(
-        self, signals: List[VendorCustomerSignal], fit_weights: Dict[str, float]
-    ) -> List[VendorIntroScore]:
+        self, signals: list[VendorCustomerSignal], fit_weights: dict[str, float]
+    ) -> list[VendorIntroScore]:
         """
         Calculate Vendor Intro Power Score:
         IntroScore = CoverageCount * AvgSignalStrength * FitWeight
         """
         # Group signals by vendor
-        vendor_signals: Dict[str, Dict[str, List[VendorCustomerSignal]]] = {}
+        vendor_signals: dict[str, dict[str, list[VendorCustomerSignal]]] = {}
 
         for signal in signals:
             vendor = signal.vendor
@@ -1720,7 +1721,7 @@ Return JSON object only, no markdown:"""
         signal: VendorCustomerSignal,
         account_page_id: Optional[str] = None,
         is_verdigris_partner: bool = False,
-    ) -> Dict:
+    ) -> dict:
         """
         Convert a signal to Notion Partnership properties format.
         Ready to save to Partnerships database with Account relation.

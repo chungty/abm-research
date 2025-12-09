@@ -8,7 +8,7 @@ import json
 import os
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Optional
 
 
 class ApolloUsageMonitor:
@@ -26,7 +26,7 @@ class ApolloUsageMonitor:
         """Load usage tracking data"""
         try:
             if os.path.exists(self.usage_file):
-                with open(self.usage_file, "r") as f:
+                with open(self.usage_file) as f:
                     self.usage_data = json.load(f)
             else:
                 self.usage_data = {
@@ -47,7 +47,7 @@ class ApolloUsageMonitor:
         """Load cached API results to avoid duplicate calls"""
         try:
             if os.path.exists(self.cache_file):
-                with open(self.cache_file, "r") as f:
+                with open(self.cache_file) as f:
                     self.cache_data = json.load(f)
             else:
                 self.cache_data = {}
@@ -70,7 +70,7 @@ class ApolloUsageMonitor:
         except Exception as e:
             print(f"⚠️ Could not save cache data: {e}")
 
-    def check_rate_limits(self) -> Dict[str, bool]:
+    def check_rate_limits(self) -> dict[str, bool]:
         """Check if we're within rate limits"""
         today = datetime.now().strftime("%Y-%m-%d")
         current_hour = datetime.now().strftime("%Y-%m-%d-%H")
@@ -86,7 +86,7 @@ class ApolloUsageMonitor:
             "hourly_used": hourly_usage,
         }
 
-    def get_cached_result(self, cache_key: str) -> Optional[Dict]:
+    def get_cached_result(self, cache_key: str) -> Optional[dict]:
         """Get cached API result if available and not expired"""
         if cache_key in self.cache_data:
             cached_item = self.cache_data[cache_key]
@@ -103,7 +103,7 @@ class ApolloUsageMonitor:
 
         return None
 
-    def cache_result(self, cache_key: str, data: Dict):
+    def cache_result(self, cache_key: str, data: dict):
         """Cache API result"""
         self.cache_data[cache_key] = {"data": data, "timestamp": datetime.now().isoformat()}
         self.save_cache_data()
@@ -131,7 +131,7 @@ class ApolloUsageMonitor:
 
         print(f"📊 API Call Recorded: {call_type} (+${estimated_cost:.2f})")
 
-    def get_usage_summary(self) -> Dict:
+    def get_usage_summary(self) -> dict:
         """Get usage summary"""
         today = datetime.now().strftime("%Y-%m-%d")
         current_hour = datetime.now().strftime("%Y-%m-%d-%H")
@@ -197,13 +197,13 @@ class SafeApolloAPI:
         }
         self.usage_monitor = ApolloUsageMonitor(daily_limit=daily_limit)
 
-    def search_people_safe(self, company_domain: str, limit: int = 25) -> List[Dict]:
+    def search_people_safe(self, company_domain: str, limit: int = 25) -> list[dict]:
         """Safe people search with usage monitoring"""
 
         # Check rate limits
         limits = self.usage_monitor.check_rate_limits()
         if not limits["can_make_call"]:
-            print(f"❌ Rate limit exceeded!")
+            print("❌ Rate limit exceeded!")
             print(f"   Daily: {limits['daily_used']}/{self.usage_monitor.daily_limit}")
             print(f"   Hourly: {limits['hourly_used']}/{self.usage_monitor.hourly_limit}")
             return []
@@ -274,7 +274,7 @@ class SafeApolloAPI:
             print(f"❌ Apollo: Exception {e}")
             return []
 
-    def get_usage_summary(self) -> Dict:
+    def get_usage_summary(self) -> dict:
         """Get current usage summary"""
         return self.usage_monitor.get_usage_summary()
 
@@ -296,7 +296,7 @@ def main():
 
     # Show current usage
     usage = safe_apollo.get_usage_summary()
-    print(f"📊 Apollo API Usage Summary:")
+    print("📊 Apollo API Usage Summary:")
     print(f"   Total Calls: {usage['total_calls']}")
     print(f"   Estimated Cost: ${usage['estimated_total_cost']:.2f}")
     print(f"   Today: {usage['today_usage']}/{usage['daily_limit']} calls")
@@ -306,11 +306,11 @@ def main():
 
     # Test search (will use cache if available)
     if usage["can_make_calls"]:
-        print(f"\n🧪 Testing safe search...")
+        print("\n🧪 Testing safe search...")
         results = safe_apollo.search_people_safe("equinix.com", limit=5)
         print(f"✅ Found {len(results)} contacts")
     else:
-        print(f"\n⚠️ Rate limit reached - no API calls will be made")
+        print("\n⚠️ Rate limit reached - no API calls will be made")
 
     # Clean old data
     safe_apollo.clean_old_data()
