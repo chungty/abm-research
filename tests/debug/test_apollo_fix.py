@@ -5,9 +5,11 @@ Test Apollo bulk enrichment fix for 400 error
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 from abm_research.phases.apollo_contact_discovery import apollo_discovery
+
 
 def test_apollo_fix():
     """
@@ -20,9 +22,7 @@ def test_apollo_fix():
         # Test with a company that has contacts
         print("🔍 Testing contact discovery for Groq...")
         contacts = apollo_discovery.discover_contacts(
-            company_name="Groq",
-            company_domain="groq.com",
-            max_contacts=3  # Small test batch
+            company_name="Groq", company_domain="groq.com", max_contacts=3  # Small test batch
         )
 
         print(f"✅ Found {len(contacts)} contacts")
@@ -52,7 +52,9 @@ def test_apollo_fix():
     except Exception as e:
         print(f"❌ Error during test: {e}")
         import traceback
+
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     test_apollo_fix()

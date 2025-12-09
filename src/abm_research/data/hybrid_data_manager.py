@@ -21,6 +21,7 @@ from ..dashboard.dashboard_data_service import NotionDataService
 @dataclass
 class SyncStatus:
     """Track synchronization status between Notion and local database"""
+
     table_name: str
     last_notion_sync: datetime
     last_db_update: datetime
@@ -68,7 +69,8 @@ class HybridDataManager:
             cursor = conn.cursor()
 
             # Accounts table
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS accounts (
                     id TEXT PRIMARY KEY,
                     notion_id TEXT UNIQUE,
@@ -82,10 +84,12 @@ class HybridDataManager:
                     last_updated TEXT,
                     notion_last_modified TEXT
                 )
-            """)
+            """
+            )
 
             # Contacts table
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS contacts (
                     id TEXT PRIMARY KEY,
                     notion_id TEXT UNIQUE,
@@ -106,10 +110,12 @@ class HybridDataManager:
                     notion_last_modified TEXT,
                     FOREIGN KEY(company_name) REFERENCES accounts(name)
                 )
-            """)
+            """
+            )
 
             # Trigger Events table
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS trigger_events (
                     id TEXT PRIMARY KEY,
                     notion_id TEXT UNIQUE,
@@ -126,10 +132,12 @@ class HybridDataManager:
                     notion_last_modified TEXT,
                     FOREIGN KEY(company_name) REFERENCES accounts(name)
                 )
-            """)
+            """
+            )
 
             # Strategic Partnerships table
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS partnerships (
                     id TEXT PRIMARY KEY,
                     notion_id TEXT UNIQUE,
@@ -143,10 +151,12 @@ class HybridDataManager:
                     notion_last_modified TEXT,
                     FOREIGN KEY(target_company) REFERENCES accounts(name)
                 )
-            """)
+            """
+            )
 
             # Research Queue table (local-only for workflow management)
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS research_queue (
                     id TEXT PRIMARY KEY,
                     account_id TEXT,
@@ -162,10 +172,12 @@ class HybridDataManager:
                     estimated_duration INTEGER,
                     actual_duration INTEGER
                 )
-            """)
+            """
+            )
 
             # Sync Metadata table
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE IF NOT EXISTS sync_metadata (
                     table_name TEXT PRIMARY KEY,
                     last_notion_sync TEXT,
@@ -176,7 +188,8 @@ class HybridDataManager:
                     sync_status TEXT,
                     error_log TEXT
                 )
-            """)
+            """
+            )
 
             conn.commit()
             print("✅ Database schema initialized")
@@ -194,7 +207,7 @@ class HybridDataManager:
                 cursor.execute("PRAGMA table_info(contacts)")
                 contacts_columns = [col[1] for col in cursor.fetchall()]
 
-                if 'account_id' in contacts_columns:
+                if "account_id" in contacts_columns:
                     # Migration already completed
                     return
 
@@ -216,7 +229,8 @@ class HybridDataManager:
                 print("   Populating account_id from company names...")
 
                 # Update contacts.account_id
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE contacts
                     SET account_id = (
                         SELECT accounts.id
@@ -224,10 +238,12 @@ class HybridDataManager:
                         WHERE accounts.name = contacts.company_name
                     )
                     WHERE contacts.company_name IS NOT NULL
-                """)
+                """
+                )
 
                 # Update trigger_events.account_id
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE trigger_events
                     SET account_id = (
                         SELECT accounts.id
@@ -235,10 +251,12 @@ class HybridDataManager:
                         WHERE accounts.name = trigger_events.company_name
                     )
                     WHERE trigger_events.company_name IS NOT NULL
-                """)
+                """
+                )
 
                 # Update partnerships.account_id
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE partnerships
                     SET account_id = (
                         SELECT accounts.id
@@ -246,22 +264,31 @@ class HybridDataManager:
                         WHERE accounts.name = partnerships.target_company
                     )
                     WHERE partnerships.target_company IS NOT NULL
-                """)
+                """
+                )
 
                 # Step 3: Validate data migration
                 print("   Validating migration...")
 
-                cursor.execute("SELECT COUNT(*) FROM contacts WHERE account_id IS NULL AND company_name IS NOT NULL")
+                cursor.execute(
+                    "SELECT COUNT(*) FROM contacts WHERE account_id IS NULL AND company_name IS NOT NULL"
+                )
                 orphaned_contacts = cursor.fetchone()[0]
 
-                cursor.execute("SELECT COUNT(*) FROM trigger_events WHERE account_id IS NULL AND company_name IS NOT NULL")
+                cursor.execute(
+                    "SELECT COUNT(*) FROM trigger_events WHERE account_id IS NULL AND company_name IS NOT NULL"
+                )
                 orphaned_events = cursor.fetchone()[0]
 
-                cursor.execute("SELECT COUNT(*) FROM partnerships WHERE account_id IS NULL AND target_company IS NOT NULL")
+                cursor.execute(
+                    "SELECT COUNT(*) FROM partnerships WHERE account_id IS NULL AND target_company IS NOT NULL"
+                )
                 orphaned_partnerships = cursor.fetchone()[0]
 
                 if orphaned_contacts > 0 or orphaned_events > 0 or orphaned_partnerships > 0:
-                    print(f"   ⚠️ Warning: Found orphaned records - Contacts: {orphaned_contacts}, Events: {orphaned_events}, Partnerships: {orphaned_partnerships}")
+                    print(
+                        f"   ⚠️ Warning: Found orphaned records - Contacts: {orphaned_contacts}, Events: {orphaned_events}, Partnerships: {orphaned_partnerships}"
+                    )
                     print("   These records have company names that don't match any account names")
 
                 # Step 4: Since SQLite doesn't support DROP FOREIGN KEY, we need to recreate tables
@@ -293,11 +320,13 @@ class HybridDataManager:
     # FAST LOCAL QUERIES (PRIMARY INTERFACE)
     # ═══════════════════════════════════════════════════════════════════════════════════
 
-    def get_accounts_fast(self,
-                         limit: int = None,
-                         search: str = None,
-                         min_icp_score: int = None,
-                         research_status: str = None) -> List[Dict]:
+    def get_accounts_fast(
+        self,
+        limit: int = None,
+        search: str = None,
+        min_icp_score: int = None,
+        research_status: str = None,
+    ) -> List[Dict]:
         """Fast account query from local database"""
         with self.get_db_connection() as conn:
             query = "SELECT * FROM accounts WHERE 1=1"
@@ -326,10 +355,9 @@ class HybridDataManager:
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
 
-    def get_contacts_fast(self,
-                         company_name: str = None,
-                         min_lead_score: int = None,
-                         limit: int = None) -> List[Dict]:
+    def get_contacts_fast(
+        self, company_name: str = None, min_lead_score: int = None, limit: int = None
+    ) -> List[Dict]:
         """Fast contact query from local database (optimized with account_id lookup)"""
         with self.get_db_connection() as conn:
             cursor = conn.cursor()
@@ -366,10 +394,9 @@ class HybridDataManager:
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
 
-    def get_trigger_events_fast(self,
-                               company_name: str = None,
-                               urgency_level: str = None,
-                               days_back: int = 30) -> List[Dict]:
+    def get_trigger_events_fast(
+        self, company_name: str = None, urgency_level: str = None, days_back: int = 30
+    ) -> List[Dict]:
         """Fast trigger events query from local database (optimized with account_id lookup)"""
         with self.get_db_connection() as conn:
             cursor = conn.cursor()
@@ -414,71 +441,83 @@ class HybridDataManager:
 
             # Account metrics
             cursor.execute("SELECT COUNT(*) as total_accounts FROM accounts")
-            total_accounts = cursor.fetchone()['total_accounts']
+            total_accounts = cursor.fetchone()["total_accounts"]
 
-            cursor.execute("SELECT COUNT(*) as high_icp_accounts FROM accounts WHERE icp_fit_score >= 70")
-            high_icp_accounts = cursor.fetchone()['high_icp_accounts']
+            cursor.execute(
+                "SELECT COUNT(*) as high_icp_accounts FROM accounts WHERE icp_fit_score >= 70"
+            )
+            high_icp_accounts = cursor.fetchone()["high_icp_accounts"]
 
             # Contact metrics
             cursor.execute("SELECT COUNT(*) as total_contacts FROM contacts")
-            total_contacts = cursor.fetchone()['total_contacts']
+            total_contacts = cursor.fetchone()["total_contacts"]
 
-            cursor.execute("SELECT COUNT(*) as priority_contacts FROM contacts WHERE final_lead_score >= 70")
-            priority_contacts = cursor.fetchone()['priority_contacts']
+            cursor.execute(
+                "SELECT COUNT(*) as priority_contacts FROM contacts WHERE final_lead_score >= 70"
+            )
+            priority_contacts = cursor.fetchone()["priority_contacts"]
 
             # Signal metrics
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*) as active_signals
                 FROM trigger_events
                 WHERE urgency_level IN ('High', 'Medium')
                 AND timestamp >= ?
-            """, [(datetime.now() - timedelta(days=7)).isoformat()])
-            active_signals = cursor.fetchone()['active_signals']
+            """,
+                [(datetime.now() - timedelta(days=7)).isoformat()],
+            )
+            active_signals = cursor.fetchone()["active_signals"]
 
             # Research queue metrics
-            cursor.execute("SELECT COUNT(*) as queued_research FROM research_queue WHERE status = 'queued'")
-            queued_research = cursor.fetchone()['queued_research']
+            cursor.execute(
+                "SELECT COUNT(*) as queued_research FROM research_queue WHERE status = 'queued'"
+            )
+            queued_research = cursor.fetchone()["queued_research"]
 
-            cursor.execute("SELECT COUNT(*) as active_research FROM research_queue WHERE status = 'active'")
-            active_research = cursor.fetchone()['active_research']
+            cursor.execute(
+                "SELECT COUNT(*) as active_research FROM research_queue WHERE status = 'active'"
+            )
+            active_research = cursor.fetchone()["active_research"]
 
             return {
-                'total_accounts': total_accounts,
-                'high_icp_accounts': high_icp_accounts,
-                'total_contacts': total_contacts,
-                'priority_contacts': priority_contacts,
-                'active_signals': active_signals,
-                'queued_research': queued_research,
-                'active_research': active_research,
-                'timestamp': datetime.now().isoformat()
+                "total_accounts": total_accounts,
+                "high_icp_accounts": high_icp_accounts,
+                "total_contacts": total_contacts,
+                "priority_contacts": priority_contacts,
+                "active_signals": active_signals,
+                "queued_research": queued_research,
+                "active_research": active_research,
+                "timestamp": datetime.now().isoformat(),
             }
 
     # ═══════════════════════════════════════════════════════════════════════════════════
     # RESEARCH QUEUE MANAGEMENT (LOCAL-ONLY)
     # ═══════════════════════════════════════════════════════════════════════════════════
 
-    def add_to_research_queue(self,
-                             account_id: str,
-                             account_name: str,
-                             research_phases: List[str],
-                             priority: int = 5) -> str:
+    def add_to_research_queue(
+        self, account_id: str, account_name: str, research_phases: List[str], priority: int = 5
+    ) -> str:
         """Add account to research queue"""
         queue_id = f"research_{account_id}_{int(time.time())}"
 
         with self.get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO research_queue
                 (id, account_id, account_name, research_phases, status, priority, created_at, progress_percentage)
                 VALUES (?, ?, ?, ?, 'queued', ?, ?, 0)
-            """, (
-                queue_id,
-                account_id,
-                account_name,
-                json.dumps(research_phases),
-                priority,
-                datetime.now().isoformat()
-            ))
+            """,
+                (
+                    queue_id,
+                    account_id,
+                    account_name,
+                    json.dumps(research_phases),
+                    priority,
+                    datetime.now().isoformat(),
+                ),
+            )
             conn.commit()
 
         return queue_id
@@ -494,34 +533,40 @@ class HybridDataManager:
 
             # Parse JSON phases
             for item in all_items:
-                if item['research_phases']:
-                    item['research_phases'] = json.loads(item['research_phases'])
+                if item["research_phases"]:
+                    item["research_phases"] = json.loads(item["research_phases"])
 
             # Group by status
             queue_by_status = {
-                'queued': [item for item in all_items if item['status'] == 'queued'],
-                'active': [item for item in all_items if item['status'] == 'active'],
-                'completed': [item for item in all_items if item['status'] == 'completed'],
-                'failed': [item for item in all_items if item['status'] == 'failed']
+                "queued": [item for item in all_items if item["status"] == "queued"],
+                "active": [item for item in all_items if item["status"] == "active"],
+                "completed": [item for item in all_items if item["status"] == "completed"],
+                "failed": [item for item in all_items if item["status"] == "failed"],
             }
 
             # Calculate stats
             stats = {
-                'total_items': len(all_items),
-                'queued': len(queue_by_status['queued']),
-                'active': len(queue_by_status['active']),
-                'completed_today': len([
-                    item for item in queue_by_status['completed']
-                    if item['completed_at'] and
-                    datetime.fromisoformat(item['completed_at']).date() == datetime.now().date()
-                ]),
-                'avg_completion_time': self._calculate_avg_completion_time(queue_by_status['completed'])
+                "total_items": len(all_items),
+                "queued": len(queue_by_status["queued"]),
+                "active": len(queue_by_status["active"]),
+                "completed_today": len(
+                    [
+                        item
+                        for item in queue_by_status["completed"]
+                        if item["completed_at"]
+                        and datetime.fromisoformat(item["completed_at"]).date()
+                        == datetime.now().date()
+                    ]
+                ),
+                "avg_completion_time": self._calculate_avg_completion_time(
+                    queue_by_status["completed"]
+                ),
             }
 
             return {
-                'queue': queue_by_status,
-                'stats': stats,
-                'timestamp': datetime.now().isoformat()
+                "queue": queue_by_status,
+                "stats": stats,
+                "timestamp": datetime.now().isoformat(),
             }
 
     def _calculate_avg_completion_time(self, completed_items: List[Dict]) -> int:
@@ -533,8 +578,8 @@ class HybridDataManager:
         valid_items = 0
 
         for item in completed_items:
-            if item['actual_duration']:
-                total_duration += item['actual_duration']
+            if item["actual_duration"]:
+                total_duration += item["actual_duration"]
                 valid_items += 1
 
         return total_duration // valid_items if valid_items > 0 else 0
@@ -547,7 +592,7 @@ class HybridDataManager:
         """Sync data from Notion to local database"""
         print("🔄 Starting Notion → Database sync...")
 
-        tables = ['accounts', 'contacts', 'trigger_events', 'partnerships']
+        tables = ["accounts", "contacts", "trigger_events", "partnerships"]
         sync_results = {}
 
         for table_name in tables:
@@ -555,13 +600,13 @@ class HybridDataManager:
                 print(f"📥 Syncing {table_name}...")
 
                 # Get data from Notion
-                if table_name == 'accounts':
+                if table_name == "accounts":
                     notion_data = self.notion_service.fetch_accounts()
-                elif table_name == 'contacts':
+                elif table_name == "contacts":
                     notion_data = self.notion_service.fetch_contacts()
-                elif table_name == 'trigger_events':
+                elif table_name == "trigger_events":
                     notion_data = self.notion_service.fetch_trigger_events()
-                elif table_name == 'partnerships':
+                elif table_name == "partnerships":
                     notion_data = self.notion_service.fetch_partnerships()
 
                 # Update local database
@@ -575,7 +620,7 @@ class HybridDataManager:
                     record_count_notion=len(notion_data),
                     record_count_db=self._get_local_record_count(table_name),
                     sync_conflicts=conflicts,
-                    sync_status='synced' if conflicts == 0 else 'drift'
+                    sync_status="synced" if conflicts == 0 else "drift",
                 )
 
                 self._save_sync_status(sync_status)
@@ -592,7 +637,7 @@ class HybridDataManager:
                     record_count_notion=0,
                     record_count_db=self._get_local_record_count(table_name),
                     sync_conflicts=0,
-                    sync_status='error'
+                    sync_status="error",
                 )
                 sync_results[table_name] = sync_status
 
@@ -605,48 +650,48 @@ class HybridDataManager:
 
         # Column mapping between Notion field names and local DB columns
         column_mappings = {
-            'accounts': {
-                'Company Name': 'name',
-                'Domain': 'domain',
-                'Industry': 'industry',
-                'Company Size': 'company_size',
-                'ICP Fit Score': 'icp_fit_score',
-                'Research Status': 'research_status'
+            "accounts": {
+                "Company Name": "name",
+                "Domain": "domain",
+                "Industry": "industry",
+                "Company Size": "company_size",
+                "ICP Fit Score": "icp_fit_score",
+                "Research Status": "research_status",
             },
-            'contacts': {
-                'Full Name': 'full_name',
-                'Name': 'full_name',  # Fallback
-                'Email': 'email',
-                'Phone': 'phone',
-                'Title': 'title',
-                'Company Name': 'company_name',
-                'Department': 'department',
-                'Seniority Level': 'seniority_level',
-                'LinkedIn URL': 'linkedin_url',
-                'LinkedIn Activity Score': 'linkedin_activity_score',
-                'Buying Power Score': 'buying_power_score',
-                'Final Lead Score': 'final_lead_score',
-                'MEDDIC Classification': 'meddic_classification'
+            "contacts": {
+                "Full Name": "full_name",
+                "Name": "full_name",  # Fallback
+                "Email": "email",
+                "Phone": "phone",
+                "Title": "title",
+                "Company Name": "company_name",
+                "Department": "department",
+                "Seniority Level": "seniority_level",
+                "LinkedIn URL": "linkedin_url",
+                "LinkedIn Activity Score": "linkedin_activity_score",
+                "Buying Power Score": "buying_power_score",
+                "Final Lead Score": "final_lead_score",
+                "MEDDIC Classification": "meddic_classification",
             },
-            'trigger_events': {
-                'Company Name': 'company_name',
-                'Event Description': 'event_description',
-                'Description': 'event_description',  # Fallback
-                'Event Type': 'event_type',
-                'Source URL': 'source_url',
-                'Urgency Level': 'urgency_level',
-                'Confidence Score': 'confidence_score',
-                'Verdigris Relevance': 'verdigris_relevance',
-                'Timestamp': 'timestamp'
+            "trigger_events": {
+                "Company Name": "company_name",
+                "Event Description": "event_description",
+                "Description": "event_description",  # Fallback
+                "Event Type": "event_type",
+                "Source URL": "source_url",
+                "Urgency Level": "urgency_level",
+                "Confidence Score": "confidence_score",
+                "Verdigris Relevance": "verdigris_relevance",
+                "Timestamp": "timestamp",
             },
-            'partnerships': {
-                'Target Company': 'target_company',
-                'Name': 'target_company',  # Fallback
-                'Partnership Type': 'partnership_type',
-                'Partner Company': 'partner_company',
-                'Verdigris Relevance': 'verdigris_relevance',
-                'Confidence Score': 'confidence_score'
-            }
+            "partnerships": {
+                "Target Company": "target_company",
+                "Name": "target_company",  # Fallback
+                "Partnership Type": "partnership_type",
+                "Partner Company": "partner_company",
+                "Verdigris Relevance": "verdigris_relevance",
+                "Confidence Score": "confidence_score",
+            },
         }
 
         mapping = column_mappings.get(table_name, {})
@@ -661,27 +706,27 @@ class HybridDataManager:
 
                     # Generate local ID
                     local_id = f"{table_name}_{int(time.time())}_{hash(str(item))}"
-                    mapped_item['id'] = local_id
-                    mapped_item['notion_id'] = item.get('id', local_id)
+                    mapped_item["id"] = local_id
+                    mapped_item["notion_id"] = item.get("id", local_id)
 
                     # Map fields
                     for notion_field, value in item.items():
                         if notion_field in mapping:
                             local_field = mapping[notion_field]
                             mapped_item[local_field] = value
-                        elif notion_field not in ['id']:  # Keep non-mapped fields except id
+                        elif notion_field not in ["id"]:  # Keep non-mapped fields except id
                             # Use field name as-is for unmapped fields
-                            clean_field = notion_field.lower().replace(' ', '_').replace('-', '_')
+                            clean_field = notion_field.lower().replace(" ", "_").replace("-", "_")
                             mapped_item[clean_field] = value
 
                     # Add timestamps
                     current_time = datetime.now().isoformat()
-                    mapped_item['created_date'] = current_time
-                    mapped_item['last_updated'] = current_time
-                    mapped_item['notion_last_modified'] = current_time
+                    mapped_item["created_date"] = current_time
+                    mapped_item["last_updated"] = current_time
+                    mapped_item["notion_last_modified"] = current_time
 
                     # Check for existing record by notion_id
-                    notion_id = mapped_item['notion_id']
+                    notion_id = mapped_item["notion_id"]
                     cursor.execute(f"SELECT * FROM {table_name} WHERE notion_id = ?", (notion_id,))
                     existing = cursor.fetchone()
 
@@ -691,17 +736,20 @@ class HybridDataManager:
                         update_values = []
 
                         for key, value in mapped_item.items():
-                            if key not in ['id', 'created_date']:  # Don't update id or created_date
+                            if key not in ["id", "created_date"]:  # Don't update id or created_date
                                 update_fields.append(f"{key} = ?")
                                 update_values.append(value)
 
                         if update_fields:
-                            update_values.append(existing['id'])
-                            cursor.execute(f"""
+                            update_values.append(existing["id"])
+                            cursor.execute(
+                                f"""
                                 UPDATE {table_name}
                                 SET {', '.join(update_fields)}
                                 WHERE id = ?
-                            """, update_values)
+                            """,
+                                update_values,
+                            )
                     else:
                         # Insert new record - only insert fields that exist in the table
                         cursor.execute(f"PRAGMA table_info({table_name})")
@@ -711,13 +759,16 @@ class HybridDataManager:
 
                         if insert_item:  # Only insert if we have valid columns
                             columns = list(insert_item.keys())
-                            placeholders = ','.join(['?' for _ in columns])
+                            placeholders = ",".join(["?" for _ in columns])
                             values = list(insert_item.values())
 
-                            cursor.execute(f"""
+                            cursor.execute(
+                                f"""
                                 INSERT OR IGNORE INTO {table_name} ({','.join(columns)})
                                 VALUES ({placeholders})
-                            """, values)
+                            """,
+                                values,
+                            )
 
                 except Exception as e:
                     print(f"Error processing item for {table_name}: {e}")
@@ -733,26 +784,29 @@ class HybridDataManager:
         with self.get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(f"SELECT COUNT(*) as count FROM {table_name}")
-            return cursor.fetchone()['count']
+            return cursor.fetchone()["count"]
 
     def _save_sync_status(self, sync_status: SyncStatus):
         """Save sync status to database"""
         with self.get_db_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT OR REPLACE INTO sync_metadata
                 (table_name, last_notion_sync, last_db_update, record_count_notion,
                  record_count_db, sync_conflicts, sync_status)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                sync_status.table_name,
-                sync_status.last_notion_sync.isoformat(),
-                sync_status.last_db_update.isoformat(),
-                sync_status.record_count_notion,
-                sync_status.record_count_db,
-                sync_status.sync_conflicts,
-                sync_status.sync_status
-            ))
+            """,
+                (
+                    sync_status.table_name,
+                    sync_status.last_notion_sync.isoformat(),
+                    sync_status.last_db_update.isoformat(),
+                    sync_status.record_count_notion,
+                    sync_status.record_count_db,
+                    sync_status.sync_conflicts,
+                    sync_status.sync_status,
+                ),
+            )
             conn.commit()
 
     def _background_sync_loop(self):
@@ -774,10 +828,12 @@ class HybridDataManager:
             sync_data = [dict(row) for row in cursor.fetchall()]
 
             return {
-                'sync_status': sync_data,
-                'last_update': datetime.now().isoformat(),
-                'sync_interval': self.sync_interval,
-                'database_size': os.path.getsize(self.db_path) if os.path.exists(self.db_path) else 0
+                "sync_status": sync_data,
+                "last_update": datetime.now().isoformat(),
+                "sync_interval": self.sync_interval,
+                "database_size": os.path.getsize(self.db_path)
+                if os.path.exists(self.db_path)
+                else 0,
             }
 
 
@@ -788,7 +844,7 @@ class HybridDataManager:
 # Global instance for easy import
 hybrid_data_manager = HybridDataManager()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("🚀 Hybrid Data Manager - Standalone Test")
 
     # Test sync

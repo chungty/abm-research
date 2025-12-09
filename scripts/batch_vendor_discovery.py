@@ -29,21 +29,18 @@ def get_all_accounts():
     response = requests.get(f"{API_BASE}/accounts")
     response.raise_for_status()
     data = response.json()
-    return data.get('accounts', [])
+    return data.get("accounts", [])
 
 
-def discover_vendors_for_account(account_id: str, account_name: str,
-                                  save_to_notion: bool = True,
-                                  min_confidence: float = 0.6) -> dict:
+def discover_vendors_for_account(
+    account_id: str, account_name: str, save_to_notion: bool = True, min_confidence: float = 0.6
+) -> dict:
     """Run vendor discovery for a single account."""
     response = requests.post(
         f"{API_BASE}/accounts/{account_id}/discover-unknown-vendors",
         headers={"Content-Type": "application/json"},
-        json={
-            "save_to_notion": save_to_notion,
-            "min_confidence": min_confidence
-        },
-        timeout=120  # 2 minute timeout per account
+        json={"save_to_notion": save_to_notion, "min_confidence": min_confidence},
+        timeout=120,  # 2 minute timeout per account
     )
     response.raise_for_status()
     return response.json()
@@ -60,7 +57,7 @@ def format_result_summary(result: dict) -> str:
     lines.append(f"  Cost Estimate: {result.get('cost_estimate', 'N/A')}")
 
     # Category breakdown
-    categories = result.get('category_summary', {})
+    categories = result.get("category_summary", {})
     if categories:
         lines.append("  Categories:")
         for cat, count in categories.items():
@@ -68,7 +65,7 @@ def format_result_summary(result: dict) -> str:
                 lines.append(f"    - {cat}: {count}")
 
     # Top vendors discovered
-    vendors = result.get('discovered_vendors', [])[:3]
+    vendors = result.get("discovered_vendors", [])[:3]
     if vendors:
         lines.append("  Top Vendors:")
         for v in vendors:
@@ -79,14 +76,21 @@ def format_result_summary(result: dict) -> str:
 
 def main():
     parser = argparse.ArgumentParser(description="Batch vendor discovery across all accounts")
-    parser.add_argument("--dry-run", action="store_true",
-                       help="Don't save to Notion, just preview what would be discovered")
-    parser.add_argument("--min-confidence", type=float, default=0.6,
-                       help="Minimum confidence threshold (default: 0.6)")
-    parser.add_argument("--delay", type=int, default=5,
-                       help="Seconds to wait between accounts (default: 5)")
-    parser.add_argument("--skip-accounts", nargs="+", default=[],
-                       help="Account names to skip")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Don't save to Notion, just preview what would be discovered",
+    )
+    parser.add_argument(
+        "--min-confidence",
+        type=float,
+        default=0.6,
+        help="Minimum confidence threshold (default: 0.6)",
+    )
+    parser.add_argument(
+        "--delay", type=int, default=5, help="Seconds to wait between accounts (default: 5)"
+    )
+    parser.add_argument("--skip-accounts", nargs="+", default=[], help="Account names to skip")
     args = parser.parse_args()
 
     save_to_notion = not args.dry_run
@@ -107,7 +111,9 @@ def main():
         accounts = get_all_accounts()
     except Exception as e:
         print(f"ERROR: Failed to fetch accounts: {e}")
-        print("Make sure the API server is running: PYTHONPATH=. python3 src/abm_research/api/server.py")
+        print(
+            "Make sure the API server is running: PYTHONPATH=. python3 src/abm_research/api/server.py"
+        )
         return 1
 
     print(f"Found {len(accounts)} accounts")
@@ -116,7 +122,7 @@ def main():
     # Filter out skipped accounts
     if args.skip_accounts:
         original_count = len(accounts)
-        accounts = [a for a in accounts if a['name'] not in args.skip_accounts]
+        accounts = [a for a in accounts if a["name"] not in args.skip_accounts]
         print(f"Skipping {original_count - len(accounts)} accounts: {args.skip_accounts}")
         print()
 
@@ -127,12 +133,12 @@ def main():
         "total_vendors": 0,
         "total_saved": 0,
         "total_cost": 0.0,
-        "accounts": []
+        "accounts": [],
     }
 
     for i, account in enumerate(accounts, 1):
-        account_name = account.get('name', 'Unknown')
-        account_id = account.get('id')
+        account_name = account.get("name", "Unknown")
+        account_id = account.get("id")
 
         print(f"[{i}/{len(accounts)}] Processing: {account_name}")
         print(f"    ID: {account_id}")
@@ -142,51 +148,57 @@ def main():
                 account_id=account_id,
                 account_name=account_name,
                 save_to_notion=save_to_notion,
-                min_confidence=args.min_confidence
+                min_confidence=args.min_confidence,
             )
 
             print(format_result_summary(result))
 
             # Update totals
             results["success"] += 1
-            results["total_vendors"] += result.get('new_vendors_count', 0)
-            results["total_saved"] += result.get('saved_to_notion', 0)
+            results["total_vendors"] += result.get("new_vendors_count", 0)
+            results["total_saved"] += result.get("saved_to_notion", 0)
 
             # Parse cost estimate (e.g., "~$0.174")
-            cost_str = result.get('cost_estimate', '$0')
+            cost_str = result.get("cost_estimate", "$0")
             try:
-                cost = float(cost_str.replace('~$', '').replace('$', ''))
+                cost = float(cost_str.replace("~$", "").replace("$", ""))
                 results["total_cost"] += cost
             except:
                 pass
 
-            results["accounts"].append({
-                "name": account_name,
-                "status": "success",
-                "vendors_discovered": result.get('new_vendors_count', 0),
-                "saved_to_notion": result.get('saved_to_notion', 0)
-            })
+            results["accounts"].append(
+                {
+                    "name": account_name,
+                    "status": "success",
+                    "vendors_discovered": result.get("new_vendors_count", 0),
+                    "saved_to_notion": result.get("saved_to_notion", 0),
+                }
+            )
 
         except requests.exceptions.Timeout:
             print(f"  ERROR: Request timed out (>120s)")
             results["failed"] += 1
-            results["accounts"].append({
-                "name": account_name,
-                "status": "timeout",
-                "vendors_discovered": 0,
-                "saved_to_notion": 0
-            })
+            results["accounts"].append(
+                {
+                    "name": account_name,
+                    "status": "timeout",
+                    "vendors_discovered": 0,
+                    "saved_to_notion": 0,
+                }
+            )
 
         except Exception as e:
             print(f"  ERROR: {e}")
             results["failed"] += 1
-            results["accounts"].append({
-                "name": account_name,
-                "status": "error",
-                "error": str(e),
-                "vendors_discovered": 0,
-                "saved_to_notion": 0
-            })
+            results["accounts"].append(
+                {
+                    "name": account_name,
+                    "status": "error",
+                    "error": str(e),
+                    "vendors_discovered": 0,
+                    "saved_to_notion": 0,
+                }
+            )
 
         print()
 
@@ -212,7 +224,7 @@ def main():
 
     # Save results to file
     output_file = f"/tmp/batch_discovery_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         json.dump(results, f, indent=2)
     print(f"Results saved to: {output_file}")
 

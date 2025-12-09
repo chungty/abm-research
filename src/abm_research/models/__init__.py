@@ -10,10 +10,4 @@ from .strategic_partnership import StrategicPartnership
 # Import the LeadScore dataclass from the unified scorer
 from ..core.unified_lead_scorer import LeadScore
 
-__all__ = [
-    'Account',
-    'Contact',
-    'TriggerEvent',
-    'StrategicPartnership',
-    'LeadScore'
-]
+__all__ = ["Account", "Contact", "TriggerEvent", "StrategicPartnership", "LeadScore"]

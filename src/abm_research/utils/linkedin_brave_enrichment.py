@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class LinkedInActivity:
     """Public LinkedIn activity discovered via Brave Search"""
+
     person_name: str
     linkedin_url: Optional[str] = None
 
@@ -47,7 +48,7 @@ class LinkedInBraveEnrichment:
     """
 
     def __init__(self):
-        self.brave_api_key = os.getenv('BRAVE_API_KEY')
+        self.brave_api_key = os.getenv("BRAVE_API_KEY")
         if not self.brave_api_key:
             logger.warning("BRAVE_API_KEY not set - LinkedIn enrichment via Brave disabled")
 
@@ -59,9 +60,21 @@ class LinkedInBraveEnrichment:
 
         # Topic keywords for champion scoring
         self.champion_topics = [
-            "infrastructure", "data center", "power", "energy", "efficiency",
-            "sustainability", "cloud", "AI", "ML", "gpu", "monitoring",
-            "devops", "engineering", "architecture", "scale"
+            "infrastructure",
+            "data center",
+            "power",
+            "energy",
+            "efficiency",
+            "sustainability",
+            "cloud",
+            "AI",
+            "ML",
+            "gpu",
+            "monitoring",
+            "devops",
+            "engineering",
+            "architecture",
+            "scale",
         ]
 
     def enrich_linkedin_activity(
@@ -69,7 +82,7 @@ class LinkedInBraveEnrichment:
         person_name: str,
         company_name: Optional[str] = None,
         title: Optional[str] = None,
-        linkedin_url: Optional[str] = None
+        linkedin_url: Optional[str] = None,
     ) -> LinkedInActivity:
         """
         Enrich contact with LinkedIn activity discovered via Brave Search
@@ -86,9 +99,7 @@ class LinkedInBraveEnrichment:
         logger.info(f"Enriching LinkedIn activity for: {person_name}")
 
         activity = LinkedInActivity(
-            person_name=person_name,
-            linkedin_url=linkedin_url,
-            enriched_at=datetime.now()
+            person_name=person_name, linkedin_url=linkedin_url, enriched_at=datetime.now()
         )
 
         if not self.brave_api_key:
@@ -124,16 +135,15 @@ class LinkedInBraveEnrichment:
         activity.thought_leadership_score = self._calculate_thought_leadership(activity)
         activity.network_influence_score = self._calculate_network_influence(activity)
 
-        logger.info(f"LinkedIn enrichment complete: activity_score={activity.activity_score}, "
-                   f"thought_leadership={activity.thought_leadership_score}")
+        logger.info(
+            f"LinkedIn enrichment complete: activity_score={activity.activity_score}, "
+            f"thought_leadership={activity.thought_leadership_score}"
+        )
 
         return activity
 
     def _find_linkedin_profile(
-        self,
-        person_name: str,
-        company_name: Optional[str],
-        title: Optional[str]
+        self, person_name: str, company_name: Optional[str], title: Optional[str]
     ) -> Optional[str]:
         """Find LinkedIn profile URL via Brave Search"""
         try:
@@ -151,12 +161,9 @@ class LinkedInBraveEnrichment:
 
             response = requests.get(
                 self.brave_base_url,
-                params={'q': query, 'count': 5},
-                headers={
-                    'X-Subscription-Token': self.brave_api_key,
-                    'Accept': 'application/json'
-                },
-                timeout=15
+                params={"q": query, "count": 5},
+                headers={"X-Subscription-Token": self.brave_api_key, "Accept": "application/json"},
+                timeout=15,
             )
 
             if response.status_code != 200:
@@ -164,12 +171,12 @@ class LinkedInBraveEnrichment:
                 return None
 
             data = response.json()
-            web_results = data.get('web', {}).get('results', [])
+            web_results = data.get("web", {}).get("results", [])
 
             for result in web_results:
-                url = result.get('url', '')
+                url = result.get("url", "")
                 # Match LinkedIn profile URLs
-                if 'linkedin.com/in/' in url:
+                if "linkedin.com/in/" in url:
                     logger.info(f"Found LinkedIn profile: {url}")
                     return url
 
@@ -179,11 +186,7 @@ class LinkedInBraveEnrichment:
             logger.warning(f"Error finding LinkedIn profile: {e}")
             return None
 
-    def _search_linkedin_posts(
-        self,
-        person_name: str,
-        company_name: Optional[str]
-    ) -> List[str]:
+    def _search_linkedin_posts(self, person_name: str, company_name: Optional[str]) -> List[str]:
         """Search for LinkedIn posts by this person"""
         posts = []
 
@@ -197,27 +200,24 @@ class LinkedInBraveEnrichment:
 
             response = requests.get(
                 self.brave_base_url,
-                params={'q': query, 'count': 10},
-                headers={
-                    'X-Subscription-Token': self.brave_api_key,
-                    'Accept': 'application/json'
-                },
-                timeout=15
+                params={"q": query, "count": 10},
+                headers={"X-Subscription-Token": self.brave_api_key, "Accept": "application/json"},
+                timeout=15,
             )
 
             if response.status_code != 200:
                 return posts
 
             data = response.json()
-            web_results = data.get('web', {}).get('results', [])
+            web_results = data.get("web", {}).get("results", [])
 
             for result in web_results:
-                title = result.get('title', '')
-                description = result.get('description', '')
-                url = result.get('url', '')
+                title = result.get("title", "")
+                description = result.get("description", "")
+                url = result.get("url", "")
 
                 # Skip if not LinkedIn content
-                if 'linkedin.com' not in url:
+                if "linkedin.com" not in url:
                     continue
 
                 # Extract post summary
@@ -234,10 +234,7 @@ class LinkedInBraveEnrichment:
             return posts
 
     def _discover_professional_topics(
-        self,
-        person_name: str,
-        company_name: Optional[str],
-        title: Optional[str]
+        self, person_name: str, company_name: Optional[str], title: Optional[str]
     ) -> List[str]:
         """Discover professional topics this person writes/speaks about"""
         topics = []
@@ -252,19 +249,16 @@ class LinkedInBraveEnrichment:
 
             response = requests.get(
                 self.brave_base_url,
-                params={'q': query, 'count': 10},
-                headers={
-                    'X-Subscription-Token': self.brave_api_key,
-                    'Accept': 'application/json'
-                },
-                timeout=15
+                params={"q": query, "count": 10},
+                headers={"X-Subscription-Token": self.brave_api_key, "Accept": "application/json"},
+                timeout=15,
             )
 
             if response.status_code != 200:
                 return topics
 
             data = response.json()
-            web_results = data.get('web', {}).get('results', [])
+            web_results = data.get("web", {}).get("results", [])
 
             # Extract topics from search results
             topic_candidates = {}
@@ -287,9 +281,7 @@ class LinkedInBraveEnrichment:
             return topics
 
     def _search_engagement_signals(
-        self,
-        person_name: str,
-        company_name: Optional[str]
+        self, person_name: str, company_name: Optional[str]
     ) -> List[str]:
         """Search for engagement signals (mentions, features, interviews)"""
         signals = []
@@ -304,26 +296,23 @@ class LinkedInBraveEnrichment:
 
             response = requests.get(
                 self.brave_base_url,
-                params={'q': query, 'count': 10, 'freshness': 'pm'},  # Past month
-                headers={
-                    'X-Subscription-Token': self.brave_api_key,
-                    'Accept': 'application/json'
-                },
-                timeout=15
+                params={"q": query, "count": 10, "freshness": "pm"},  # Past month
+                headers={"X-Subscription-Token": self.brave_api_key, "Accept": "application/json"},
+                timeout=15,
             )
 
             if response.status_code != 200:
                 return signals
 
             data = response.json()
-            web_results = data.get('web', {}).get('results', [])
+            web_results = data.get("web", {}).get("results", [])
 
             for result in web_results:
-                title = result.get('title', '')
-                url = result.get('url', '')
+                title = result.get("title", "")
+                url = result.get("url", "")
 
                 # Skip LinkedIn URLs for this search
-                if 'linkedin.com' in url:
+                if "linkedin.com" in url:
                     continue
 
                 if title:
@@ -338,10 +327,7 @@ class LinkedInBraveEnrichment:
             return signals
 
     def _search_professional_updates(
-        self,
-        person_name: str,
-        company_name: Optional[str],
-        title: Optional[str]
+        self, person_name: str, company_name: Optional[str], title: Optional[str]
     ) -> List[str]:
         """Search for professional updates (promotions, awards, speaking)"""
         updates = []
@@ -356,22 +342,19 @@ class LinkedInBraveEnrichment:
 
             response = requests.get(
                 self.brave_base_url,
-                params={'q': query, 'count': 10, 'freshness': 'py'},  # Past year
-                headers={
-                    'X-Subscription-Token': self.brave_api_key,
-                    'Accept': 'application/json'
-                },
-                timeout=15
+                params={"q": query, "count": 10, "freshness": "py"},  # Past year
+                headers={"X-Subscription-Token": self.brave_api_key, "Accept": "application/json"},
+                timeout=15,
             )
 
             if response.status_code != 200:
                 return updates
 
             data = response.json()
-            web_results = data.get('web', {}).get('results', [])
+            web_results = data.get("web", {}).get("results", [])
 
             for result in web_results:
-                description = result.get('description', '')
+                description = result.get("description", "")
 
                 if description and person_name.lower().split()[0] in description.lower():
                     update = self._clean_post_text(description)[:150]
@@ -388,9 +371,9 @@ class LinkedInBraveEnrichment:
     def _clean_post_text(self, text: str) -> str:
         """Clean up post/description text"""
         # Remove excessive whitespace
-        text = re.sub(r'\s+', ' ', text).strip()
+        text = re.sub(r"\s+", " ", text).strip()
         # Remove common LinkedIn boilerplate
-        text = re.sub(r'(View|See|Read) (more|full).*?(?=\.|$)', '', text, flags=re.I)
+        text = re.sub(r"(View|See|Read) (more|full).*?(?=\.|$)", "", text, flags=re.I)
         return text.strip()
 
     def _calculate_activity_score(self, activity: LinkedInActivity) -> int:
@@ -437,7 +420,9 @@ class LinkedInBraveEnrichment:
 
         # Topics aligned with our ICP boost the score
         icp_topics = {"infrastructure", "data center", "power", "energy", "gpu", "AI", "cloud"}
-        aligned_topics = [t for t in activity.topics_of_interest if any(icp in t for icp in icp_topics)]
+        aligned_topics = [
+            t for t in activity.topics_of_interest if any(icp in t for icp in icp_topics)
+        ]
         score += len(aligned_topics) * 10
 
         # Speaking engagements are strong signals

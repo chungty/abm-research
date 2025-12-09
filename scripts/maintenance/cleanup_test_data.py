@@ -17,21 +17,23 @@ This script will:
 
 import os
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.integrations.notion_client import NotionClient
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 # Test companies to remove (not real prospects)
 TEST_COMPANIES_TO_REMOVE = [
-    'CoreWeave',
-    'NVIDIA Corporation',
-    'Anthropic',
-    'Test Company Save Fix'  # From our testing
+    "CoreWeave",
+    "NVIDIA Corporation",
+    "Anthropic",
+    "Test Company Save Fix",  # From our testing
 ]
+
 
 def cleanup_test_data():
     """Remove test companies from all Notion databases"""
@@ -64,7 +66,7 @@ def cleanup_test_data():
                     "PATCH",
                     f"https://api.notion.com/v1/pages/{account_id}",
                     headers=notion_client.headers,
-                    json={"archived": True}
+                    json={"archived": True},
                 )
                 print(f"   🗃️  Archived: {company_name}")
                 accounts_cleaned += 1
@@ -114,6 +116,7 @@ def cleanup_test_data():
     else:
         print("📝 No test accounts found in database")
         print("✅ Database appears clean of test data")
+
 
 if __name__ == "__main__":
     try:

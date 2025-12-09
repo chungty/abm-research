@@ -18,8 +18,9 @@ from config.settings import (
     NOTION_ACCOUNTS_DB_ID,
     NOTION_CONTACTS_DB_ID,
     NOTION_TRIGGER_EVENTS_DB_ID,
-    NOTION_PARTNERSHIPS_DB_ID
+    NOTION_PARTNERSHIPS_DB_ID,
 )
+
 
 class ABMDataCleanup:
     """Clean and enhance ABM data in Notion"""
@@ -29,17 +30,19 @@ class ABMDataCleanup:
 
         # Use environment variables for database IDs - no more hardcoded values!
         self.database_ids = {
-            'accounts': NOTION_ACCOUNTS_DB_ID,
-            'contacts': NOTION_CONTACTS_DB_ID,
-            'trigger_events': NOTION_TRIGGER_EVENTS_DB_ID,
-            'partnerships': NOTION_PARTNERSHIPS_DB_ID
+            "accounts": NOTION_ACCOUNTS_DB_ID,
+            "contacts": NOTION_CONTACTS_DB_ID,
+            "trigger_events": NOTION_TRIGGER_EVENTS_DB_ID,
+            "partnerships": NOTION_PARTNERSHIPS_DB_ID,
         }
 
         # Validate that database IDs are configured
         missing_db_ids = [key for key, value in self.database_ids.items() if not value]
         if missing_db_ids:
-            raise ValueError(f"Missing database ID environment variables: {missing_db_ids}. "
-                           f"Please set NOTION_*_DB_ID environment variables in .env file.")
+            raise ValueError(
+                f"Missing database ID environment variables: {missing_db_ids}. "
+                f"Please set NOTION_*_DB_ID environment variables in .env file."
+            )
 
     def fetch_all_data(self) -> Dict:
         """Fetch all data from Notion databases"""
@@ -50,26 +53,36 @@ class ABMDataCleanup:
 
         # Fetch accounts
         accounts_url = f"https://api.notion.com/v1/databases/{self.database_ids['accounts']}/query"
-        accounts_response = requests.post(accounts_url, headers=self.headers, json={"page_size": 100})
-        data['accounts'] = accounts_response.json().get('results', [])
+        accounts_response = requests.post(
+            accounts_url, headers=self.headers, json={"page_size": 100}
+        )
+        data["accounts"] = accounts_response.json().get("results", [])
         print(f"   📊 Accounts: {len(data['accounts'])} found")
 
         # Fetch contacts
         contacts_url = f"https://api.notion.com/v1/databases/{self.database_ids['contacts']}/query"
-        contacts_response = requests.post(contacts_url, headers=self.headers, json={"page_size": 100})
-        data['contacts'] = contacts_response.json().get('results', [])
+        contacts_response = requests.post(
+            contacts_url, headers=self.headers, json={"page_size": 100}
+        )
+        data["contacts"] = contacts_response.json().get("results", [])
         print(f"   👤 Contacts: {len(data['contacts'])} found")
 
         # Fetch trigger events
-        events_url = f"https://api.notion.com/v1/databases/{self.database_ids['trigger_events']}/query"
+        events_url = (
+            f"https://api.notion.com/v1/databases/{self.database_ids['trigger_events']}/query"
+        )
         events_response = requests.post(events_url, headers=self.headers, json={"page_size": 100})
-        data['trigger_events'] = events_response.json().get('results', [])
+        data["trigger_events"] = events_response.json().get("results", [])
         print(f"   ⚡ Trigger Events: {len(data['trigger_events'])} found")
 
         # Fetch partnerships
-        partnerships_url = f"https://api.notion.com/v1/databases/{self.database_ids['partnerships']}/query"
-        partnerships_response = requests.post(partnerships_url, headers=self.headers, json={"page_size": 100})
-        data['partnerships'] = partnerships_response.json().get('results', [])
+        partnerships_url = (
+            f"https://api.notion.com/v1/databases/{self.database_ids['partnerships']}/query"
+        )
+        partnerships_response = requests.post(
+            partnerships_url, headers=self.headers, json={"page_size": 100}
+        )
+        data["partnerships"] = partnerships_response.json().get("results", [])
         print(f"   🤝 Partnerships: {len(data['partnerships'])} found")
 
         return data
@@ -80,75 +93,75 @@ class ABMDataCleanup:
         print("=" * 30)
 
         analysis = {
-            'duplicate_accounts': defaultdict(list),
-            'duplicate_contacts': defaultdict(list),
-            'orphaned_contacts': [],
-            'broken_trigger_events': []
+            "duplicate_accounts": defaultdict(list),
+            "duplicate_contacts": defaultdict(list),
+            "orphaned_contacts": [],
+            "broken_trigger_events": [],
         }
 
         # Analyze duplicate accounts
         account_domains = defaultdict(list)
-        for account in data['accounts']:
-            props = account.get('properties', {})
-            domain = self._extract_rich_text(props.get('Domain', {}))
-            name = self._extract_title(props.get('Name', {}))
+        for account in data["accounts"]:
+            props = account.get("properties", {})
+            domain = self._extract_rich_text(props.get("Domain", {}))
+            name = self._extract_title(props.get("Name", {}))
 
             if domain:
-                account_domains[domain].append((account['id'], name))
+                account_domains[domain].append((account["id"], name))
             elif name:
                 # Use name as fallback
-                account_domains[name.lower()].append((account['id'], name))
+                account_domains[name.lower()].append((account["id"], name))
 
         for key, accounts_list in account_domains.items():
             if len(accounts_list) > 1:
-                analysis['duplicate_accounts'][key] = accounts_list
+                analysis["duplicate_accounts"][key] = accounts_list
                 print(f"   🔴 Duplicate accounts for '{key}': {len(accounts_list)} entries")
 
         # Analyze duplicate contacts
         contact_emails = defaultdict(list)
         contact_names = defaultdict(list)
 
-        for contact in data['contacts']:
-            props = contact.get('properties', {})
-            email = self._extract_email(props.get('Email', {}))
-            name = self._extract_title(props.get('Name', {}))
-            linkedin_url = self._extract_url(props.get('LinkedIn URL', {}))
+        for contact in data["contacts"]:
+            props = contact.get("properties", {})
+            email = self._extract_email(props.get("Email", {}))
+            name = self._extract_title(props.get("Name", {}))
+            linkedin_url = self._extract_url(props.get("LinkedIn URL", {}))
 
             # Group by email first (most reliable)
             if email and email != "email_not_unlocked@domain.com":
-                contact_emails[email].append((contact['id'], name, email))
+                contact_emails[email].append((contact["id"], name, email))
             # Then by LinkedIn URL
             elif linkedin_url:
-                contact_emails[linkedin_url].append((contact['id'], name, linkedin_url))
+                contact_emails[linkedin_url].append((contact["id"], name, linkedin_url))
             # Finally by name
             elif name:
-                contact_names[name.lower()].append((contact['id'], name))
+                contact_names[name.lower()].append((contact["id"], name))
 
         for key, contacts_list in contact_emails.items():
             if len(contacts_list) > 1:
-                analysis['duplicate_contacts'][key] = contacts_list
+                analysis["duplicate_contacts"][key] = contacts_list
                 print(f"   🔴 Duplicate contacts for '{key}': {len(contacts_list)} entries")
 
         for key, contacts_list in contact_names.items():
             if len(contacts_list) > 1:
-                analysis['duplicate_contacts'][key] = contacts_list
+                analysis["duplicate_contacts"][key] = contacts_list
                 print(f"   🔴 Duplicate contacts (name) for '{key}': {len(contacts_list)} entries")
 
         # Find orphaned contacts (not linked to any account)
-        for contact in data['contacts']:
-            props = contact.get('properties', {})
-            account_relation = props.get('Account', {}).get('relation', [])
+        for contact in data["contacts"]:
+            props = contact.get("properties", {})
+            account_relation = props.get("Account", {}).get("relation", [])
             if not account_relation:
-                analysis['orphaned_contacts'].append(contact['id'])
+                analysis["orphaned_contacts"].append(contact["id"])
 
         print(f"   🔶 Orphaned contacts: {len(analysis['orphaned_contacts'])}")
 
         # Check trigger events with missing fields
-        for event in data['trigger_events']:
-            props = event.get('properties', {})
-            confidence = self._extract_number(props.get('Confidence Score', {}))
+        for event in data["trigger_events"]:
+            props = event.get("properties", {})
+            confidence = self._extract_number(props.get("Confidence Score", {}))
             if confidence is None:
-                analysis['broken_trigger_events'].append(event['id'])
+                analysis["broken_trigger_events"].append(event["id"])
 
         print(f"   🔶 Trigger events missing confidence: {len(analysis['broken_trigger_events'])}")
 
@@ -161,8 +174,8 @@ class ABMDataCleanup:
 
         primary_account_id = None
 
-        for key, accounts_list in analysis['duplicate_accounts'].items():
-            if 'genesis' in key.lower() or 'genesiscloud' in key.lower():
+        for key, accounts_list in analysis["duplicate_accounts"].items():
+            if "genesis" in key.lower() or "genesiscloud" in key.lower():
                 print(f"   🎯 Deduplicating Genesis Cloud accounts: {len(accounts_list)} found")
 
                 # Find the most complete account
@@ -171,23 +184,23 @@ class ABMDataCleanup:
 
                 for account_id, name in accounts_list:
                     # Get full account data
-                    account = next((a for a in data['accounts'] if a['id'] == account_id), None)
+                    account = next((a for a in data["accounts"] if a["id"] == account_id), None)
                     if not account:
                         continue
 
-                    props = account.get('properties', {})
+                    props = account.get("properties", {})
 
                     # Score based on completeness
                     score = 0
-                    if self._extract_rich_text(props.get('Domain', {})):
+                    if self._extract_rich_text(props.get("Domain", {})):
                         score += 3
-                    if self._extract_number(props.get('ICP Fit Score', {})):
+                    if self._extract_number(props.get("ICP Fit Score", {})):
                         score += 2
-                    if self._extract_select(props.get('Business Model', {})):
+                    if self._extract_select(props.get("Business Model", {})):
                         score += 2
-                    if self._extract_number(props.get('Employee Count', {})):
+                    if self._extract_number(props.get("Employee Count", {})):
                         score += 1
-                    if self._extract_select(props.get('Account Research Status', {})) == 'Complete':
+                    if self._extract_select(props.get("Account Research Status", {})) == "Complete":
                         score += 3
 
                     print(f"      Account '{name}' (ID: {account_id[:8]}...): Score {score}")
@@ -198,7 +211,9 @@ class ABMDataCleanup:
                         primary_account_id = account_id
 
                 if best_account:
-                    print(f"   ✅ Selected primary account: {self._extract_title(best_account.get('properties', {}).get('Name', {}))}")
+                    print(
+                        f"   ✅ Selected primary account: {self._extract_title(best_account.get('properties', {}).get('Name', {}))}"
+                    )
 
                     # Mark others for deletion (in a real system)
                     for account_id, name in accounts_list:
@@ -215,7 +230,7 @@ class ABMDataCleanup:
         contacts_to_keep = set()
         contacts_to_update = []
 
-        for key, contacts_list in analysis['duplicate_contacts'].items():
+        for key, contacts_list in analysis["duplicate_contacts"].items():
             print(f"   🎯 Deduplicating contacts for '{key}': {len(contacts_list)} found")
 
             # Find the most complete contact
@@ -224,25 +239,29 @@ class ABMDataCleanup:
 
             for contact_id, name, identifier in contacts_list:
                 # Get full contact data
-                contact = next((c for c in data['contacts'] if c['id'] == contact_id), None)
+                contact = next((c for c in data["contacts"] if c["id"] == contact_id), None)
                 if not contact:
                     continue
 
-                props = contact.get('properties', {})
+                props = contact.get("properties", {})
 
                 # Score based on completeness
                 score = 0
-                if self._extract_email(props.get('Email', {})) and self._extract_email(props.get('Email', {})) != "email_not_unlocked@domain.com":
+                if (
+                    self._extract_email(props.get("Email", {}))
+                    and self._extract_email(props.get("Email", {}))
+                    != "email_not_unlocked@domain.com"
+                ):
                     score += 4
-                if self._extract_url(props.get('LinkedIn URL', {})):
+                if self._extract_url(props.get("LinkedIn URL", {})):
                     score += 3
-                if self._extract_rich_text(props.get('Title', {})):
+                if self._extract_rich_text(props.get("Title", {})):
                     score += 2
-                if self._extract_number(props.get('ICP Fit Score', {})):
+                if self._extract_number(props.get("ICP Fit Score", {})):
                     score += 2
-                if self._extract_select(props.get('Research status', {})) == 'Enriched':
+                if self._extract_select(props.get("Research status", {})) == "Enriched":
                     score += 3
-                if self._extract_number(props.get('Buying Power Score', {})):
+                if self._extract_number(props.get("Buying Power Score", {})):
                     score += 2
 
                 print(f"      Contact '{name}' (ID: {contact_id[:8]}...): Score {score}")
@@ -252,15 +271,17 @@ class ABMDataCleanup:
                     best_contact = contact
 
             if best_contact:
-                contacts_to_keep.add(best_contact['id'])
-                contacts_to_update.append(best_contact['id'])
+                contacts_to_keep.add(best_contact["id"])
+                contacts_to_update.append(best_contact["id"])
 
-                contact_name = self._extract_title(best_contact.get('properties', {}).get('Name', {}))
+                contact_name = self._extract_title(
+                    best_contact.get("properties", {}).get("Name", {})
+                )
                 print(f"   ✅ Keeping contact: {contact_name}")
 
                 # Mark others for deletion
                 for contact_id, name, identifier in contacts_list:
-                    if contact_id != best_contact['id']:
+                    if contact_id != best_contact["id"]:
                         print(f"      🗑️ Would delete duplicate: {name} ({contact_id[:8]}...)")
 
         # Update contacts to link to primary account
@@ -271,7 +292,9 @@ class ABMDataCleanup:
             for contact_id in contacts_to_update:
                 success = self._link_contact_to_account(contact_id, primary_account_id)
                 if success:
-                    print(f"   ✅ Linked contact {contact_id[:8]}... to account {primary_account_id[:8]}...")
+                    print(
+                        f"   ✅ Linked contact {contact_id[:8]}... to account {primary_account_id[:8]}..."
+                    )
                 else:
                     print(f"   ❌ Failed to link contact {contact_id[:8]}...")
 
@@ -280,19 +303,19 @@ class ABMDataCleanup:
         print("\n🔧 FIXING TRIGGER EVENTS")
         print("=" * 30)
 
-        for event_id in analysis['broken_trigger_events']:
-            event = next((e for e in data['trigger_events'] if e['id'] == event_id), None)
+        for event_id in analysis["broken_trigger_events"]:
+            event = next((e for e in data["trigger_events"] if e["id"] == event_id), None)
             if not event:
                 continue
 
-            props = event.get('properties', {})
-            event_name = self._extract_title(props.get('Name', {}))
+            props = event.get("properties", {})
+            event_name = self._extract_title(props.get("Name", {}))
 
             # Generate missing confidence score
             confidence_score = 85  # Default high confidence
-            if 'executive' in event_name.lower() or 'leadership' in event_name.lower():
+            if "executive" in event_name.lower() or "leadership" in event_name.lower():
                 confidence_score = 95
-            elif 'growth' in event_name.lower() or 'expansion' in event_name.lower():
+            elif "growth" in event_name.lower() or "expansion" in event_name.lower():
                 confidence_score = 90
 
             success = self._update_trigger_event_confidence(event_id, confidence_score)
@@ -309,32 +332,32 @@ class ABMDataCleanup:
         # For Genesis Cloud, identify key partnerships in the GPU/AI space
         partnerships = [
             {
-                'partner_name': 'NVIDIA',
-                'partnership_type': 'Technology Integration',
-                'status': 'Active',
-                'strategic_value': 'High',
-                'description': 'GPU hardware provider for AI workloads',
-                'relevance_to_verdigris': 'High power consumption hardware - ideal for power monitoring',
-                'contact_angle': 'Joint customers with high-power GPU deployments'
+                "partner_name": "NVIDIA",
+                "partnership_type": "Technology Integration",
+                "status": "Active",
+                "strategic_value": "High",
+                "description": "GPU hardware provider for AI workloads",
+                "relevance_to_verdigris": "High power consumption hardware - ideal for power monitoring",
+                "contact_angle": "Joint customers with high-power GPU deployments",
             },
             {
-                'partner_name': 'Kubernetes',
-                'partnership_type': 'Platform Integration',
-                'status': 'Active',
-                'strategic_value': 'Medium',
-                'description': 'Container orchestration platform support',
-                'relevance_to_verdigris': 'Dynamic workload scheduling affects power usage patterns',
-                'contact_angle': 'Container-based AI workloads need power visibility'
+                "partner_name": "Kubernetes",
+                "partnership_type": "Platform Integration",
+                "status": "Active",
+                "strategic_value": "Medium",
+                "description": "Container orchestration platform support",
+                "relevance_to_verdigris": "Dynamic workload scheduling affects power usage patterns",
+                "contact_angle": "Container-based AI workloads need power visibility",
             },
             {
-                'partner_name': 'TensorFlow',
-                'partnership_type': 'Software Integration',
-                'status': 'Active',
-                'strategic_value': 'Medium',
-                'description': 'ML framework optimization',
-                'relevance_to_verdigris': 'ML training workloads are power-intensive',
-                'contact_angle': 'ML teams need power cost optimization insights'
-            }
+                "partner_name": "TensorFlow",
+                "partnership_type": "Software Integration",
+                "status": "Active",
+                "strategic_value": "Medium",
+                "description": "ML framework optimization",
+                "relevance_to_verdigris": "ML training workloads are power-intensive",
+                "contact_angle": "ML teams need power cost optimization insights",
+            },
         ]
 
         print(f"   🎯 Discovered {len(partnerships)} strategic partnerships")
@@ -356,7 +379,12 @@ class ABMDataCleanup:
 
             properties = {
                 "Name": {
-                    "title": [{"type": "text", "text": {"content": f"{partnership['partner_name']} Partnership"}}]
+                    "title": [
+                        {
+                            "type": "text",
+                            "text": {"content": f"{partnership['partner_name']} Partnership"},
+                        }
+                    ]
                 }
             }
 
@@ -365,39 +393,45 @@ class ABMDataCleanup:
                 properties["Account"] = {"relation": [{"id": account_id}]}
 
             # Partnership details
-            if partnership.get('partner_name'):
+            if partnership.get("partner_name"):
                 properties["Partner Name"] = {
-                    "rich_text": [{"type": "text", "text": {"content": partnership['partner_name']}}]
+                    "rich_text": [
+                        {"type": "text", "text": {"content": partnership["partner_name"]}}
+                    ]
                 }
 
-            if partnership.get('partnership_type'):
-                properties["Partnership Type"] = {"select": {"name": partnership['partnership_type']}}
+            if partnership.get("partnership_type"):
+                properties["Partnership Type"] = {
+                    "select": {"name": partnership["partnership_type"]}
+                }
 
-            if partnership.get('status'):
-                properties["Status"] = {"select": {"name": partnership['status']}}
+            if partnership.get("status"):
+                properties["Status"] = {"select": {"name": partnership["status"]}}
 
-            if partnership.get('strategic_value'):
-                properties["Strategic Value"] = {"select": {"name": partnership['strategic_value']}}
+            if partnership.get("strategic_value"):
+                properties["Strategic Value"] = {"select": {"name": partnership["strategic_value"]}}
 
-            if partnership.get('description'):
+            if partnership.get("description"):
                 properties["Description"] = {
-                    "rich_text": [{"type": "text", "text": {"content": partnership['description']}}]
+                    "rich_text": [{"type": "text", "text": {"content": partnership["description"]}}]
                 }
 
-            if partnership.get('relevance_to_verdigris'):
+            if partnership.get("relevance_to_verdigris"):
                 properties["Verdigris Relevance"] = {
-                    "rich_text": [{"type": "text", "text": {"content": partnership['relevance_to_verdigris']}}]
+                    "rich_text": [
+                        {"type": "text", "text": {"content": partnership["relevance_to_verdigris"]}}
+                    ]
                 }
 
             payload = {
-                "parent": {"database_id": self.database_ids['partnerships']},
-                "properties": properties
+                "parent": {"database_id": self.database_ids["partnerships"]},
+                "properties": properties,
             }
 
             response = requests.post(url, headers=self.headers, json=payload, timeout=30)
 
             if response.status_code == 200:
-                return response.json()['id']
+                return response.json()["id"]
             else:
                 print(f"      ❌ Partnership creation failed: {response.text[:100]}...")
                 return None
@@ -411,11 +445,7 @@ class ABMDataCleanup:
         try:
             url = f"https://api.notion.com/v1/pages/{contact_id}"
 
-            payload = {
-                "properties": {
-                    "Account": {"relation": [{"id": account_id}]}
-                }
-            }
+            payload = {"properties": {"Account": {"relation": [{"id": account_id}]}}}
 
             response = requests.patch(url, headers=self.headers, json=payload, timeout=30)
             return response.status_code == 200
@@ -429,11 +459,7 @@ class ABMDataCleanup:
         try:
             url = f"https://api.notion.com/v1/pages/{event_id}"
 
-            payload = {
-                "properties": {
-                    "Confidence Score": {"number": confidence_score}
-                }
-            }
+            payload = {"properties": {"Confidence Score": {"number": confidence_score}}}
 
             response = requests.patch(url, headers=self.headers, json=payload, timeout=30)
             return response.status_code == 200
@@ -444,48 +470,48 @@ class ABMDataCleanup:
 
     def _extract_title(self, prop: Dict) -> str:
         """Extract title from Notion property"""
-        if not prop or prop.get('type') != 'title':
-            return ''
-        title_list = prop.get('title', [])
+        if not prop or prop.get("type") != "title":
+            return ""
+        title_list = prop.get("title", [])
         if title_list:
-            return ''.join([item.get('plain_text', '') for item in title_list])
-        return ''
+            return "".join([item.get("plain_text", "") for item in title_list])
+        return ""
 
     def _extract_rich_text(self, prop: Dict) -> str:
         """Extract rich text from Notion property"""
-        if not prop or prop.get('type') != 'rich_text':
-            return ''
-        rich_text_list = prop.get('rich_text', [])
+        if not prop or prop.get("type") != "rich_text":
+            return ""
+        rich_text_list = prop.get("rich_text", [])
         if rich_text_list:
-            return ''.join([item.get('plain_text', '') for item in rich_text_list])
-        return ''
+            return "".join([item.get("plain_text", "") for item in rich_text_list])
+        return ""
 
     def _extract_number(self, prop: Dict) -> Optional[float]:
         """Extract number from Notion property"""
-        if not prop or prop.get('type') != 'number':
+        if not prop or prop.get("type") != "number":
             return None
-        return prop.get('number')
+        return prop.get("number")
 
     def _extract_select(self, prop: Dict) -> str:
         """Extract select value from Notion property"""
-        if not prop or prop.get('type') != 'select':
-            return ''
-        select_obj = prop.get('select')
+        if not prop or prop.get("type") != "select":
+            return ""
+        select_obj = prop.get("select")
         if select_obj:
-            return select_obj.get('name', '')
-        return ''
+            return select_obj.get("name", "")
+        return ""
 
     def _extract_email(self, prop: Dict) -> str:
         """Extract email from Notion property"""
-        if not prop or prop.get('type') != 'email':
-            return ''
-        return prop.get('email', '')
+        if not prop or prop.get("type") != "email":
+            return ""
+        return prop.get("email", "")
 
     def _extract_url(self, prop: Dict) -> str:
         """Extract URL from Notion property"""
-        if not prop or prop.get('type') != 'url':
-            return ''
-        return prop.get('url', '')
+        if not prop or prop.get("type") != "url":
+            return ""
+        return prop.get("url", "")
 
     def run_cleanup(self):
         """Run complete data cleanup process"""
@@ -513,14 +539,18 @@ class ABMDataCleanup:
             partnerships = self.discover_partnerships(primary_account_id)
 
         print(f"\n✅ DATA CLEANUP COMPLETE!")
-        print(f"🎯 Primary account established: {primary_account_id[:8] if primary_account_id else 'None'}...")
+        print(
+            f"🎯 Primary account established: {primary_account_id[:8] if primary_account_id else 'None'}..."
+        )
         print(f"🔧 Issues identified and resolved")
         print(f"🤝 Strategic partnerships discovered")
+
 
 def main():
     """Run ABM data cleanup"""
     cleanup = ABMDataCleanup()
     cleanup.run_cleanup()
+
 
 if __name__ == "__main__":
     main()

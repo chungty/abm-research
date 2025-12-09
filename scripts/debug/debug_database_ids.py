@@ -7,12 +7,14 @@ Since permissions are correct, investigate if database IDs are wrong or API call
 
 import os
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.integrations.notion_client import NotionClient
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+
 
 def debug_database_ids():
     """Debug what's wrong with database ID usage"""
@@ -44,22 +46,21 @@ def debug_database_ids():
         try:
             # Get database metadata
             metadata_response = notion_client._make_request(
-                'GET',
-                f"https://api.notion.com/v1/databases/{db_id}"
+                "GET", f"https://api.notion.com/v1/databases/{db_id}"
             )
 
             if metadata_response.status_code == 200:
                 db_data = metadata_response.json()
-                actual_id = db_data.get('id', 'unknown')
-                api_url = db_data.get('url', 'No URL')
+                actual_id = db_data.get("id", "unknown")
+                api_url = db_data.get("url", "No URL")
 
                 print(f"   ✅ Metadata call works")
                 print(f"   API returns ID: {actual_id}")
                 print(f"   API returns URL: {api_url}")
 
                 # Check if IDs match (accounting for hyphen differences)
-                config_id_clean = db_id.replace('-', '')
-                actual_id_clean = actual_id.replace('-', '')
+                config_id_clean = db_id.replace("-", "")
+                actual_id_clean = actual_id.replace("-", "")
 
                 if config_id_clean == actual_id_clean:
                     print(f"   ✅ Database IDs match")
@@ -72,13 +73,13 @@ def debug_database_ids():
                 print(f"   🧪 Testing query with metadata ID: {actual_id}")
 
                 query_response = notion_client._make_request(
-                    'POST',
+                    "POST",
                     f"https://api.notion.com/v1/databases/{actual_id}/query",
-                    json={'page_size': 1}
+                    json={"page_size": 1},
                 )
 
                 if query_response.status_code == 200:
-                    results = query_response.json().get('results', [])
+                    results = query_response.json().get("results", [])
                     print(f"   ✅ Query works with metadata ID: {len(results)} items")
                 else:
                     print(f"   ❌ Query fails even with metadata ID: {query_response.status_code}")
@@ -98,31 +99,33 @@ def debug_database_ids():
     try:
         # Use search API to find databases by title
         search_response = notion_client._make_request(
-            'POST',
-            'https://api.notion.com/v1/search',
-            json={
-                'filter': {'property': 'object', 'value': 'database'},
-                'page_size': 100
-            }
+            "POST",
+            "https://api.notion.com/v1/search",
+            json={"filter": {"property": "object", "value": "database"}, "page_size": 100},
         )
 
         if search_response.status_code == 200:
-            search_results = search_response.json().get('results', [])
+            search_results = search_response.json().get("results", [])
             print(f"🔍 Found {len(search_results)} databases in workspace:")
 
             for db in search_results:
                 title = "Untitled"
-                if 'title' in db and db['title']:
-                    title_parts = [t.get('text', {}).get('content', '') for t in db['title']]
-                    title = ''.join(title_parts) or "Untitled"
+                if "title" in db and db["title"]:
+                    title_parts = [t.get("text", {}).get("content", "") for t in db["title"]]
+                    title = "".join(title_parts) or "Untitled"
 
-                db_id = db.get('id', 'unknown')
-                created = db.get('created_time', 'unknown')
+                db_id = db.get("id", "unknown")
+                created = db.get("created_time", "unknown")
 
                 print(f"   📊 '{title}' (ID: {db_id[:8]}...) created {created[:10]}")
 
                 # Check if this matches our expected databases
-                expected_titles = ['🏢 Accounts', '👤 Contacts', '⚡ Trigger Events', '🤝 Strategic Partnerships']
+                expected_titles = [
+                    "🏢 Accounts",
+                    "👤 Contacts",
+                    "⚡ Trigger Events",
+                    "🤝 Strategic Partnerships",
+                ]
                 if title in expected_titles:
                     print(f"      ⭐ This is one of our target databases!")
 
@@ -138,7 +141,7 @@ def debug_database_ids():
 
     try:
         # Test basic API access
-        me_response = notion_client._make_request('GET', 'https://api.notion.com/v1/users/me')
+        me_response = notion_client._make_request("GET", "https://api.notion.com/v1/users/me")
 
         if me_response.status_code == 200:
             user_data = me_response.json()
@@ -156,6 +159,7 @@ def debug_database_ids():
 
     except Exception as e:
         print(f"❌ API test error: {e}")
+
 
 if __name__ == "__main__":
     debug_database_ids()

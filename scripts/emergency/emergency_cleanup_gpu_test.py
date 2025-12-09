@@ -8,20 +8,18 @@ that added 52 new test contacts for NVIDIA, CoreWeave, and Lambda Labs.
 
 import os
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.integrations.notion_client import NotionClient
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 # The three companies that just polluted production
-GPU_TEST_COMPANIES = [
-    'NVIDIA Corporation',
-    'CoreWeave',
-    'Lambda Labs'
-]
+GPU_TEST_COMPANIES = ["NVIDIA Corporation", "CoreWeave", "Lambda Labs"]
+
 
 def emergency_gpu_test_cleanup():
     """Emergency cleanup of GPU test data from production"""
@@ -52,7 +50,7 @@ def emergency_gpu_test_cleanup():
                     "PATCH",
                     f"https://api.notion.com/v1/pages/{account_id}",
                     headers=notion_client.headers,
-                    json={"archived": True}
+                    json={"archived": True},
                 )
                 print(f"   ✅ Archived account: {company_name}")
                 accounts_cleaned += 1
@@ -68,18 +66,18 @@ def emergency_gpu_test_cleanup():
 
     # Get all contacts and filter by test companies
     url = f"https://api.notion.com/v1/databases/{notion_client.database_ids['contacts']}/query"
-    contacts_response = notion_client._make_request('POST', url, json={})
-    all_contacts = contacts_response.json().get('results', [])
+    contacts_response = notion_client._make_request("POST", url, json={})
+    all_contacts = contacts_response.json().get("results", [])
 
     for contact in all_contacts:
-        props = contact.get('properties', {})
+        props = contact.get("properties", {})
 
         # Extract company name safely
-        company = 'Unknown'
+        company = "Unknown"
         try:
-            company_field = props.get('Company', {}).get('rich_text', [])
+            company_field = props.get("Company", {}).get("rich_text", [])
             if company_field and len(company_field) > 0:
-                company = company_field[0].get('text', {}).get('content', 'Unknown')
+                company = company_field[0].get("text", {}).get("content", "Unknown")
         except:
             pass
 
@@ -90,7 +88,7 @@ def emergency_gpu_test_cleanup():
                     "PATCH",
                     f"https://api.notion.com/v1/pages/{contact['id']}",
                     headers=notion_client.headers,
-                    json={"archived": True}
+                    json={"archived": True},
                 )
                 print(f"   ✅ Archived contact from {company}")
                 contacts_cleaned += 1
@@ -102,19 +100,21 @@ def emergency_gpu_test_cleanup():
     print("-" * 30)
     events_cleaned = 0
 
-    url = f"https://api.notion.com/v1/databases/{notion_client.database_ids['trigger_events']}/query"
-    events_response = notion_client._make_request('POST', url, json={})
-    all_events = events_response.json().get('results', [])
+    url = (
+        f"https://api.notion.com/v1/databases/{notion_client.database_ids['trigger_events']}/query"
+    )
+    events_response = notion_client._make_request("POST", url, json={})
+    all_events = events_response.json().get("results", [])
 
     for event in all_events:
-        props = event.get('properties', {})
+        props = event.get("properties", {})
 
         # Extract company name safely
-        company = 'Unknown'
+        company = "Unknown"
         try:
-            company_field = props.get('Company', {}).get('rich_text', [])
+            company_field = props.get("Company", {}).get("rich_text", [])
             if company_field and len(company_field) > 0:
-                company = company_field[0].get('text', {}).get('content', 'Unknown')
+                company = company_field[0].get("text", {}).get("content", "Unknown")
         except:
             pass
 
@@ -124,7 +124,7 @@ def emergency_gpu_test_cleanup():
                     "PATCH",
                     f"https://api.notion.com/v1/pages/{event['id']}",
                     headers=notion_client.headers,
-                    json={"archived": True}
+                    json={"archived": True},
                 )
                 print(f"   ✅ Archived event from {company}")
                 events_cleaned += 1
@@ -137,18 +137,18 @@ def emergency_gpu_test_cleanup():
     partnerships_cleaned = 0
 
     url = f"https://api.notion.com/v1/databases/{notion_client.database_ids['partnerships']}/query"
-    partnerships_response = notion_client._make_request('POST', url, json={})
-    all_partnerships = partnerships_response.json().get('results', [])
+    partnerships_response = notion_client._make_request("POST", url, json={})
+    all_partnerships = partnerships_response.json().get("results", [])
 
     for partnership in all_partnerships:
-        props = partnership.get('properties', {})
+        props = partnership.get("properties", {})
 
         # Extract company name safely
-        company = 'Unknown'
+        company = "Unknown"
         try:
-            company_field = props.get('Company Name', {}).get('rich_text', [])
+            company_field = props.get("Company Name", {}).get("rich_text", [])
             if company_field and len(company_field) > 0:
-                company = company_field[0].get('text', {}).get('content', 'Unknown')
+                company = company_field[0].get("text", {}).get("content", "Unknown")
         except:
             pass
 
@@ -158,7 +158,7 @@ def emergency_gpu_test_cleanup():
                     "PATCH",
                     f"https://api.notion.com/v1/pages/{partnership['id']}",
                     headers=notion_client.headers,
-                    json={"archived": True}
+                    json={"archived": True},
                 )
                 print(f"   ✅ Archived partnership from {company}")
                 partnerships_cleaned += 1
@@ -177,6 +177,7 @@ def emergency_gpu_test_cleanup():
     print()
     print("🎉 Production database is clean again!")
     print("⚠️  NEXT: Use TestModeABMSystem for all future testing!")
+
 
 if __name__ == "__main__":
     emergency_gpu_test_cleanup()

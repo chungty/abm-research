@@ -8,18 +8,19 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
+
 class ABMConfig:
     """Centralized configuration management for ABM system"""
 
     def __init__(self):
         # Load environment variables
-        env_path = Path(__file__).parent.parent / '.env'
+        env_path = Path(__file__).parent.parent / ".env"
         load_dotenv(env_path)
 
         # API Keys - with validation and clear naming
-        self.apollo_api_key = self._get_required_env('APOLLO_API_KEY')
-        self.notion_api_key = self._get_required_env('NOTION_API_KEY')  # Match .env file naming
-        self.openai_api_key = self._get_required_env('OPENAI_API_KEY')
+        self.apollo_api_key = self._get_required_env("APOLLO_API_KEY")
+        self.notion_api_key = self._get_required_env("NOTION_API_KEY")  # Match .env file naming
+        self.openai_api_key = self._get_required_env("OPENAI_API_KEY")
 
         # Configuration validation
         self._validate_configuration()
@@ -35,29 +36,29 @@ class ABMConfig:
         """Validate all configuration is properly set"""
 
         # Validate API keys have correct formats
-        if not self.apollo_api_key.startswith(('Ol', 'sk-')):
+        if not self.apollo_api_key.startswith(("Ol", "sk-")):
             print(f"⚠️  Apollo API key may be incorrect format: {self.apollo_api_key[:10]}...")
 
-        if not self.notion_api_key.startswith('ntn_'):
+        if not self.notion_api_key.startswith("ntn_"):
             print(f"⚠️  Notion API key may be incorrect format: {self.notion_api_key[:10]}...")
 
-        if not self.openai_api_key.startswith('sk-'):
+        if not self.openai_api_key.startswith("sk-"):
             print(f"⚠️  OpenAI API key may be incorrect format: {self.openai_api_key[:10]}...")
 
     def get_notion_headers(self) -> dict:
         """Get Notion API headers for direct API calls"""
         return {
-            'Authorization': f'Bearer {self.notion_api_key}',
-            'Content-Type': 'application/json',
-            'Notion-Version': '2022-06-28'
+            "Authorization": f"Bearer {self.notion_api_key}",
+            "Content-Type": "application/json",
+            "Notion-Version": "2022-06-28",
         }
 
     def get_apollo_headers(self) -> dict:
         """Get Apollo API headers"""
         return {
-            'Cache-Control': 'no-cache',
-            'Content-Type': 'application/json',
-            'X-Api-Key': self.apollo_api_key
+            "Cache-Control": "no-cache",
+            "Content-Type": "application/json",
+            "X-Api-Key": self.apollo_api_key,
         }
 
     def print_config_status(self):
@@ -68,6 +69,7 @@ class ABMConfig:
         print(f"✅ Notion API Key: {self.notion_api_key[:15]}...{self.notion_api_key[-4:]}")
         print(f"✅ OpenAI API Key: {self.openai_api_key[:15]}...{self.openai_api_key[-4:]}")
         print("📝 All API keys properly configured")
+
 
 # Global configuration instance
 config = ABMConfig()

@@ -8,6 +8,7 @@ import json
 from datetime import datetime
 from value_first_abm_system import ValueFirstABMSystem
 
+
 def main():
     """Save enhanced ABM results to JSON file"""
 
@@ -28,26 +29,28 @@ def main():
 
         if results:
             all_results[domain] = results
-            print(f"✅ {domain}: {results.get('total_contacts')} contacts, {results.get('high_signal_contacts')} high signal")
+            print(
+                f"✅ {domain}: {results.get('total_contacts')} contacts, {results.get('high_signal_contacts')} high signal"
+            )
 
     if not all_results:
         print("❌ No ABM results to save")
         return
 
     # Save to JSON file
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"/Users/chungty/Projects/vdg-clean/abm-research/abm_results_{timestamp}.json"
 
     try:
-        with open(filename, 'w') as f:
+        with open(filename, "w") as f:
             json.dump(all_results, f, indent=2, default=str)
 
         print(f"\n✅ RESULTS SAVED TO: {filename}")
 
         # Show summary
-        total_contacts = sum(r.get('total_contacts', 0) for r in all_results.values())
-        total_high_signal = sum(r.get('high_signal_contacts', 0) for r in all_results.values())
-        total_medium_signal = sum(r.get('medium_signal_contacts', 0) for r in all_results.values())
+        total_contacts = sum(r.get("total_contacts", 0) for r in all_results.values())
+        total_high_signal = sum(r.get("high_signal_contacts", 0) for r in all_results.values())
+        total_medium_signal = sum(r.get("medium_signal_contacts", 0) for r in all_results.values())
 
         print(f"\n📊 VALUE-FIRST ABM SUMMARY:")
         print(f"   Accounts Researched: {len(all_results)}")
@@ -59,7 +62,7 @@ def main():
         print(f"\n🎯 SAMPLE HIGH-SIGNAL INTELLIGENCE:")
 
         for domain, results in list(all_results.items())[:2]:
-            high_contacts = [c for c in results['contacts'] if c.get('signal_level') == 'high']
+            high_contacts = [c for c in results["contacts"] if c.get("signal_level") == "high"]
 
             if high_contacts:
                 contact = high_contacts[0]
@@ -68,13 +71,13 @@ def main():
                 print(f"   Score: {contact.get('final_lead_score')}/100")
                 print(f"   Signal: {contact.get('signal_level')}")
 
-                if contact.get('problem_statement'):
+                if contact.get("problem_statement"):
                     print(f"   🎯 Problem: {contact.get('problem_statement')[:120]}...")
 
-                if contact.get('solution_value'):
+                if contact.get("solution_value"):
                     print(f"   💡 Solution: {contact.get('solution_value')[:120]}...")
 
-                if contact.get('email_subject'):
+                if contact.get("email_subject"):
                     print(f"   📧 Subject: {contact.get('email_subject')}")
 
         print(f"\n📄 Full results available in: {filename}")
@@ -82,5 +85,6 @@ def main():
     except Exception as e:
         print(f"❌ Failed to save results: {e}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

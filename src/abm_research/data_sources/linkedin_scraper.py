@@ -21,8 +21,4 @@ class LinkedInScraper:
     async def analyze_activity(self, linkedin_url: str, days: int = 90):
         """Placeholder for LinkedIn activity analysis"""
         logger.warning("LinkedIn activity analysis not yet implemented")
-        return {
-            'activity_level': 'unknown',
-            'content_themes': [],
-            'network_quality': False
-        }
+        return {"activity_level": "unknown", "content_themes": [], "network_quality": False}

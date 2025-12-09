@@ -11,29 +11,31 @@ Addresses all critical issues:
 
 import os
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.integrations.notion_client import NotionClient
 from abm_research.core.abm_system import ComprehensiveABMSystem
 import logging
 from collections import defaultdict
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 # ALL test companies to remove from production
 ALL_TEST_COMPANIES = [
-    'CoreWeave',
-    'NVIDIA Corporation',
-    'Anthropic',
-    'Lambda Labs',  # Added after background test
-    'Test Company Save Fix',
-    'Database Config Test Company',
-    'Fixed Test Company',
-    'ABM Test Company',
-    'Direct Save Test Company',
-    'Mock ABM Account'
+    "CoreWeave",
+    "NVIDIA Corporation",
+    "Anthropic",
+    "Lambda Labs",  # Added after background test
+    "Test Company Save Fix",
+    "Database Config Test Company",
+    "Fixed Test Company",
+    "ABM Test Company",
+    "Direct Save Test Company",
+    "Mock ABM Account",
 ]
+
 
 def comprehensive_cleanup():
     """Complete cleanup of all test data from production"""
@@ -63,7 +65,7 @@ def comprehensive_cleanup():
                     "PATCH",
                     f"https://api.notion.com/v1/pages/{account_id}",
                     headers=notion_client.headers,
-                    json={"archived": True}
+                    json={"archived": True},
                 )
                 print(f"   ✅ Archived account: {company_name}")
                 accounts_cleaned += 1
@@ -81,19 +83,19 @@ def comprehensive_cleanup():
 
     # Get all contacts and filter by test companies
     url = f"https://api.notion.com/v1/databases/{notion_client.database_ids['contacts']}/query"
-    contacts_response = notion_client._make_request('POST', url, json={})
-    all_contacts = contacts_response.json().get('results', [])
+    contacts_response = notion_client._make_request("POST", url, json={})
+    all_contacts = contacts_response.json().get("results", [])
 
     contacts_cleaned = 0
     for contact in all_contacts:
-        props = contact.get('properties', {})
+        props = contact.get("properties", {})
 
         # Extract company name safely
-        company = 'Unknown'
+        company = "Unknown"
         try:
-            company_field = props.get('Company', {}).get('rich_text', [])
+            company_field = props.get("Company", {}).get("rich_text", [])
             if company_field and len(company_field) > 0:
-                company = company_field[0].get('text', {}).get('content', 'Unknown')
+                company = company_field[0].get("text", {}).get("content", "Unknown")
         except:
             pass
 
@@ -105,7 +107,7 @@ def comprehensive_cleanup():
                     "PATCH",
                     f"https://api.notion.com/v1/pages/{contact['id']}",
                     headers=notion_client.headers,
-                    json={"archived": True}
+                    json={"archived": True},
                 )
                 print(f"   ✅ Archived contact from {company}")
                 contacts_cleaned += 1
@@ -120,20 +122,22 @@ def comprehensive_cleanup():
     print("-" * 40)
 
     # Archive trigger events for test companies
-    url = f"https://api.notion.com/v1/databases/{notion_client.database_ids['trigger_events']}/query"
-    events_response = notion_client._make_request('POST', url, json={})
-    all_events = events_response.json().get('results', [])
+    url = (
+        f"https://api.notion.com/v1/databases/{notion_client.database_ids['trigger_events']}/query"
+    )
+    events_response = notion_client._make_request("POST", url, json={})
+    all_events = events_response.json().get("results", [])
 
     events_cleaned = 0
     for event in all_events:
-        props = event.get('properties', {})
+        props = event.get("properties", {})
 
         # Extract company name safely
-        company = 'Unknown'
+        company = "Unknown"
         try:
-            company_field = props.get('Company', {}).get('rich_text', [])
+            company_field = props.get("Company", {}).get("rich_text", [])
             if company_field and len(company_field) > 0:
-                company = company_field[0].get('text', {}).get('content', 'Unknown')
+                company = company_field[0].get("text", {}).get("content", "Unknown")
         except:
             pass
 
@@ -143,7 +147,7 @@ def comprehensive_cleanup():
                     "PATCH",
                     f"https://api.notion.com/v1/pages/{event['id']}",
                     headers=notion_client.headers,
-                    json={"archived": True}
+                    json={"archived": True},
                 )
                 print(f"   ✅ Archived event from {company}")
                 events_cleaned += 1
@@ -158,19 +162,19 @@ def comprehensive_cleanup():
     print("-" * 40)
 
     url = f"https://api.notion.com/v1/databases/{notion_client.database_ids['partnerships']}/query"
-    partnerships_response = notion_client._make_request('POST', url, json={})
-    all_partnerships = partnerships_response.json().get('results', [])
+    partnerships_response = notion_client._make_request("POST", url, json={})
+    all_partnerships = partnerships_response.json().get("results", [])
 
     partnerships_cleaned = 0
     for partnership in all_partnerships:
-        props = partnership.get('properties', {})
+        props = partnership.get("properties", {})
 
         # Extract company name safely
-        company = 'Unknown'
+        company = "Unknown"
         try:
-            company_field = props.get('Company Name', {}).get('rich_text', [])
+            company_field = props.get("Company Name", {}).get("rich_text", [])
             if company_field and len(company_field) > 0:
-                company = company_field[0].get('text', {}).get('content', 'Unknown')
+                company = company_field[0].get("text", {}).get("content", "Unknown")
         except:
             pass
 
@@ -180,7 +184,7 @@ def comprehensive_cleanup():
                     "PATCH",
                     f"https://api.notion.com/v1/pages/{partnership['id']}",
                     headers=notion_client.headers,
-                    json={"archived": True}
+                    json={"archived": True},
                 )
                 print(f"   ✅ Archived partnership from {company}")
                 partnerships_cleaned += 1
@@ -201,6 +205,7 @@ def comprehensive_cleanup():
     print(f"📋 TOTAL items cleaned: {total_cleaned}")
     print()
 
+
 def test_coreweave_fix():
     """Test that CoreWeave mock data filter is removed"""
 
@@ -210,17 +215,17 @@ def test_coreweave_fix():
     # Test CoreWeave enrichment directly
     try:
         abm = ComprehensiveABMSystem()
-        result = abm.conduct_complete_account_research('CoreWeave', 'coreweave.com')
+        result = abm.conduct_complete_account_research("CoreWeave", "coreweave.com")
 
         # Check enrichment status
-        account = result.get('account', {})
-        notion_status = result.get('notion_persistence', {})
+        account = result.get("account", {})
+        notion_status = result.get("notion_persistence", {})
 
         print(f"✅ CoreWeave enrichment completed")
         print(f"✅ Account name: {account.get('name', 'Unknown')}")
         print(f"✅ Business model: {account.get('business_model', 'Unknown')}")
 
-        if notion_status.get('account_saved', False):
+        if notion_status.get("account_saved", False):
             print("🚨 WARNING: Account was saved to production (test mode needed!)")
         else:
             print("✅ Account NOT saved to production")
@@ -236,6 +241,7 @@ def test_coreweave_fix():
             print(f"⚠️  Different error (may be expected): {e}")
             return True
 
+
 def investigate_trigger_events():
     """Investigate trigger events count discrepancy"""
 
@@ -245,12 +251,14 @@ def investigate_trigger_events():
     notion_client = NotionClient()
 
     # Query trigger events directly
-    url = f"https://api.notion.com/v1/databases/{notion_client.database_ids['trigger_events']}/query"
-    events_response = notion_client._make_request('POST', url, json={})
+    url = (
+        f"https://api.notion.com/v1/databases/{notion_client.database_ids['trigger_events']}/query"
+    )
+    events_response = notion_client._make_request("POST", url, json={})
     events_data = events_response.json()
 
-    all_events = events_data.get('results', [])
-    active_events = [e for e in all_events if not e.get('archived', False)]
+    all_events = events_data.get("results", [])
+    active_events = [e for e in all_events if not e.get("archived", False)]
 
     print(f"📊 Total trigger events in database: {len(all_events)}")
     print(f"📊 Active trigger events: {len(active_events)}")
@@ -261,23 +269,23 @@ def investigate_trigger_events():
     events_by_type = defaultdict(int)
 
     for event in active_events:
-        props = event.get('properties', {})
+        props = event.get("properties", {})
 
         # Extract company and event type safely
-        company = 'Unknown'
-        event_type = 'Unknown'
+        company = "Unknown"
+        event_type = "Unknown"
 
         try:
-            company_field = props.get('Company', {}).get('rich_text', [])
+            company_field = props.get("Company", {}).get("rich_text", [])
             if company_field and len(company_field) > 0:
-                company = company_field[0].get('text', {}).get('content', 'Unknown')
+                company = company_field[0].get("text", {}).get("content", "Unknown")
         except:
             pass
 
         try:
-            event_type_field = props.get('Event Type', {}).get('select')
+            event_type_field = props.get("Event Type", {}).get("select")
             if event_type_field:
-                event_type = event_type_field.get('name', 'Unknown')
+                event_type = event_type_field.get("name", "Unknown")
         except:
             pass
 
@@ -300,7 +308,8 @@ def investigate_trigger_events():
     try:
         # Test trigger detection directly
         from abm_research.phases.enhanced_trigger_event_detector import enhanced_trigger_detector
-        events = enhanced_trigger_detector.detect_trigger_events('Groq', 'groq.com')
+
+        events = enhanced_trigger_detector.detect_trigger_events("Groq", "groq.com")
         print(f"✅ Groq trigger events detected: {len(events)}")
 
         if len(events) == 1:
@@ -310,6 +319,7 @@ def investigate_trigger_events():
 
     except Exception as e:
         print(f"❌ Trigger detection test failed: {e}")
+
 
 def create_test_mode_example():
     """Create example of proper test mode implementation"""
@@ -348,6 +358,7 @@ class TestModeABMSystem(ComprehensiveABMSystem):
     '''
 
     print(example_code)
+
 
 if __name__ == "__main__":
     print("🚀 Starting Comprehensive System Fix")

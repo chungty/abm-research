@@ -9,19 +9,21 @@ while internal logs claim success.
 
 import os
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.integrations.notion_client import NotionClient
 from abm_research.config.settings import (
     NOTION_ACCOUNTS_DB_ID,
     NOTION_CONTACTS_DB_ID,
     NOTION_TRIGGER_EVENTS_DB_ID,
-    NOTION_PARTNERSHIPS_DB_ID
+    NOTION_PARTNERSHIPS_DB_ID,
 )
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
+
 
 def debug_database_configuration():
     """Debug database configuration and test Notion connectivity"""
@@ -32,10 +34,10 @@ def debug_database_configuration():
     # 1. Check environment variables
     print("📋 Environment Variables:")
     env_vars = [
-        ('NOTION_ACCOUNTS_DB_ID', NOTION_ACCOUNTS_DB_ID),
-        ('NOTION_CONTACTS_DB_ID', NOTION_CONTACTS_DB_ID),
-        ('NOTION_TRIGGER_EVENTS_DB_ID', NOTION_TRIGGER_EVENTS_DB_ID),
-        ('NOTION_PARTNERSHIPS_DB_ID', NOTION_PARTNERSHIPS_DB_ID)
+        ("NOTION_ACCOUNTS_DB_ID", NOTION_ACCOUNTS_DB_ID),
+        ("NOTION_CONTACTS_DB_ID", NOTION_CONTACTS_DB_ID),
+        ("NOTION_TRIGGER_EVENTS_DB_ID", NOTION_TRIGGER_EVENTS_DB_ID),
+        ("NOTION_PARTNERSHIPS_DB_ID", NOTION_PARTNERSHIPS_DB_ID),
     ]
 
     for var_name, var_value in env_vars:
@@ -61,13 +63,13 @@ def debug_database_configuration():
     # 3. Test account save functionality
     print("💾 Testing Account Save:")
     test_account = {
-        'name': 'Database Config Test Company',
-        'domain': 'dbtest.com',
-        'business_model': 'Technology',
-        'employee_count': 50,
-        'icp_fit_score': 70,
-        'research_status': 'In Progress',
-        'notes': 'Testing database configuration'
+        "name": "Database Config Test Company",
+        "domain": "dbtest.com",
+        "business_model": "Technology",
+        "employee_count": 50,
+        "icp_fit_score": 70,
+        "research_status": "In Progress",
+        "notes": "Testing database configuration",
     }
 
     try:
@@ -77,7 +79,7 @@ def debug_database_configuration():
             print(f"   ✅ Return type: {type(account_id)}")
 
             # Test finding the account
-            found_id = notion_client._find_existing_account(test_account['name'])
+            found_id = notion_client._find_existing_account(test_account["name"])
             if found_id:
                 print(f"   ✅ Account retrieval SUCCESS: {found_id[:20]}...")
             else:
@@ -97,7 +99,7 @@ def debug_database_configuration():
         if db_id:
             try:
                 url = f"https://api.notion.com/v1/databases/{db_id}/query"
-                response = notion_client._make_request('POST', url, json={'page_size': 1})
+                response = notion_client._make_request("POST", url, json={"page_size": 1})
                 if response.status_code == 200:
                     print(f"   ✅ {db_name}: Connected successfully")
                 else:
@@ -110,6 +112,7 @@ def debug_database_configuration():
     print()
     print("✅ Database configuration debug complete!")
     return True
+
 
 if __name__ == "__main__":
     success = debug_database_configuration()

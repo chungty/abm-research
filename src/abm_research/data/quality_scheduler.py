@@ -11,6 +11,7 @@ from datetime import datetime
 from automated_data_quality_system import ABMDataQualitySystem
 from aggressive_notion_cleanup import AggressiveNotionCleanup
 
+
 class QualityScheduler:
     """Scheduler for automated data quality checks"""
 
@@ -85,7 +86,7 @@ class QualityScheduler:
         schedule.every().sunday.at("02:00").do(self.run_weekly_deep_clean)
 
         # Schedule immediate cache build
-        schedule.every().minute.do(self.run_cache_rebuild).tag('initial')
+        schedule.every().minute.do(self.run_cache_rebuild).tag("initial")
 
         print("✅ Scheduled daily quality checks at 06:00")
         print("✅ Scheduled cache rebuild every 4 hours")
@@ -100,8 +101,8 @@ class QualityScheduler:
                 schedule.run_pending()
 
                 # Remove initial setup job after first run
-                if schedule.get_jobs('initial'):
-                    schedule.clear('initial')
+                if schedule.get_jobs("initial"):
+                    schedule.clear("initial")
                     print("✅ Initial cache built")
 
                 time.sleep(60)  # Check every minute
@@ -117,6 +118,7 @@ class QualityScheduler:
     def stop_scheduler(self):
         """Stop the scheduler"""
         self.running = False
+
 
 def run_manual_quality_check():
     """Run a manual quality check for testing"""
@@ -136,6 +138,7 @@ def run_manual_quality_check():
     print(f"🔧 Issues Fixed: {results['issues_fixed']}")
 
     return results
+
 
 if __name__ == "__main__":
     import sys

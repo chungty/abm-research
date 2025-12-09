@@ -21,37 +21,40 @@ logger = logging.getLogger(__name__)
 
 class PartnershipType(Enum):
     """Types of business relationships for account classification"""
-    DIRECT_ICP = "direct_icp"           # Target customers with power monitoring needs
-    STRATEGIC_PARTNER = "strategic_partner"     # Technology/product partners
-    REFERRAL_PARTNER = "referral_partner"       # Companies that can refer customers
-    COMPETITIVE = "competitive"                 # Direct competitors
-    VENDOR = "vendor"                          # Companies we buy from
-    UNKNOWN = "unknown"                        # Needs further classification
+
+    DIRECT_ICP = "direct_icp"  # Target customers with power monitoring needs
+    STRATEGIC_PARTNER = "strategic_partner"  # Technology/product partners
+    REFERRAL_PARTNER = "referral_partner"  # Companies that can refer customers
+    COMPETITIVE = "competitive"  # Direct competitors
+    VENDOR = "vendor"  # Companies we buy from
+    UNKNOWN = "unknown"  # Needs further classification
 
 
 class IndustryCategory(Enum):
     """Industry categories for partnership classification"""
-    DATA_CENTER_OPERATOR = "data_center_operator"       # Direct ICP
-    CLOUD_PROVIDER = "cloud_provider"                   # Strategic partner potential
-    AI_INFRASTRUCTURE = "ai_infrastructure"             # Strategic partner potential
-    HARDWARE_VENDOR = "hardware_vendor"                 # Strategic partner potential
-    SOFTWARE_VENDOR = "software_vendor"                 # Strategic partner potential
-    SYSTEMS_INTEGRATOR = "systems_integrator"           # Referral partner potential
-    CONSULTANT = "consultant"                           # Referral partner potential
-    POWER_MONITORING = "power_monitoring"               # Competitive
-    FACILITY_MANAGEMENT = "facility_management"         # Competitive
+
+    DATA_CENTER_OPERATOR = "data_center_operator"  # Direct ICP
+    CLOUD_PROVIDER = "cloud_provider"  # Strategic partner potential
+    AI_INFRASTRUCTURE = "ai_infrastructure"  # Strategic partner potential
+    HARDWARE_VENDOR = "hardware_vendor"  # Strategic partner potential
+    SOFTWARE_VENDOR = "software_vendor"  # Strategic partner potential
+    SYSTEMS_INTEGRATOR = "systems_integrator"  # Referral partner potential
+    CONSULTANT = "consultant"  # Referral partner potential
+    POWER_MONITORING = "power_monitoring"  # Competitive
+    FACILITY_MANAGEMENT = "facility_management"  # Competitive
     OTHER = "other"
 
 
 @dataclass
 class PartnershipClassification:
     """Result of partnership classification analysis"""
+
     partnership_type: PartnershipType
     industry_category: IndustryCategory
     confidence_score: float  # 0-100
     reasoning: str
     recommended_approach: str
-    potential_value: str     # High, Medium, Low
+    potential_value: str  # High, Medium, Low
     next_actions: List[str]
 
 
@@ -67,62 +70,119 @@ class PartnershipClassifier:
         # Direct ICP indicators (companies that need power monitoring)
         self.direct_icp_indicators = {
             "business_models": [
-                "data center operator", "colocation provider", "cloud provider",
-                "gpu datacenter", "hyperscale operator", "edge computing provider"
+                "data center operator",
+                "colocation provider",
+                "cloud provider",
+                "gpu datacenter",
+                "hyperscale operator",
+                "edge computing provider",
             ],
             "infrastructure_keywords": [
-                "gpu cluster", "nvidia h100", "nvidia a100", "ai training",
-                "high performance computing", "hpc", "supercomputing",
-                "data center", "datacenter", "server farm", "compute infrastructure"
+                "gpu cluster",
+                "nvidia h100",
+                "nvidia a100",
+                "ai training",
+                "high performance computing",
+                "hpc",
+                "supercomputing",
+                "data center",
+                "datacenter",
+                "server farm",
+                "compute infrastructure",
             ],
             "power_indicators": [
-                "high power density", "power consumption", "energy costs",
-                "power efficiency", "power monitoring needs", "ups systems",
-                "power distribution", "energy management"
-            ]
+                "high power density",
+                "power consumption",
+                "energy costs",
+                "power efficiency",
+                "power monitoring needs",
+                "ups systems",
+                "power distribution",
+                "energy management",
+            ],
         }
 
         # Strategic partner indicators (companies we can partner with)
         self.strategic_partner_indicators = {
             "ai_infrastructure": [
-                "ai inference", "gpu as a service", "ml platform", "ai training platform",
-                "compute as a service", "ai cloud", "inference api"
+                "ai inference",
+                "gpu as a service",
+                "ml platform",
+                "ai training platform",
+                "compute as a service",
+                "ai cloud",
+                "inference api",
             ],
             "hardware_vendors": [
-                "nvidia", "amd", "intel", "server manufacturer", "gpu vendor",
-                "storage vendor", "networking equipment", "data center equipment"
+                "nvidia",
+                "amd",
+                "intel",
+                "server manufacturer",
+                "gpu vendor",
+                "storage vendor",
+                "networking equipment",
+                "data center equipment",
             ],
             "software_platforms": [
-                "dcim", "infrastructure management", "cloud management platform",
-                "monitoring platform", "analytics platform", "iot platform"
+                "dcim",
+                "infrastructure management",
+                "cloud management platform",
+                "monitoring platform",
+                "analytics platform",
+                "iot platform",
             ],
             "cloud_services": [
-                "aws", "azure", "google cloud", "oracle cloud", "alibaba cloud",
-                "cloud infrastructure", "cloud platform", "managed services"
-            ]
+                "aws",
+                "azure",
+                "google cloud",
+                "oracle cloud",
+                "alibaba cloud",
+                "cloud infrastructure",
+                "cloud platform",
+                "managed services",
+            ],
         }
 
         # Referral partner indicators (companies that serve our ICP)
         self.referral_partner_indicators = {
             "systems_integrators": [
-                "systems integrator", "si", "technology integrator", "it services",
-                "implementation partner", "consulting services", "managed services provider"
+                "systems integrator",
+                "si",
+                "technology integrator",
+                "it services",
+                "implementation partner",
+                "consulting services",
+                "managed services provider",
             ],
             "consultants": [
-                "data center consulting", "infrastructure consulting", "energy consulting",
-                "facilities consulting", "it consulting", "digital transformation"
+                "data center consulting",
+                "infrastructure consulting",
+                "energy consulting",
+                "facilities consulting",
+                "it consulting",
+                "digital transformation",
             ],
             "service_providers": [
-                "data center services", "facility management", "maintenance services",
-                "installation services", "support services", "managed infrastructure"
-            ]
+                "data center services",
+                "facility management",
+                "maintenance services",
+                "installation services",
+                "support services",
+                "managed infrastructure",
+            ],
         }
 
         # Competitive indicators (direct competitors)
         self.competitive_indicators = [
-            "power monitoring", "energy monitoring", "power analytics",
-            "power management software", "dcim", "facility monitoring",
-            "energy efficiency software", "power optimization", "verdigris"
+            "power monitoring",
+            "energy monitoring",
+            "power analytics",
+            "power management software",
+            "dcim",
+            "facility monitoring",
+            "energy efficiency software",
+            "power optimization",
+            "verdigris",
         ]
 
     def classify_partnership(self, company_data: Dict) -> PartnershipClassification:
@@ -139,16 +199,20 @@ class PartnershipClassifier:
         Returns:
             PartnershipClassification with recommended approach
         """
-        self.logger.info(f"🔍 Classifying partnership potential for {company_data.get('name', 'Unknown')}")
+        self.logger.info(
+            f"🔍 Classifying partnership potential for {company_data.get('name', 'Unknown')}"
+        )
 
-        company_name = company_data.get('name', '').lower()
-        business_model = company_data.get('business_model', '').lower()
-        infrastructure = company_data.get('physical_infrastructure', '').lower()
-        tech_stack = company_data.get('tech_stack', '').lower()
-        announcements = company_data.get('recent_announcements', '').lower()
+        company_name = company_data.get("name", "").lower()
+        business_model = company_data.get("business_model", "").lower()
+        infrastructure = company_data.get("physical_infrastructure", "").lower()
+        tech_stack = company_data.get("tech_stack", "").lower()
+        announcements = company_data.get("recent_announcements", "").lower()
 
         # Combine all text for analysis
-        combined_text = f"{company_name} {business_model} {infrastructure} {tech_stack} {announcements}"
+        combined_text = (
+            f"{company_name} {business_model} {infrastructure} {tech_stack} {announcements}"
+        )
 
         # Score each partnership type
         direct_icp_score = self._score_direct_icp(combined_text, company_data)
@@ -161,7 +225,7 @@ class PartnershipClassifier:
             PartnershipType.DIRECT_ICP: direct_icp_score,
             PartnershipType.STRATEGIC_PARTNER: strategic_partner_score,
             PartnershipType.REFERRAL_PARTNER: referral_partner_score,
-            PartnershipType.COMPETITIVE: competitive_score
+            PartnershipType.COMPETITIVE: competitive_score,
         }
 
         best_type = max(scores, key=scores.get)
@@ -203,7 +267,7 @@ class PartnershipClassifier:
                 score += 30
 
         # High employee count suggests infrastructure scale
-        employee_count = company_data.get('employee_count', 0) or 0
+        employee_count = company_data.get("employee_count", 0) or 0
         if employee_count and employee_count > 1000:
             score += 10
         elif employee_count and employee_count > 500:
@@ -226,7 +290,15 @@ class PartnershipClassifier:
                 score += 25
 
         # GPU/AI-specific boost for companies like NVIDIA
-        gpu_ai_indicators = ["gpu", "h100", "a100", "dgx", "cuda", "ai training", "machine learning hardware"]
+        gpu_ai_indicators = [
+            "gpu",
+            "h100",
+            "a100",
+            "dgx",
+            "cuda",
+            "ai training",
+            "machine learning hardware",
+        ]
         for indicator in gpu_ai_indicators:
             if indicator in text:
                 score += 15  # Additional points for GPU/AI focus
@@ -243,8 +315,8 @@ class PartnershipClassifier:
                 score += 20
 
         # Growth stage companies are often better partners
-        growth_stage = company_data.get('growth_stage', '').lower()
-        if growth_stage in ['growth', 'scale-up']:
+        growth_stage = company_data.get("growth_stage", "").lower()
+        if growth_stage in ["growth", "scale-up"]:
             score += 10
 
         return min(score, 100)
@@ -284,16 +356,23 @@ class PartnershipClassifier:
         """Determine the industry category based on company data"""
 
         # Check for specific industry indicators
-        if any(term in text for term in ["data center operator", "datacenter operator", "colocation"]):
+        if any(
+            term in text for term in ["data center operator", "datacenter operator", "colocation"]
+        ):
             return IndustryCategory.DATA_CENTER_OPERATOR
 
         if any(term in text for term in ["aws", "azure", "google cloud", "cloud provider"]):
             return IndustryCategory.CLOUD_PROVIDER
 
-        if any(term in text for term in ["ai inference", "gpu as a service", "ai platform", "ml platform"]):
+        if any(
+            term in text
+            for term in ["ai inference", "gpu as a service", "ai platform", "ml platform"]
+        ):
             return IndustryCategory.AI_INFRASTRUCTURE
 
-        if any(term in text for term in ["nvidia", "amd", "server manufacturer", "hardware vendor"]):
+        if any(
+            term in text for term in ["nvidia", "amd", "server manufacturer", "hardware vendor"]
+        ):
             return IndustryCategory.HARDWARE_VENDOR
 
         if any(term in text for term in ["dcim", "monitoring platform", "software platform"]):
@@ -305,37 +384,48 @@ class PartnershipClassifier:
         if any(term in text for term in ["consulting", "consultant", "advisory"]):
             return IndustryCategory.CONSULTANT
 
-        if any(term in text for term in ["power monitoring", "energy monitoring", "facility monitoring"]):
+        if any(
+            term in text
+            for term in ["power monitoring", "energy monitoring", "facility monitoring"]
+        ):
             return IndustryCategory.POWER_MONITORING
 
         return IndustryCategory.OTHER
 
-    def _generate_classification_result(self, partnership_type: PartnershipType,
-                                      industry_category: IndustryCategory,
-                                      confidence: float, company_data: Dict) -> PartnershipClassification:
+    def _generate_classification_result(
+        self,
+        partnership_type: PartnershipType,
+        industry_category: IndustryCategory,
+        confidence: float,
+        company_data: Dict,
+    ) -> PartnershipClassification:
         """Generate comprehensive classification result with recommendations"""
 
-        company_name = company_data.get('name', 'Unknown')
+        company_name = company_data.get("name", "Unknown")
 
         # Generate reasoning and recommendations based on type
         if partnership_type == PartnershipType.DIRECT_ICP:
-            reasoning = f"{company_name} shows strong indicators of needing power monitoring solutions"
+            reasoning = (
+                f"{company_name} shows strong indicators of needing power monitoring solutions"
+            )
             approach = "Direct sales engagement focusing on power efficiency and cost reduction"
             value = "High" if confidence > 70 else "Medium"
             actions = [
                 "Schedule discovery call with facilities/infrastructure team",
                 "Prepare power monitoring ROI analysis",
-                "Identify key decision makers for infrastructure purchases"
+                "Identify key decision makers for infrastructure purchases",
             ]
 
         elif partnership_type == PartnershipType.STRATEGIC_PARTNER:
-            reasoning = f"{company_name} serves companies that likely need power monitoring solutions"
+            reasoning = (
+                f"{company_name} serves companies that likely need power monitoring solutions"
+            )
             approach = "Partnership development - co-marketing and referral programs"
             value = "Medium" if confidence > 60 else "Low"
             actions = [
                 "Reach out to business development team",
                 "Propose joint go-to-market strategy",
-                "Explore integration opportunities"
+                "Explore integration opportunities",
             ]
 
         elif partnership_type == PartnershipType.REFERRAL_PARTNER:
@@ -345,7 +435,7 @@ class PartnershipClassifier:
             actions = [
                 "Contact channel/partner team",
                 "Develop referral incentive structure",
-                "Create partner enablement materials"
+                "Create partner enablement materials",
             ]
 
         elif partnership_type == PartnershipType.COMPETITIVE:
@@ -355,17 +445,19 @@ class PartnershipClassifier:
             actions = [
                 "Add to competitive tracking list",
                 "Monitor product announcements",
-                "Analyze competitive positioning"
+                "Analyze competitive positioning",
             ]
 
         else:  # UNKNOWN
-            reasoning = f"{company_name} requires further analysis to determine partnership potential"
+            reasoning = (
+                f"{company_name} requires further analysis to determine partnership potential"
+            )
             approach = "Additional research needed before engagement"
             value = "Unknown"
             actions = [
                 "Conduct deeper company research",
                 "Identify key business focus areas",
-                "Reassess after gathering more data"
+                "Reassess after gathering more data",
             ]
 
         return PartnershipClassification(
@@ -375,7 +467,7 @@ class PartnershipClassifier:
             reasoning=reasoning,
             recommended_approach=approach,
             potential_value=value,
-            next_actions=actions
+            next_actions=actions,
         )
 
     def classify_from_account_intelligence(self, account_intel: Dict) -> PartnershipClassification:
@@ -390,13 +482,15 @@ class PartnershipClassifier:
         """
         # Map account intelligence to company data format
         company_data = {
-            'name': account_intel.get('name', ''),
-            'business_model': account_intel.get('Growth Stage', ''),
-            'physical_infrastructure': account_intel.get('Physical Infrastructure', ''),
-            'tech_stack': account_intel.get('Physical Infrastructure', ''),  # Same field in new format
-            'recent_announcements': account_intel.get('Recent Announcements', ''),
-            'employee_count': 0,  # Would need to be passed separately
-            'growth_stage': account_intel.get('Growth Stage', '')
+            "name": account_intel.get("name", ""),
+            "business_model": account_intel.get("Growth Stage", ""),
+            "physical_infrastructure": account_intel.get("Physical Infrastructure", ""),
+            "tech_stack": account_intel.get(
+                "Physical Infrastructure", ""
+            ),  # Same field in new format
+            "recent_announcements": account_intel.get("Recent Announcements", ""),
+            "employee_count": 0,  # Would need to be passed separately
+            "growth_stage": account_intel.get("Growth Stage", ""),
         }
 
         return self.classify_partnership(company_data)

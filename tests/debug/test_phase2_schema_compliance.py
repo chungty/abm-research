@@ -6,12 +6,16 @@ Tests that all enhanced intelligence engines output schema-compliant data with c
 
 import sys
 import os
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.utils.account_intelligence_engine import account_intelligence_engine
 from abm_research.phases.enhanced_trigger_event_detector import enhanced_trigger_detector
-from abm_research.phases.strategic_partnership_intelligence import strategic_partnership_intelligence
+from abm_research.phases.strategic_partnership_intelligence import (
+    strategic_partnership_intelligence,
+)
 from abm_research.phases.apollo_contact_discovery import apollo_discovery
+
 
 def test_account_intelligence_schema():
     """Test AccountIntelligenceEngine schema compliance"""
@@ -30,16 +34,16 @@ def test_account_intelligence_schema():
         conversation_triggers="Scaling challenges, power optimization needs",
         intelligence_date="2024-11-25T12:00:00Z",
         data_sources=["website", "news", "linkedin"],
-        confidence_score=85.0
+        confidence_score=85.0,
     )
 
     # Test schema conversion
     notion_format = account_intelligence_engine.convert_to_notion_format(mock_intelligence)
 
     # Validate confidence indicators
-    physical_infrastructure = notion_format.get('Physical Infrastructure', '')
-    recent_funding = notion_format.get('Recent Funding', '')
-    key_decision_makers = notion_format.get('Key Decision Makers', '')
+    physical_infrastructure = notion_format.get("Physical Infrastructure", "")
+    recent_funding = notion_format.get("Recent Funding", "")
+    key_decision_makers = notion_format.get("Key Decision Makers", "")
 
     print(f"   ✅ Physical Infrastructure: {physical_infrastructure[:80]}...")
     print(f"   ✅ Recent Funding: {recent_funding[:60]}...")
@@ -55,6 +59,7 @@ def test_account_intelligence_schema():
     print(f"   ❌ 'N/A' indicators: {'✅' if has_na else '❌'}")
 
     return notion_format
+
 
 def test_trigger_events_schema():
     """Test Enhanced Trigger Event Detector schema compliance"""
@@ -75,7 +80,7 @@ def test_trigger_events_schema():
             source_type="Press Release",
             detected_date=datetime.now().isoformat(),
             occurred_date=datetime.now().isoformat(),
-            urgency_level="High"
+            urgency_level="High",
         )
     ]
 
@@ -91,13 +96,19 @@ def test_trigger_events_schema():
         print(f"   ✅ Event Stage: {event.get('Event Stage', 'Missing')}")
 
         # Check for multi-dimensional scoring
-        has_multi_scoring = all(score in event for score in [
-            'Business Impact Score', 'Actionability Score',
-            'Timing Urgency Score', 'Strategic Fit Score'
-        ])
+        has_multi_scoring = all(
+            score in event
+            for score in [
+                "Business Impact Score",
+                "Actionability Score",
+                "Timing Urgency Score",
+                "Strategic Fit Score",
+            ]
+        )
         print(f"   📊 Multi-dimensional scoring: {'✅' if has_multi_scoring else '❌'}")
 
     return enhanced_events
+
 
 def test_partnerships_schema():
     """Test Strategic Partnership Intelligence schema compliance"""
@@ -116,26 +127,37 @@ def test_partnerships_schema():
         confidence_score=85,
         detected_date=datetime.now().isoformat(),
         verdigris_opportunity_angle="High-density monitoring for AI workloads and GPU cluster power optimization",
-        partnership_action="Contact"
+        partnership_action="Contact",
     )
 
     # Test enhanced schema conversion
-    enhanced_partnership = strategic_partnership_intelligence.convert_to_enhanced_schema(mock_partnership)
+    enhanced_partnership = strategic_partnership_intelligence.convert_to_enhanced_schema(
+        mock_partnership
+    )
 
     print(f"   ✅ Partnership Type: {enhanced_partnership.get('Partnership Type', 'Missing')}")
     print(f"   ✅ Strategic Value: {enhanced_partnership.get('Strategic Value', '')[:60]}...")
-    print(f"   ✅ Recommended Approach: {enhanced_partnership.get('Recommended Approach', '')[:60]}...")
+    print(
+        f"   ✅ Recommended Approach: {enhanced_partnership.get('Recommended Approach', '')[:60]}..."
+    )
     print(f"   ✅ Estimated Deal Size: {enhanced_partnership.get('Estimated Deal Size', 'Missing')}")
     print(f"   ✅ Priority Level: {enhanced_partnership.get('Priority Level', 'Missing')}")
 
     # Check for business intelligence fields
-    has_business_intel = all(field in enhanced_partnership for field in [
-        'Strategic Value', 'Next Actions', 'Estimated Deal Size',
-        'Partner Outreach Status', 'Recommended Approach'
-    ])
+    has_business_intel = all(
+        field in enhanced_partnership
+        for field in [
+            "Strategic Value",
+            "Next Actions",
+            "Estimated Deal Size",
+            "Partner Outreach Status",
+            "Recommended Approach",
+        ]
+    )
     print(f"   📊 Business intelligence fields: {'✅' if has_business_intel else '❌'}")
 
     return enhanced_partnership
+
 
 def test_contacts_schema():
     """Test Apollo Contact Discovery schema compliance"""
@@ -163,7 +185,7 @@ def test_contacts_schema():
         apollo_score=88,
         enriched=True,
         search_timestamp=datetime.now().isoformat(),
-        enrichment_timestamp=datetime.now().isoformat()
+        enrichment_timestamp=datetime.now().isoformat(),
     )
 
     # Test enhanced schema conversion
@@ -177,13 +199,20 @@ def test_contacts_schema():
     print(f"   ✅ Email Source: {enhanced_contact.get('Email Source', 'Missing')}")
 
     # Check for data provenance fields
-    has_provenance = all(field in enhanced_contact for field in [
-        'Name Source', 'Email Source', 'Title Source',
-        'Data Quality Score', 'Last Enriched'
-    ])
+    has_provenance = all(
+        field in enhanced_contact
+        for field in [
+            "Name Source",
+            "Email Source",
+            "Title Source",
+            "Data Quality Score",
+            "Last Enriched",
+        ]
+    )
     print(f"   📊 Data provenance tracking: {'✅' if has_provenance else '❌'}")
 
     return enhanced_contact
+
 
 def main():
     """Run all Phase 2 schema compliance tests"""
@@ -214,8 +243,10 @@ def main():
     except Exception as e:
         print(f"\n❌ Phase 2 validation failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     success = main()

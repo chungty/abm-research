@@ -11,6 +11,7 @@ from datetime import datetime
 
 class EngagementPriority(Enum):
     """Priority levels for engagement activities"""
+
     IMMEDIATE = "immediate"
     HIGH = "high"
     MEDIUM = "medium"
@@ -19,6 +20,7 @@ class EngagementPriority(Enum):
 
 class OutreachChannel(Enum):
     """Recommended outreach channels"""
+
     LINKEDIN_SOCIAL = "linkedin_social"
     LINKEDIN_DIRECT = "linkedin_direct"
     EMAIL_DIRECT = "email_direct"
@@ -30,6 +32,7 @@ class OutreachChannel(Enum):
 @dataclass
 class EngagementStrategy:
     """Comprehensive engagement strategy for a contact"""
+
     contact_name: str
     priority: EngagementPriority
     recommended_channels: List[OutreachChannel]
@@ -42,6 +45,7 @@ class EngagementStrategy:
 @dataclass
 class ContentHook:
     """Specific content hook for personalized outreach"""
+
     hook_type: str  # Recent post, shared interest, industry event, etc.
     description: str
     reference_text: str  # Exact text to reference
@@ -52,6 +56,7 @@ class ContentHook:
 @dataclass
 class EngagementIntelligence:
     """Complete engagement intelligence for a contact"""
+
     contact_name: str
     final_lead_score: float
 
@@ -86,18 +91,22 @@ class EngagementIntelligence:
     def get_engagement_summary(self) -> Dict[str, Any]:
         """Get summary of engagement intelligence"""
         return {
-            'contact': self.contact_name,
-            'score': self.final_lead_score,
-            'top_problems': self.likely_problems[:3],
-            'best_hooks': [hook.description for hook in self.content_hooks[:2]],
-            'strategy': self.engagement_strategy.approach_summary if self.engagement_strategy else "Not defined",
-            'priority': self.engagement_strategy.priority.value if self.engagement_strategy else "medium"
+            "contact": self.contact_name,
+            "score": self.final_lead_score,
+            "top_problems": self.likely_problems[:3],
+            "best_hooks": [hook.description for hook in self.content_hooks[:2]],
+            "strategy": self.engagement_strategy.approach_summary
+            if self.engagement_strategy
+            else "Not defined",
+            "priority": self.engagement_strategy.priority.value
+            if self.engagement_strategy
+            else "medium",
         }
 
     def has_high_engagement_potential(self) -> bool:
         """Check if contact has high engagement potential"""
         return (
-            self.final_lead_score >= 70 and
-            self.content_quality in ['High', 'Medium'] and
-            len(self.content_hooks) > 0
+            self.final_lead_score >= 70
+            and self.content_quality in ["High", "Medium"]
+            and len(self.content_hooks) > 0
         )

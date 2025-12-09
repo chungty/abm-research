@@ -8,14 +8,16 @@ to identify why account_saved status reports False when saves actually work.
 
 import os
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.integrations.notion_client import NotionClient
 from abm_research.core.abm_system import ComprehensiveABMSystem
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
+
 
 def debug_abm_account_save():
     """Debug ABM account save vs direct account save"""
@@ -34,13 +36,13 @@ def debug_abm_account_save():
     print("-" * 50)
 
     direct_account = {
-        'name': 'Direct Save Test Company',
-        'domain': 'directtest.com',
-        'business_model': 'Technology',
-        'employee_count': 75,
-        'icp_fit_score': 80,
-        'research_status': 'In Progress',
-        'notes': 'Testing direct account save'
+        "name": "Direct Save Test Company",
+        "domain": "directtest.com",
+        "business_model": "Technology",
+        "employee_count": 75,
+        "icp_fit_score": 80,
+        "research_status": "In Progress",
+        "notes": "Testing direct account save",
     }
 
     try:
@@ -60,11 +62,11 @@ def debug_abm_account_save():
     print("   🧪 Running minimal ABM research for comparison...")
     try:
         # Use a simple, clean test case
-        result = abm_system.conduct_complete_account_research('ABM Test Company', 'abmtest.com')
+        result = abm_system.conduct_complete_account_research("ABM Test Company", "abmtest.com")
 
         print(f"   📊 ABM Research completed")
-        account_data = result.get('account', {})
-        saved_status = result.get('saved_to_notion', {})
+        account_data = result.get("account", {})
+        saved_status = result.get("saved_to_notion", {})
 
         print(f"   📋 Account data keys: {list(account_data.keys())}")
         print(f"   📋 Account name: {account_data.get('name', 'NOT FOUND')}")
@@ -83,7 +85,7 @@ def debug_abm_account_save():
             print(f"      ABM account keys: {list(account_data.keys())}")
 
             # Check for required fields
-            required_fields = ['name', 'domain']
+            required_fields = ["name", "domain"]
             for field in required_fields:
                 direct_val = direct_account.get(field)
                 abm_val = account_data.get(field)
@@ -106,17 +108,17 @@ def debug_abm_account_save():
 
         # Create a mock research result with the same structure as ABM produces
         mock_research_result = {
-            'account': {
-                'name': 'Mock ABM Account',
-                'domain': 'mockabm.com',
-                'business_model': 'Technology Company',
-                'employee_count': None,
-                'icp_fit_score': 60,
-                'research_status': 'Completed'
+            "account": {
+                "name": "Mock ABM Account",
+                "domain": "mockabm.com",
+                "business_model": "Technology Company",
+                "employee_count": None,
+                "icp_fit_score": 60,
+                "research_status": "Completed",
             },
-            'contacts': [],
-            'trigger_events': [],
-            'partnerships': []
+            "contacts": [],
+            "trigger_events": [],
+            "partnerships": [],
         }
 
         # Call the ABM system's save method directly
@@ -126,7 +128,7 @@ def debug_abm_account_save():
         print(f"   📊 Account saved status: {save_results.get('account_saved', 'NOT FOUND')}")
 
         # Also test if the account was actually saved
-        saved_account_id = notion_client._find_existing_account('Mock ABM Account')
+        saved_account_id = notion_client._find_existing_account("Mock ABM Account")
         print(f"   🔍 Account actually exists in Notion: {bool(saved_account_id)}")
         if saved_account_id:
             print(f"   📋 Found account ID: {saved_account_id[:20]}...")
@@ -138,6 +140,7 @@ def debug_abm_account_save():
     print()
     print("✅ ABM account save debug complete!")
     return True
+
 
 if __name__ == "__main__":
     success = debug_abm_account_save()

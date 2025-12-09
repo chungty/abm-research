@@ -13,7 +13,7 @@ from config.settings import (
     validate_config,
     load_lead_scoring_config,
     load_trigger_events_config,
-    load_partnership_categories
+    load_partnership_categories,
 )
 from models import Account, Contact, TriggerEvent, StrategicPartnership
 from models.lead_scoring import LeadScoringEngine
@@ -169,10 +169,10 @@ class ABMResearchOrchestrator:
 
 def main():
     """Main CLI entry point"""
-    parser = argparse.ArgumentParser(description='ABM Research System')
-    parser.add_argument('--company', required=True, help='Company name to research')
-    parser.add_argument('--domain', required=True, help='Company domain')
-    parser.add_argument('--output', help='Output format (console|notion|json)', default='console')
+    parser = argparse.ArgumentParser(description="ABM Research System")
+    parser.add_argument("--company", required=True, help="Company name to research")
+    parser.add_argument("--domain", required=True, help="Company domain")
+    parser.add_argument("--output", help="Output format (console|notion|json)", default="console")
 
     args = parser.parse_args()
 
@@ -184,12 +184,12 @@ def main():
         account = orchestrator.research_account(args.company, args.domain)
 
         # Generate and display report
-        if args.output == 'console':
+        if args.output == "console":
             print(orchestrator.generate_report(account))
-        elif args.output == 'notion':
+        elif args.output == "notion":
             # TODO: Export to Notion databases
             print("Notion export not yet implemented")
-        elif args.output == 'json':
+        elif args.output == "json":
             # TODO: Export to JSON
             print("JSON export not yet implemented")
 

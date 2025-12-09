@@ -10,6 +10,7 @@ import json
 from abm_config import config
 from config.settings import NOTION_ACCOUNTS_DB_ID
 
+
 def cleanup_duplicate_genesis_cloud():
     """Remove the duplicate Genesis Cloud entry with messy formatting"""
 
@@ -18,8 +19,9 @@ def cleanup_duplicate_genesis_cloud():
 
     # Validate database ID is configured
     if not accounts_db_id:
-        raise ValueError("Missing NOTION_ACCOUNTS_DB_ID environment variable. "
-                        "Please set in .env file.")
+        raise ValueError(
+            "Missing NOTION_ACCOUNTS_DB_ID environment variable. " "Please set in .env file."
+        )
 
     print("🔍 Searching for Genesis Cloud accounts...")
 
@@ -35,22 +37,24 @@ def cleanup_duplicate_genesis_cloud():
     data = response.json()
     genesis_accounts = []
 
-    for result in data.get('results', []):
-        props = result.get('properties', {})
-        name = ''
+    for result in data.get("results", []):
+        props = result.get("properties", {})
+        name = ""
 
         # Extract name
-        title_prop = props.get('Name', {})
-        if title_prop.get('type') == 'title' and title_prop.get('title'):
-            name = ''.join([item.get('plain_text', '') for item in title_prop['title']])
+        title_prop = props.get("Name", {})
+        if title_prop.get("type") == "title" and title_prop.get("title"):
+            name = "".join([item.get("plain_text", "") for item in title_prop["title"]])
 
-        if 'genesis' in name.lower() and 'cloud' in name.lower():
-            genesis_accounts.append({
-                'id': result['id'],
-                'name': name,
-                'created_time': result.get('created_time', ''),
-                'props': props
-            })
+        if "genesis" in name.lower() and "cloud" in name.lower():
+            genesis_accounts.append(
+                {
+                    "id": result["id"],
+                    "name": name,
+                    "created_time": result.get("created_time", ""),
+                    "props": props,
+                }
+            )
 
     print(f"📋 Found {len(genesis_accounts)} Genesis Cloud accounts:")
     for i, acc in enumerate(genesis_accounts):
@@ -65,9 +69,9 @@ def cleanup_duplicate_genesis_cloud():
     clean_account = None
 
     for acc in genesis_accounts:
-        if acc['name'] == 'Genesis Cloud':
+        if acc["name"] == "Genesis Cloud":
             clean_account = acc
-        elif 'genesiscloud.com' in acc['name'] and 'ICP:' in acc['name']:
+        elif "genesiscloud.com" in acc["name"] and "ICP:" in acc["name"]:
             duplicate_to_remove = acc
 
     if not duplicate_to_remove:
@@ -92,6 +96,7 @@ def cleanup_duplicate_genesis_cloud():
     else:
         print(f"❌ Failed to delete duplicate: {delete_response.text}")
         return False
+
 
 if __name__ == "__main__":
     print("🧹 GENESIS CLOUD DUPLICATE CLEANUP")

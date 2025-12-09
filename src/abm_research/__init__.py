@@ -11,8 +11,4 @@ from .core.abm_system import ComprehensiveABMSystem
 from .integrations.notion_client import NotionClient
 from .integrations.notion_config import NotionConfigManager
 
-__all__ = [
-    "ComprehensiveABMSystem",
-    "NotionClient",
-    "NotionConfigManager"
-]
+__all__ = ["ComprehensiveABMSystem", "NotionClient", "NotionConfigManager"]

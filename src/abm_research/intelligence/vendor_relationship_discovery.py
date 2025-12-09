@@ -21,6 +21,7 @@ from datetime import datetime
 # OpenAI for LLM-powered vendor extraction
 try:
     import openai
+
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
@@ -34,6 +35,7 @@ class VendorCustomerSignal:
     A publicly documented relationship signal between a vendor and customer.
     Core data structure for trusted path analysis.
     """
+
     # Relationship parties
     vendor: str
     customer: str
@@ -63,6 +65,7 @@ class VendorCustomerSignal:
 @dataclass
 class VendorIntroScore:
     """Aggregated intro power score for a vendor across target accounts."""
+
     vendor_name: str
     intro_score: float  # CoverageCount * AvgSignalStrength * FitWeight
     coverage_count: int  # Number of distinct customers with signals
@@ -87,6 +90,7 @@ class DiscoveredVendor:
     - recommended_action: What to do when this vendor is discovered
     - discovery_source: 'ai' for LLM-extracted, 'template' for pattern-matched
     """
+
     vendor_name: str
     category: str  # competitors_power, channel_electrical, complementary_compute, etc.
     mention_count: int  # How many times mentioned across searches
@@ -130,33 +134,31 @@ class VendorRelationshipDiscovery:
     # Signal type detection patterns
     SIGNAL_PATTERNS = {
         "case_study": [
-            r"case study", r"customer story", r"success story",
-            r"customer spotlight", r"how .* uses"
+            r"case study",
+            r"customer story",
+            r"success story",
+            r"customer spotlight",
+            r"how .* uses",
         ],
         "joint_pr": [
-            r"press release", r"announces", r"partnership",
-            r"strategic alliance", r"collaboration"
+            r"press release",
+            r"announces",
+            r"partnership",
+            r"strategic alliance",
+            r"collaboration",
         ],
-        "integration": [
-            r"integration", r"connector", r"plugin",
-            r"api", r"interoperab"
-        ],
-        "conference": [
-            r"conference", r"summit", r"webinar",
-            r"keynote", r"panel", r"speaking"
-        ],
+        "integration": [r"integration", r"connector", r"plugin", r"api", r"interoperab"],
+        "conference": [r"conference", r"summit", r"webinar", r"keynote", r"panel", r"speaking"],
         "procurement_record": [
-            r"contract", r"awarded", r"procurement",
-            r"selects", r"chooses", r"deploys"
+            r"contract",
+            r"awarded",
+            r"procurement",
+            r"selects",
+            r"chooses",
+            r"deploys",
         ],
-        "webinar": [
-            r"webinar", r"virtual event", r"online session",
-            r"live demo", r"workshop"
-        ],
-        "logo_mention": [
-            r"customer", r"clients include", r"trusted by",
-            r"logo", r"portfolio"
-        ]
+        "webinar": [r"webinar", r"virtual event", r"online session", r"live demo", r"workshop"],
+        "logo_mention": [r"customer", r"clients include", r"trusted by", r"logo", r"portfolio"],
     }
 
     # Signal strength scoring rubric (1-5)
@@ -165,7 +167,7 @@ class VendorRelationshipDiscovery:
         2: "Customer name referenced but not formal story",
         3: "Named case study, webinar, or clear narrative",
         4: "Joint press release, integration launch, or multi-party collaboration",
-        5: "Multiple assets over time or contract award specifying vendor involvement"
+        5: "Multiple assets over time or contract award specifying vendor involvement",
     }
 
     # ==========================================================================
@@ -178,14 +180,12 @@ class VendorRelationshipDiscovery:
         '"{account}" power monitoring Schneider Eaton Vertiv',
         '"{account}" energy management system',
         '"{account}" DCIM software Nlyte Sunbird',
-
         # --- Channel Partners (who serves this account?) ---
         '"{account}" electrical contractor datacenter',
         '"{account}" power installation contractor',
         '"{account}" datacenter construction partner',
         '"{account}" design build data center',
         '"{account}" CDW WWT SHI infrastructure',
-
         # --- Complementary Vendors (intro path opportunities) ---
         '"{account}" GPU NVIDIA AMD infrastructure',
         '"{account}" cooling Carrier Trane Johnson Controls',
@@ -212,7 +212,7 @@ class VendorRelationshipDiscovery:
         # Action: Plan displacement strategy
         "competitors_power": [
             "Schneider Electric",  # Primary competitor in power monitoring
-            "ABB",                 # ~41-43% combined market share in DC power
+            "ABB",  # ~41-43% combined market share in DC power
             "Eaton",
             "Vertiv",
             "Siemens",
@@ -224,14 +224,12 @@ class VendorRelationshipDiscovery:
         "software_dcim": [
             "Nlyte",
             "Sunbird",
-            "Envizi",        # Carbon/sustainability tracking
-            "VMware",        # Virtualization
+            "Envizi",  # Carbon/sustainability tracking
+            "VMware",  # Virtualization
         ],
-
         # === TIER 2: CHANNEL PARTNERS (Build relationships) ===
         # Purpose: Find SIs/VARs serving target accounts to build partnerships
         # Action: Build relationships with RIGHT channel partners
-
         # DC Electrical Contractors (do power installations for data centers)
         "channel_electrical": [
             "Rosendin Electric",
@@ -249,7 +247,7 @@ class VendorRelationshipDiscovery:
             "DPR Construction",
             "Turner Construction",
             "JE Dunn",
-            "Corgan",           # DC architects
+            "Corgan",  # DC architects
             "HDR",
             "Jacobs",
             "Black & Veatch",
@@ -267,25 +265,40 @@ class VendorRelationshipDiscovery:
             "Trace3",
             "Presidio",
         ],
-
         # === TIER 3: COMPLEMENTARY VENDORS (Intro paths) ===
         # Purpose: Non-competing vendors for warm intros
         # Action: Ask for introduction to shared customers
-
         # Cooling (non-competing, sell to same facilities buyers)
         "complementary_cooling": [
-            "Carrier", "Trane", "Johnson Controls",
-            "Daikin", "Munters", "Stulz", "Airedale",
+            "Carrier",
+            "Trane",
+            "Johnson Controls",
+            "Daikin",
+            "Munters",
+            "Stulz",
+            "Airedale",
         ],
         # Compute (know which GPU vendors serve target accounts)
         "complementary_compute": [
-            "NVIDIA", "AMD", "Intel", "Cerebras",
-            "Graphcore", "SambaNova", "Groq",
-            "Dell", "HPE", "Supermicro", "Lenovo", "Quanta",
+            "NVIDIA",
+            "AMD",
+            "Intel",
+            "Cerebras",
+            "Graphcore",
+            "SambaNova",
+            "Groq",
+            "Dell",
+            "HPE",
+            "Supermicro",
+            "Lenovo",
+            "Quanta",
         ],
         # Networking (adjacent to facilities teams)
         "complementary_networking": [
-            "Cisco", "Arista", "Juniper", "Mellanox",
+            "Cisco",
+            "Arista",
+            "Juniper",
+            "Mellanox",
         ],
         # DC Rectifier Vendors (TARGET ICP - DC power infrastructure)
         "dc_rectifier_vendors": [
@@ -350,7 +363,7 @@ class VendorRelationshipDiscovery:
     }
 
     def __init__(self, notion_client=None):
-        self.brave_api_key = os.getenv('BRAVE_API_KEY')
+        self.brave_api_key = os.getenv("BRAVE_API_KEY")
         if not self.brave_api_key:
             logger.warning("BRAVE_API_KEY not set - vendor discovery disabled")
 
@@ -359,7 +372,7 @@ class VendorRelationshipDiscovery:
         # Rate limiting - Brave free tier allows 1 req/sec
         self.last_request_time = 0
         self.request_delay = 1.1  # Slightly over 1 req/sec for safety margin
-        self.jitter_range = 0.3   # Random 0-0.3s jitter to prevent thundering herd
+        self.jitter_range = 0.3  # Random 0-0.3s jitter to prevent thundering herd
         self.max_retries = 3  # Max retries on rate limit
 
         # Cache to avoid duplicate searches
@@ -368,7 +381,7 @@ class VendorRelationshipDiscovery:
         # OpenAI client for LLM-powered extraction
         self.openai_client = None
         if OPENAI_AVAILABLE:
-            api_key = os.getenv('OPENAI_API_KEY')
+            api_key = os.getenv("OPENAI_API_KEY")
             if api_key:
                 self.openai_client = openai.OpenAI(api_key=api_key)
                 logger.info("OpenAI client initialized for vendor extraction")
@@ -398,7 +411,9 @@ class VendorRelationshipDiscovery:
                 self._dynamic_vendors[category] = list(vendors)
 
         total_vendors = sum(len(v) for v in self._dynamic_vendors.values())
-        logger.info(f"Dynamic vendor list initialized with {total_vendors} vendors across {len(self._dynamic_vendors)} categories")
+        logger.info(
+            f"Dynamic vendor list initialized with {total_vendors} vendors across {len(self._dynamic_vendors)} categories"
+        )
 
     def _load_discovered_vendors_from_notion(self) -> Dict[str, List[str]]:
         """Load discovered vendors from Notion Partnerships database."""
@@ -412,22 +427,22 @@ class VendorRelationshipDiscovery:
             partnerships = self._notion_client.query_all_partnerships()
 
             for p in partnerships:
-                props = p.get('properties', {})
+                props = p.get("properties", {})
 
                 # Check if this is a discovered vendor
-                is_discovered = props.get('Is Discovered', {}).get('checkbox', False)
+                is_discovered = props.get("Is Discovered", {}).get("checkbox", False)
                 if not is_discovered:
                     continue
 
                 # Get vendor name
-                name_prop = props.get('Name', {}).get('title', [])
-                vendor_name = name_prop[0]['text']['content'] if name_prop else None
+                name_prop = props.get("Name", {}).get("title", [])
+                vendor_name = name_prop[0]["text"]["content"] if name_prop else None
                 if not vendor_name:
                     continue
 
                 # Get category
-                category_prop = props.get('Category', {}).get('select', {})
-                category = category_prop.get('name', 'discovered_unknown')
+                category_prop = props.get("Category", {}).get("select", {})
+                category = category_prop.get("name", "discovered_unknown")
 
                 # Add to discovered vendors
                 if category not in discovered:
@@ -495,11 +510,14 @@ Return JSON array only, no markdown:"""
             response = self.openai_client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "You are a B2B sales intelligence analyst extracting vendor relationships from text. Return only valid JSON arrays."},
-                    {"role": "user", "content": prompt}
+                    {
+                        "role": "system",
+                        "content": "You are a B2B sales intelligence analyst extracting vendor relationships from text. Return only valid JSON arrays.",
+                    },
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=0.1,
-                max_tokens=1000
+                max_tokens=1000,
             )
 
             content = response.choices[0].message.content.strip()
@@ -516,13 +534,15 @@ Return JSON array only, no markdown:"""
             # Validate structure
             validated = []
             for v in vendors:
-                if isinstance(v, dict) and 'name' in v:
-                    validated.append({
-                        'name': v.get('name', ''),
-                        'category': v.get('category', 'discovered_unknown'),
-                        'confidence': float(v.get('confidence', 0.5)),
-                        'evidence': v.get('evidence', '')[:200]
-                    })
+                if isinstance(v, dict) and "name" in v:
+                    validated.append(
+                        {
+                            "name": v.get("name", ""),
+                            "category": v.get("category", "discovered_unknown"),
+                            "confidence": float(v.get("confidence", 0.5)),
+                            "evidence": v.get("evidence", "")[:200],
+                        }
+                    )
 
             return validated
 
@@ -537,7 +557,7 @@ Return JSON array only, no markdown:"""
         self,
         texts: List[Dict[str, str]],  # List of {text, url} dicts
         account_name: str,
-        batch_size: int = 5
+        batch_size: int = 5,
     ) -> Dict[str, List[Dict]]:
         """
         Extract vendors from multiple texts in a single LLM call (batch processing).
@@ -565,12 +585,12 @@ Return JSON array only, no markdown:"""
 
         # Process in batches
         for batch_start in range(0, len(texts), batch_size):
-            batch = texts[batch_start:batch_start + batch_size]
+            batch = texts[batch_start : batch_start + batch_size]
 
             # Build numbered batch prompt
             batch_texts = []
             for i, item in enumerate(batch):
-                text_preview = item['text'][:1500]  # Smaller per item in batch
+                text_preview = item["text"][:1500]  # Smaller per item in batch
                 batch_texts.append(f"[TEXT_{i}]\n{text_preview}\n[/TEXT_{i}]")
 
             combined = "\n\n".join(batch_texts)
@@ -601,11 +621,14 @@ Return JSON object only, no markdown:"""
                 response = self.openai_client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
-                        {"role": "system", "content": "You are a B2B sales intelligence analyst extracting vendor relationships from text. Return only valid JSON objects."},
-                        {"role": "user", "content": prompt}
+                        {
+                            "role": "system",
+                            "content": "You are a B2B sales intelligence analyst extracting vendor relationships from text. Return only valid JSON objects.",
+                        },
+                        {"role": "user", "content": prompt},
                     ],
                     temperature=0.1,
-                    max_tokens=2000  # Larger for batch
+                    max_tokens=2000,  # Larger for batch
                 )
 
                 content = response.choices[0].message.content.strip()
@@ -626,33 +649,32 @@ Return JSON object only, no markdown:"""
 
                     validated = []
                     for v in vendors_raw:
-                        if isinstance(v, dict) and 'name' in v:
-                            validated.append({
-                                'name': v.get('name', ''),
-                                'category': v.get('category', 'discovered_unknown'),
-                                'confidence': float(v.get('confidence', 0.5)),
-                                'evidence': v.get('evidence', '')[:200]
-                            })
+                        if isinstance(v, dict) and "name" in v:
+                            validated.append(
+                                {
+                                    "name": v.get("name", ""),
+                                    "category": v.get("category", "discovered_unknown"),
+                                    "confidence": float(v.get("confidence", 0.5)),
+                                    "evidence": v.get("evidence", "")[:200],
+                                }
+                            )
 
-                    results[item['url']] = validated
+                    results[item["url"]] = validated
 
             except json.JSONDecodeError as e:
                 logger.warning(f"Failed to parse batch LLM response as JSON: {e}")
                 # Fallback: mark all as empty
                 for item in batch:
-                    results[item['url']] = []
+                    results[item["url"]] = []
             except Exception as e:
                 logger.warning(f"Error in batch LLM vendor extraction: {e}")
                 for item in batch:
-                    results[item['url']] = []
+                    results[item["url"]] = []
 
         return results
 
     def discover_unknown_vendors(
-        self,
-        account_name: str,
-        save_to_notion: bool = True,
-        min_confidence: float = 0.6
+        self, account_name: str, save_to_notion: bool = True, min_confidence: float = 0.6
     ) -> Dict:
         """
         WORKFLOW 3: Discover NEW vendors not in KNOWN_VENDORS using LLM extraction.
@@ -686,14 +708,14 @@ Return JSON object only, no markdown:"""
             return {
                 "account": account_name,
                 "workflow": "discover_unknown_vendors",
-                "error": "No BRAVE_API_KEY configured"
+                "error": "No BRAVE_API_KEY configured",
             }
 
         if not self.openai_client:
             return {
                 "account": account_name,
                 "workflow": "discover_unknown_vendors",
-                "error": "No OpenAI client available - required for LLM extraction"
+                "error": "No OpenAI client available - required for LLM extraction",
             }
 
         # Collect all search results
@@ -710,19 +732,21 @@ Return JSON object only, no markdown:"""
                 results = self._search_cache[cache_key]
             else:
                 response = self._brave_search(query)
-                results = response.get('results', [])
+                results = response.get("results", [])
                 self._search_cache[cache_key] = results
                 # Track errors for surfacing to dashboard
-                if response.get('error'):
-                    search_errors.append({
-                        'query': query,
-                        'error': response['error'],
-                        'error_code': response.get('error_code'),
-                        'retry_after': response.get('retry_after')
-                    })
+                if response.get("error"):
+                    search_errors.append(
+                        {
+                            "query": query,
+                            "error": response["error"],
+                            "error_code": response.get("error_code"),
+                            "retry_after": response.get("retry_after"),
+                        }
+                    )
 
             for r in results:
-                r['_search_query'] = query
+                r["_search_query"] = query
             all_results.extend(results)
 
         # Build list of all known vendor names for filtering
@@ -733,15 +757,17 @@ Return JSON object only, no markdown:"""
                 known_vendor_names.add(self._normalize_company(v))
 
         # Extract vendors via LLM from each result (using BATCH processing)
-        llm_extracted: Dict[str, Dict] = {}  # vendor_name -> {count, evidence, category, confidence}
+        llm_extracted: Dict[
+            str, Dict
+        ] = {}  # vendor_name -> {count, evidence, category, confidence}
         known_vendors_found: Dict[str, Dict] = {}
 
         # Step 1: Collect all texts that pass the account name filter
         texts_to_process: List[Dict[str, str]] = []
         for result in all_results:
-            title = result.get('title', '')
-            description = result.get('description', '')
-            url = result.get('url', '')
+            title = result.get("title", "")
+            description = result.get("description", "")
+            url = result.get("url", "")
 
             # Skip if account not mentioned
             text = f"{title} {description}"
@@ -749,48 +775,48 @@ Return JSON object only, no markdown:"""
             if account_lower not in text.lower():
                 continue
 
-            texts_to_process.append({'text': text, 'url': url})
+            texts_to_process.append({"text": text, "url": url})
 
         # Step 2: Extract vendors via BATCH LLM call (reduces 20 calls to 4)
         batch_results = self.extract_vendors_from_texts_batch(
-            texts=texts_to_process,
-            account_name=account_name,
-            batch_size=5
+            texts=texts_to_process, account_name=account_name, batch_size=5
         )
 
         # Step 3: Process batched results
         for url, extracted in batch_results.items():
             for vendor in extracted:
-                vendor_name = vendor['name']
+                vendor_name = vendor["name"]
                 vendor_lower = vendor_name.lower()
                 vendor_normalized = self._normalize_company(vendor_name)
 
                 # Check if this is a known vendor
                 is_known = (
-                    vendor_lower in known_vendor_names or
-                    vendor_normalized in known_vendor_names
+                    vendor_lower in known_vendor_names or vendor_normalized in known_vendor_names
                 )
 
                 target_dict = known_vendors_found if is_known else llm_extracted
 
                 if vendor_name not in target_dict:
                     target_dict[vendor_name] = {
-                        'count': 0,
-                        'urls': [],
-                        'snippets': [],
-                        'category': vendor['category'],
-                        'confidence': vendor['confidence'],
-                        'evidence': vendor['evidence']
+                        "count": 0,
+                        "urls": [],
+                        "snippets": [],
+                        "category": vendor["category"],
+                        "confidence": vendor["confidence"],
+                        "evidence": vendor["evidence"],
                     }
 
-                target_dict[vendor_name]['count'] += 1
-                if url and url not in target_dict[vendor_name]['urls']:
-                    target_dict[vendor_name]['urls'].append(url)
-                if vendor['evidence'] and vendor['evidence'] not in target_dict[vendor_name]['snippets']:
-                    target_dict[vendor_name]['snippets'].append(vendor['evidence'])
+                target_dict[vendor_name]["count"] += 1
+                if url and url not in target_dict[vendor_name]["urls"]:
+                    target_dict[vendor_name]["urls"].append(url)
+                if (
+                    vendor["evidence"]
+                    and vendor["evidence"] not in target_dict[vendor_name]["snippets"]
+                ):
+                    target_dict[vendor_name]["snippets"].append(vendor["evidence"])
                 # Update confidence to max seen
-                if vendor['confidence'] > target_dict[vendor_name]['confidence']:
-                    target_dict[vendor_name]['confidence'] = vendor['confidence']
+                if vendor["confidence"] > target_dict[vendor_name]["confidence"]:
+                    target_dict[vendor_name]["confidence"] = vendor["confidence"]
 
         # Convert to DiscoveredVendor objects
         discovered_vendors: List[DiscoveredVendor] = []
@@ -799,24 +825,24 @@ Return JSON object only, no markdown:"""
 
         for vendor_name, data in llm_extracted.items():
             # Filter by confidence
-            if data['confidence'] < min_confidence:
+            if data["confidence"] < min_confidence:
                 continue
 
             # Get strategic metadata
-            category_meta = self.CATEGORY_METADATA.get(data['category'], {})
+            category_meta = self.CATEGORY_METADATA.get(data["category"], {})
 
             vendor = DiscoveredVendor(
                 vendor_name=vendor_name,
-                category=data['category'],
-                mention_count=data['count'],
-                evidence_urls=data['urls'][:5],
-                evidence_snippets=data['snippets'][:3],
+                category=data["category"],
+                mention_count=data["count"],
+                evidence_urls=data["urls"][:5],
+                evidence_snippets=data["snippets"][:3],
                 relationship_type=self._detect_relationship_type(
-                    account_name, vendor_name, data['snippets']
+                    account_name, vendor_name, data["snippets"]
                 ),
-                confidence=data['confidence'],
-                strategic_purpose=category_meta.get('strategic_purpose', 'unknown'),
-                recommended_action=category_meta.get('action', '')
+                confidence=data["confidence"],
+                strategic_purpose=category_meta.get("strategic_purpose", "unknown"),
+                recommended_action=category_meta.get("action", ""),
             )
 
             discovered_vendors.append(vendor)
@@ -830,10 +856,10 @@ Return JSON object only, no markdown:"""
                     logger.warning(f"Failed to save vendor {vendor_name} to Notion: {e}")
 
             # Add to runtime cache
-            if data['category'] not in self._dynamic_vendors:
-                self._dynamic_vendors[data['category']] = []
-            if vendor_name not in self._dynamic_vendors[data['category']]:
-                self._dynamic_vendors[data['category']].append(vendor_name)
+            if data["category"] not in self._dynamic_vendors:
+                self._dynamic_vendors[data["category"]] = []
+            if vendor_name not in self._dynamic_vendors[data["category"]]:
+                self._dynamic_vendors[data["category"]].append(vendor_name)
                 added_to_runtime += 1
 
         # Sort by confidence
@@ -854,7 +880,7 @@ Return JSON object only, no markdown:"""
             "saved_to_notion": saved_to_notion,
             "added_to_runtime": added_to_runtime,
             "search_results_analyzed": len(all_results),
-            "category_summary": self._summarize_by_category(discovered_vendors)
+            "category_summary": self._summarize_by_category(discovered_vendors),
         }
 
     def _summarize_by_category(self, vendors: List[DiscoveredVendor]) -> Dict[str, int]:
@@ -871,19 +897,21 @@ Return JSON object only, no markdown:"""
             return
 
         partnership_data = {
-            'partner_name': vendor.vendor_name,
-            'partnership_type': vendor.category,
-            'category': vendor.category,
-            'relevance_score': int(vendor.confidence * 100),
-            'confidence_score': int(vendor.confidence * 100),
-            'context': '; '.join(vendor.evidence_snippets[:2]) if vendor.evidence_snippets else '',
-            'relationship_evidence': '; '.join(vendor.evidence_snippets[:2]) if vendor.evidence_snippets else '',
-            'source_url': vendor.evidence_urls[0] if vendor.evidence_urls else None,
-            'evidence_url': vendor.evidence_urls[0] if vendor.evidence_urls else None,
-            'is_discovered': True,
-            'discovered_from_account': account_name,
-            'strategic_purpose': vendor.strategic_purpose,
-            'recommended_action': vendor.recommended_action
+            "partner_name": vendor.vendor_name,
+            "partnership_type": vendor.category,
+            "category": vendor.category,
+            "relevance_score": int(vendor.confidence * 100),
+            "confidence_score": int(vendor.confidence * 100),
+            "context": "; ".join(vendor.evidence_snippets[:2]) if vendor.evidence_snippets else "",
+            "relationship_evidence": "; ".join(vendor.evidence_snippets[:2])
+            if vendor.evidence_snippets
+            else "",
+            "source_url": vendor.evidence_urls[0] if vendor.evidence_urls else None,
+            "evidence_url": vendor.evidence_urls[0] if vendor.evidence_urls else None,
+            "is_discovered": True,
+            "discovered_from_account": account_name,
+            "strategic_purpose": vendor.strategic_purpose,
+            "recommended_action": vendor.recommended_action,
         }
 
         self._notion_client.save_partnerships([partnership_data], account_name)
@@ -900,7 +928,7 @@ Return JSON object only, no markdown:"""
         self,
         vendors: List[str],
         customers: List[str],
-        fit_weights: Optional[Dict[str, float]] = None
+        fit_weights: Optional[Dict[str, float]] = None,
     ) -> Dict:
         """
         Discover vendor-customer relationships from public data.
@@ -917,13 +945,15 @@ Return JSON object only, no markdown:"""
                 "search_failures": List[Dict]  # Failed searches
             }
         """
-        logger.info(f"Discovering relationships: {len(vendors)} vendors x {len(customers)} customers")
+        logger.info(
+            f"Discovering relationships: {len(vendors)} vendors x {len(customers)} customers"
+        )
 
         if not self.brave_api_key:
             return {
                 "signals": [],
                 "vendor_scores": [],
-                "search_failures": [{"reason": "No BRAVE_API_KEY configured"}]
+                "search_failures": [{"reason": "No BRAVE_API_KEY configured"}],
             }
 
         fit_weights = fit_weights or {}
@@ -935,23 +965,23 @@ Return JSON object only, no markdown:"""
             for customer in customers:
                 try:
                     result = self._search_vendor_customer(vendor, customer)
-                    all_signals.extend(result.get('signals', []))
+                    all_signals.extend(result.get("signals", []))
                     # Track any Brave API errors
-                    for err in result.get('errors', []):
-                        search_failures.append({
-                            "vendor": vendor,
-                            "customer": customer,
-                            "error": err.get('error'),
-                            "error_code": err.get('error_code'),
-                            "retry_after": err.get('retry_after')
-                        })
+                    for err in result.get("errors", []):
+                        search_failures.append(
+                            {
+                                "vendor": vendor,
+                                "customer": customer,
+                                "error": err.get("error"),
+                                "error_code": err.get("error_code"),
+                                "retry_after": err.get("retry_after"),
+                            }
+                        )
                 except Exception as e:
                     logger.warning(f"Search failed for {vendor}/{customer}: {e}")
-                    search_failures.append({
-                        "vendor": vendor,
-                        "customer": customer,
-                        "error": str(e)
-                    })
+                    search_failures.append(
+                        {"vendor": vendor, "customer": customer, "error": str(e)}
+                    )
 
         # Deduplicate signals by URL
         unique_signals = self._deduplicate_signals(all_signals)
@@ -959,18 +989,18 @@ Return JSON object only, no markdown:"""
         # Calculate vendor intro scores
         vendor_scores = self._calculate_vendor_scores(unique_signals, fit_weights)
 
-        logger.info(f"Found {len(unique_signals)} unique signals across {len(vendor_scores)} vendors")
+        logger.info(
+            f"Found {len(unique_signals)} unique signals across {len(vendor_scores)} vendors"
+        )
 
         return {
             "signals": unique_signals,
             "vendor_scores": vendor_scores,
-            "search_failures": search_failures
+            "search_failures": search_failures,
         }
 
     def discover_for_account(
-        self,
-        account_name: str,
-        candidate_vendors: Optional[List[str]] = None
+        self, account_name: str, candidate_vendors: Optional[List[str]] = None
     ) -> Dict:
         """
         WORKFLOW 1: Discover vendor relationships for a single target account.
@@ -987,10 +1017,7 @@ Return JSON object only, no markdown:"""
         if not candidate_vendors:
             candidate_vendors = self._get_default_vendor_list()
 
-        return self.discover_relationships(
-            vendors=candidate_vendors,
-            customers=[account_name]
-        )
+        return self.discover_relationships(vendors=candidate_vendors, customers=[account_name])
 
     def discover_account_vendors(self, account_name: str) -> Dict:
         """
@@ -1021,7 +1048,7 @@ Return JSON object only, no markdown:"""
                 "discovered_vendors": [],
                 "vendors_by_category": {},
                 "search_results_analyzed": 0,
-                "error": "No BRAVE_API_KEY configured"
+                "error": "No BRAVE_API_KEY configured",
             }
 
         # Collect all search results
@@ -1038,29 +1065,31 @@ Return JSON object only, no markdown:"""
                 results = self._search_cache[cache_key]
             else:
                 response = self._brave_search(query)
-                results = response.get('results', [])
+                results = response.get("results", [])
                 self._search_cache[cache_key] = results
                 # Track errors for surfacing to dashboard
-                if response.get('error'):
-                    search_errors.append({
-                        'query': query,
-                        'error': response['error'],
-                        'error_code': response.get('error_code'),
-                        'retry_after': response.get('retry_after')
-                    })
+                if response.get("error"):
+                    search_errors.append(
+                        {
+                            "query": query,
+                            "error": response["error"],
+                            "error_code": response.get("error_code"),
+                            "retry_after": response.get("retry_after"),
+                        }
+                    )
 
             # Tag results with the search query
             for r in results:
-                r['_search_query'] = query
+                r["_search_query"] = query
             all_results.extend(results)
 
         # Extract vendors from results
         vendor_mentions: Dict[str, Dict] = {}  # vendor_name -> {count, urls, snippets, category}
 
         for result in all_results:
-            title = result.get('title', '')
-            description = result.get('description', '')
-            url = result.get('url', '')
+            title = result.get("title", "")
+            description = result.get("description", "")
+            url = result.get("url", "")
             text = f"{title} {description}".lower()
 
             # Skip if account not mentioned (likely irrelevant)
@@ -1079,19 +1108,19 @@ Return JSON object only, no markdown:"""
                     if vendor_lower in text or vendor_normalized in text:
                         if vendor not in vendor_mentions:
                             vendor_mentions[vendor] = {
-                                'count': 0,
-                                'urls': [],
-                                'snippets': [],
-                                'category': category
+                                "count": 0,
+                                "urls": [],
+                                "snippets": [],
+                                "category": category,
                             }
 
-                        vendor_mentions[vendor]['count'] += 1
-                        if url and url not in vendor_mentions[vendor]['urls']:
-                            vendor_mentions[vendor]['urls'].append(url)
+                        vendor_mentions[vendor]["count"] += 1
+                        if url and url not in vendor_mentions[vendor]["urls"]:
+                            vendor_mentions[vendor]["urls"].append(url)
                         if description:
                             snippet = description[:200]
-                            if snippet not in vendor_mentions[vendor]['snippets']:
-                                vendor_mentions[vendor]['snippets'].append(snippet)
+                            if snippet not in vendor_mentions[vendor]["snippets"]:
+                                vendor_mentions[vendor]["snippets"].append(snippet)
 
         # Convert to DiscoveredVendor objects
         discovered_vendors: List[DiscoveredVendor] = []
@@ -1100,40 +1129,40 @@ Return JSON object only, no markdown:"""
         for vendor_name, data in vendor_mentions.items():
             # Calculate confidence based on mention count and evidence quality
             confidence = self._calculate_discovery_confidence(
-                mention_count=data['count'],
-                url_count=len(data['urls']),
-                snippet_count=len(data['snippets'])
+                mention_count=data["count"],
+                url_count=len(data["urls"]),
+                snippet_count=len(data["snippets"]),
             )
 
             # Detect relationship type from snippets
             relationship_type = self._detect_relationship_type(
-                account_name, vendor_name, data['snippets']
+                account_name, vendor_name, data["snippets"]
             )
 
             # Get strategic metadata for this category
-            category_meta = self.CATEGORY_METADATA.get(data['category'], {})
+            category_meta = self.CATEGORY_METADATA.get(data["category"], {})
 
             vendor = DiscoveredVendor(
                 vendor_name=vendor_name,
-                category=data['category'],
-                mention_count=data['count'],
-                evidence_urls=data['urls'][:5],  # Top 5 URLs
-                evidence_snippets=data['snippets'][:3],  # Top 3 snippets
+                category=data["category"],
+                mention_count=data["count"],
+                evidence_urls=data["urls"][:5],  # Top 5 URLs
+                evidence_snippets=data["snippets"][:3],  # Top 3 snippets
                 relationship_type=relationship_type,
                 confidence=confidence,
-                strategic_purpose=category_meta.get('strategic_purpose', 'unknown'),
-                recommended_action=category_meta.get('action', ''),
+                strategic_purpose=category_meta.get("strategic_purpose", "unknown"),
+                recommended_action=category_meta.get("action", ""),
                 # Workflow 2 uses pattern matching, not AI
-                discovery_source='template',
-                discovery_source_label='Pattern-Matched'
+                discovery_source="template",
+                discovery_source_label="Pattern-Matched",
             )
 
             discovered_vendors.append(vendor)
 
             # Group by category
-            if data['category'] not in vendors_by_category:
-                vendors_by_category[data['category']] = []
-            vendors_by_category[data['category']].append(vendor)
+            if data["category"] not in vendors_by_category:
+                vendors_by_category[data["category"]] = []
+            vendors_by_category[data["category"]].append(vendor)
 
         # Sort by confidence
         discovered_vendors.sort(key=lambda x: x.confidence, reverse=True)
@@ -1150,16 +1179,13 @@ Return JSON object only, no markdown:"""
             "vendors_by_category": vendors_by_category,
             "search_results_analyzed": len(all_results),
             "raw_evidence": [
-                {"url": r.get('url'), "title": r.get('title')}
+                {"url": r.get("url"), "title": r.get("title")}
                 for r in all_results[:20]  # Top 20 for transparency
-            ]
+            ],
         }
 
     def _calculate_discovery_confidence(
-        self,
-        mention_count: int,
-        url_count: int,
-        snippet_count: int
+        self, mention_count: int, url_count: int, snippet_count: int
     ) -> float:
         """
         Calculate confidence score (0-1) for a discovered vendor.
@@ -1170,6 +1196,7 @@ Return JSON object only, no markdown:"""
             return 0.0
 
         import math
+
         base_score = min(0.5, math.log10(mention_count + 1) * 0.3)
 
         # Boost from multiple sources (unique URLs)
@@ -1180,12 +1207,7 @@ Return JSON object only, no markdown:"""
 
         return min(1.0, base_score + source_boost + snippet_boost)
 
-    def _detect_relationship_type(
-        self,
-        account: str,
-        vendor: str,
-        snippets: List[str]
-    ) -> str:
+    def _detect_relationship_type(self, account: str, vendor: str, snippets: List[str]) -> str:
         """
         Detect the type of relationship from evidence snippets.
         Returns: customer, partner, integration, competitor, or unknown
@@ -1202,19 +1224,28 @@ Return JSON object only, no markdown:"""
             f"{account_lower} runs on {vendor_lower}",
             f"powered by {vendor_lower}",
             f"{vendor_lower} customer",
-            "case study", "success story"
+            "case study",
+            "success story",
         ]
 
         # Partner indicators (mutual relationship)
         partner_patterns = [
-            "partnership", "partner with", "collaborate",
-            "joint", "alliance", "together"
+            "partnership",
+            "partner with",
+            "collaborate",
+            "joint",
+            "alliance",
+            "together",
         ]
 
         # Integration indicators
         integration_patterns = [
-            "integration", "integrates with", "connector",
-            "plugin", "api", "interoperability"
+            "integration",
+            "integrates with",
+            "connector",
+            "plugin",
+            "api",
+            "interoperability",
         ]
 
         # Check patterns
@@ -1241,41 +1272,32 @@ Return JSON object only, no markdown:"""
             "Vertiv",
             "ABB",
             "Siemens",
-
             # Cooling & HVAC
             "Carrier",
             "Trane",
             "Johnson Controls",
             "Daikin",
-
             # Infrastructure & Monitoring
             "Nlyte",
             "Sunbird DCIM",
             "Panduit",
             "Raritan",
-
             # Cloud & Compute
             "NVIDIA",
             "Dell Technologies",
             "HPE",
             "Supermicro",
-
             # Networking
             "Cisco",
             "Arista",
             "Juniper",
-
             # Sustainability
             "Envizi",
             "Salesforce Net Zero",
-            "Microsoft Sustainability"
+            "Microsoft Sustainability",
         ]
 
-    def _search_vendor_customer(
-        self,
-        vendor: str,
-        customer: str
-    ) -> Dict:
+    def _search_vendor_customer(self, vendor: str, customer: str) -> Dict:
         """
         Search for relationship signals between a vendor and customer.
 
@@ -1299,16 +1321,18 @@ Return JSON object only, no markdown:"""
                 results = self._search_cache[cache_key]
             else:
                 response = self._brave_search(query)
-                results = response.get('results', [])
+                results = response.get("results", [])
                 self._search_cache[cache_key] = results
                 # Track errors
-                if response.get('error'):
-                    search_errors.append({
-                        'query': query,
-                        'error': response['error'],
-                        'error_code': response.get('error_code'),
-                        'retry_after': response.get('retry_after')
-                    })
+                if response.get("error"):
+                    search_errors.append(
+                        {
+                            "query": query,
+                            "error": response["error"],
+                            "error_code": response.get("error_code"),
+                            "retry_after": response.get("retry_after"),
+                        }
+                    )
 
             # Parse results into signals
             for result in results:
@@ -1316,7 +1340,7 @@ Return JSON object only, no markdown:"""
                 if signal:
                     signals.append(signal)
 
-        return {'signals': signals, 'errors': search_errors}
+        return {"signals": signals, "errors": search_errors}
 
     def _brave_search(self, query: str) -> Dict:
         """
@@ -1340,30 +1364,30 @@ Return JSON object only, no markdown:"""
             try:
                 response = requests.get(
                     self.brave_base_url,
-                    params={
-                        'q': query,
-                        'count': 10,
-                        'freshness': 'py'  # Past year
-                    },
+                    params={"q": query, "count": 10, "freshness": "py"},  # Past year
                     headers={
-                        'X-Subscription-Token': self.brave_api_key,
-                        'Accept': 'application/json'
+                        "X-Subscription-Token": self.brave_api_key,
+                        "Accept": "application/json",
                     },
-                    timeout=15
+                    timeout=15,
                 )
 
                 if response.status_code == 429:
                     # Rate limited - use Retry-After header if available, else exponential backoff
-                    retry_after = response.headers.get('Retry-After')
+                    retry_after = response.headers.get("Retry-After")
                     if retry_after:
                         try:
                             backoff_time = int(retry_after)
-                            logger.warning(f"Brave API rate limited (429). Server requested {backoff_time}s wait")
+                            logger.warning(
+                                f"Brave API rate limited (429). Server requested {backoff_time}s wait"
+                            )
                         except ValueError:
-                            backoff_time = (2 ** attempt) * 3  # Fallback: 3s, 6s, 12s
+                            backoff_time = (2**attempt) * 3  # Fallback: 3s, 6s, 12s
                     else:
-                        backoff_time = (2 ** attempt) * 3  # Fallback: 3s, 6s, 12s
-                    logger.warning(f"Brave API rate limited. Waiting {backoff_time}s before retry {attempt + 1}/{self.max_retries}")
+                        backoff_time = (2**attempt) * 3  # Fallback: 3s, 6s, 12s
+                    logger.warning(
+                        f"Brave API rate limited. Waiting {backoff_time}s before retry {attempt + 1}/{self.max_retries}"
+                    )
                     last_error = f"Rate limited by Brave API. Retried {attempt + 1}/{self.max_retries} times."
                     last_error_code = "BRAVE_RATE_LIMITED"
                     time.sleep(backoff_time)
@@ -1372,63 +1396,60 @@ Return JSON object only, no markdown:"""
                 if response.status_code != 200:
                     logger.warning(f"Brave search failed: {response.status_code}")
                     return {
-                        'results': [],
-                        'error': f"Brave API returned status {response.status_code}",
-                        'error_code': f"BRAVE_HTTP_{response.status_code}"
+                        "results": [],
+                        "error": f"Brave API returned status {response.status_code}",
+                        "error_code": f"BRAVE_HTTP_{response.status_code}",
                     }
 
                 data = response.json()
 
                 # Combine news and web results
                 results = []
-                results.extend(data.get('news', {}).get('results', []))
-                results.extend(data.get('web', {}).get('results', []))
+                results.extend(data.get("news", {}).get("results", []))
+                results.extend(data.get("web", {}).get("results", []))
 
-                return {'results': results, 'error': None, 'error_code': None}
+                return {"results": results, "error": None, "error_code": None}
 
             except requests.exceptions.Timeout:
                 logger.warning(f"Brave search timeout for query: {query[:50]}...")
                 return {
-                    'results': [],
-                    'error': "Brave API request timed out after 15 seconds",
-                    'error_code': "BRAVE_TIMEOUT"
+                    "results": [],
+                    "error": "Brave API request timed out after 15 seconds",
+                    "error_code": "BRAVE_TIMEOUT",
                 }
             except requests.exceptions.ConnectionError as e:
                 logger.warning(f"Brave search connection error: {e}")
                 return {
-                    'results': [],
-                    'error': "Could not connect to Brave API",
-                    'error_code': "BRAVE_CONNECTION_ERROR"
+                    "results": [],
+                    "error": "Could not connect to Brave API",
+                    "error_code": "BRAVE_CONNECTION_ERROR",
                 }
             except Exception as e:
                 logger.warning(f"Brave search error: {e}")
                 return {
-                    'results': [],
-                    'error': f"Unexpected error: {str(e)}",
-                    'error_code': "BRAVE_UNKNOWN_ERROR"
+                    "results": [],
+                    "error": f"Unexpected error: {str(e)}",
+                    "error_code": "BRAVE_UNKNOWN_ERROR",
                 }
 
         # If we exhausted all retries due to rate limiting
         logger.warning(f"Brave search failed after {self.max_retries} retries due to rate limiting")
         return {
-            'results': [],
-            'error': last_error or f"Search failed after {self.max_retries} retries",
-            'error_code': last_error_code or "BRAVE_MAX_RETRIES",
-            'retry_after': 60  # Suggest waiting 60 seconds before trying again
+            "results": [],
+            "error": last_error or f"Search failed after {self.max_retries} retries",
+            "error_code": last_error_code or "BRAVE_MAX_RETRIES",
+            "retry_after": 60,  # Suggest waiting 60 seconds before trying again
         }
 
     def _parse_result_to_signal(
-        self,
-        result: Dict,
-        vendor: str,
-        customer: str
+        self, result: Dict, vendor: str, customer: str
     ) -> Optional[VendorCustomerSignal]:
         """Parse a search result into a VendorCustomerSignal."""
         try:
-            title = result.get('title', '')
-            description = result.get('description', '')
-            url = result.get('url', '')
-            age = result.get('age', '')
+            title = result.get("title", "")
+            description = result.get("description", "")
+            url = result.get("url", "")
+            age = result.get("age", "")
 
             if not url:
                 return None
@@ -1438,7 +1459,9 @@ Return JSON object only, no markdown:"""
 
             # Check if both vendor and customer are mentioned
             vendor_mentioned = vendor.lower() in text or self._normalize_company(vendor) in text
-            customer_mentioned = customer.lower() in text or self._normalize_company(customer) in text
+            customer_mentioned = (
+                customer.lower() in text or self._normalize_company(customer) in text
+            )
 
             if not (vendor_mentioned and customer_mentioned):
                 # Weak signal - only one party mentioned
@@ -1449,10 +1472,7 @@ Return JSON object only, no markdown:"""
 
             # Calculate signal strength
             signal_strength = self._calculate_signal_strength(
-                text=text,
-                url=url,
-                signal_type=signal_type,
-                title=title
+                text=text, url=url, signal_type=signal_type, title=title
             )
 
             # Check for co-branding and deployment indicators
@@ -1474,7 +1494,7 @@ Return JSON object only, no markdown:"""
                 people_involved=people,
                 is_cobranded=is_cobranded,
                 is_deployment_story=is_deployment,
-                customer_named_explicitly=customer_mentioned
+                customer_named_explicitly=customer_mentioned,
             )
 
         except Exception as e:
@@ -1499,13 +1519,7 @@ Return JSON object only, no markdown:"""
 
         return "logo_mention"  # Default/weakest
 
-    def _calculate_signal_strength(
-        self,
-        text: str,
-        url: str,
-        signal_type: str,
-        title: str
-    ) -> int:
+    def _calculate_signal_strength(self, text: str, url: str, signal_type: str, title: str) -> int:
         """
         Calculate signal strength 1-5 per the rubric:
         1: Logo/mention only
@@ -1518,24 +1532,30 @@ Return JSON object only, no markdown:"""
 
         # Check for formal story indicators
         formal_story_patterns = [
-            r"case study", r"success story", r"customer story",
-            r"how .* uses", r"partnership announcement"
+            r"case study",
+            r"success story",
+            r"customer story",
+            r"how .* uses",
+            r"partnership announcement",
         ]
 
         contract_patterns = [
-            r"contract", r"awarded", r"procurement",
-            r"million", r"multi-year", r"selected"
+            r"contract",
+            r"awarded",
+            r"procurement",
+            r"million",
+            r"multi-year",
+            r"selected",
         ]
 
-        collab_patterns = [
-            r"joint", r"collaboration", r"together",
-            r"co-develop", r"alliance"
-        ]
+        collab_patterns = [r"joint", r"collaboration", r"together", r"co-develop", r"alliance"]
 
         # Check URL for high-value pages
         url_lower = url.lower()
         is_case_study_page = "/case-stud" in url_lower or "/customer-stor" in url_lower
-        is_press_page = "/press" in url_lower or "/news" in url_lower or "/announcement" in url_lower
+        is_press_page = (
+            "/press" in url_lower or "/news" in url_lower or "/announcement" in url_lower
+        )
 
         # Score based on evidence
         if any(re.search(p, text, re.IGNORECASE) for p in contract_patterns):
@@ -1560,15 +1580,22 @@ Return JSON object only, no markdown:"""
         cobranding_indicators = [
             f"{vendor.lower()} and {customer.lower()}",
             f"{customer.lower()} and {vendor.lower()}",
-            "joint", "together", "partnership", "collaboration"
+            "joint",
+            "together",
+            "partnership",
+            "collaboration",
         ]
         return any(ind in text for ind in cobranding_indicators)
 
     def _check_deployment(self, text: str) -> bool:
         """Check if content describes a deployment."""
         deployment_patterns = [
-            r"deploy", r"implement", r"install",
-            r"rollout", r"goes live", r"launch"
+            r"deploy",
+            r"implement",
+            r"install",
+            r"rollout",
+            r"goes live",
+            r"launch",
         ]
         return any(re.search(p, text, re.IGNORECASE) for p in deployment_patterns)
 
@@ -1594,12 +1621,11 @@ Return JSON object only, no markdown:"""
         normalized = name.lower()
         for suffix in suffixes:
             if normalized.endswith(suffix):
-                normalized = normalized[:-len(suffix)]
+                normalized = normalized[: -len(suffix)]
         return normalized.strip()
 
     def _deduplicate_signals(
-        self,
-        signals: List[VendorCustomerSignal]
+        self, signals: List[VendorCustomerSignal]
     ) -> List[VendorCustomerSignal]:
         """Deduplicate signals by URL, keeping highest strength."""
         url_to_signal: Dict[str, VendorCustomerSignal] = {}
@@ -1614,9 +1640,7 @@ Return JSON object only, no markdown:"""
         return list(url_to_signal.values())
 
     def _calculate_vendor_scores(
-        self,
-        signals: List[VendorCustomerSignal],
-        fit_weights: Dict[str, float]
+        self, signals: List[VendorCustomerSignal], fit_weights: Dict[str, float]
     ) -> List[VendorIntroScore]:
         """
         Calculate Vendor Intro Power Score:
@@ -1643,9 +1667,7 @@ Return JSON object only, no markdown:"""
 
             # Calculate average strength across all signals
             all_strengths = [
-                s.signal_strength
-                for signals_list in customer_map.values()
-                for s in signals_list
+                s.signal_strength for signals_list in customer_map.values() for s in signals_list
             ]
             avg_strength = sum(all_strengths) / len(all_strengths) if all_strengths else 0
 
@@ -1660,21 +1682,21 @@ Return JSON object only, no markdown:"""
             for signals_list in customer_map.values():
                 for s in signals_list:
                     for person in s.people_involved:
-                        intro_candidates.append({
-                            "name": person,
-                            "context": s.evidence_title,
-                            "url": s.evidence_url
-                        })
+                        intro_candidates.append(
+                            {"name": person, "context": s.evidence_title, "url": s.evidence_url}
+                        )
 
-            scores.append(VendorIntroScore(
-                vendor_name=vendor,
-                intro_score=round(intro_score, 2),
-                coverage_count=coverage_count,
-                avg_signal_strength=round(avg_strength, 2),
-                fit_weight=fit_weight,
-                customer_signals=customer_map,
-                intro_candidates=intro_candidates[:10]  # Top 10 candidates
-            ))
+            scores.append(
+                VendorIntroScore(
+                    vendor_name=vendor,
+                    intro_score=round(intro_score, 2),
+                    coverage_count=coverage_count,
+                    avg_signal_strength=round(avg_strength, 2),
+                    fit_weight=fit_weight,
+                    customer_signals=customer_map,
+                    intro_candidates=intro_candidates[:10],  # Top 10 candidates
+                )
+            )
 
         # Sort by intro score descending
         scores.sort(key=lambda x: x.intro_score, reverse=True)
@@ -1684,6 +1706,7 @@ Return JSON object only, no markdown:"""
     def _apply_rate_limit(self):
         """Apply rate limiting between API requests with jitter."""
         import random
+
         elapsed = time.time() - self.last_request_time
         # Add random jitter to prevent thundering herd
         jitter = random.uniform(0, self.jitter_range)
@@ -1696,44 +1719,36 @@ Return JSON object only, no markdown:"""
         self,
         signal: VendorCustomerSignal,
         account_page_id: Optional[str] = None,
-        is_verdigris_partner: bool = False
+        is_verdigris_partner: bool = False,
     ) -> Dict:
         """
         Convert a signal to Notion Partnership properties format.
         Ready to save to Partnerships database with Account relation.
         """
         # Map signal strength to relationship depth
-        depth_map = {1: "Logo Only", 2: "Mentioned", 3: "Case Study", 4: "Deep Integration", 5: "Contract Award"}
+        depth_map = {
+            1: "Logo Only",
+            2: "Mentioned",
+            3: "Case Study",
+            4: "Deep Integration",
+            5: "Contract Award",
+        }
 
         properties = {
-            "Partner Name": {
-                "title": [{"text": {"content": signal.vendor}}]
-            },
-            "Partnership Type": {
-                "select": {"name": signal.signal_type.replace("_", " ").title()}
-            },
-            "Relevance Score": {
-                "number": signal.signal_strength * 20  # Convert 1-5 to 20-100
-            },
+            "Partner Name": {"title": [{"text": {"content": signal.vendor}}]},
+            "Partnership Type": {"select": {"name": signal.signal_type.replace("_", " ").title()}},
+            "Relevance Score": {"number": signal.signal_strength * 20},  # Convert 1-5 to 20-100
             "Relationship Depth": {
                 "select": {"name": depth_map.get(signal.signal_strength, "Mentioned")}
             },
-            "Context": {
-                "rich_text": [{"text": {"content": signal.evidence_snippet[:500]}}]
-            },
-            "Evidence URL": {
-                "url": signal.evidence_url
-            },
-            "Is Verdigris Partner": {
-                "checkbox": is_verdigris_partner
-            }
+            "Context": {"rich_text": [{"text": {"content": signal.evidence_snippet[:500]}}]},
+            "Evidence URL": {"url": signal.evidence_url},
+            "Is Verdigris Partner": {"checkbox": is_verdigris_partner},
         }
 
         # Add account relation if provided
         if account_page_id:
-            properties["Account"] = {
-                "relation": [{"id": account_page_id}]
-            }
+            properties["Account"] = {"relation": [{"id": account_page_id}]}
 
         return properties
 

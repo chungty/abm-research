@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Dict, List, Set
 from datetime import datetime, timedelta
 
+
 class CodebaseHygieneAgent:
     """Maintains codebase cleanliness and prevents technical debt accumulation"""
 
@@ -18,10 +19,10 @@ class CodebaseHygieneAgent:
         self.repo_path = Path(repo_path)
         self.cleanup_log = []
         self.file_patterns = {
-            'temporary': ['*temp*', '*tmp*', '*test*', '*mock*', '*debug*'],
-            'backup': ['*.backup', '*.bak', '*.old'],
-            'generated': ['*generated*', '*auto*'],
-            'duplicate': []  # Will be identified by analysis
+            "temporary": ["*temp*", "*tmp*", "*test*", "*mock*", "*debug*"],
+            "backup": ["*.backup", "*.bak", "*.old"],
+            "generated": ["*generated*", "*auto*"],
+            "duplicate": [],  # Will be identified by analysis
         }
 
         print("🧹 Codebase Hygiene Agent initialized")
@@ -33,41 +34,41 @@ class CodebaseHygieneAgent:
         print("\n🔍 ANALYZING CODEBASE HEALTH...")
 
         analysis = {
-            'total_files': 0,
-            'issues_found': {
-                'unused_files': [],
-                'duplicate_files': [],
-                'temporary_files': [],
-                'large_files': [],
-                'broken_imports': []
+            "total_files": 0,
+            "issues_found": {
+                "unused_files": [],
+                "duplicate_files": [],
+                "temporary_files": [],
+                "large_files": [],
+                "broken_imports": [],
             },
-            'recommendations': []
+            "recommendations": [],
         }
 
         # Scan all Python files
-        python_files = list(self.repo_path.glob('**/*.py'))
-        analysis['total_files'] = len(python_files)
+        python_files = list(self.repo_path.glob("**/*.py"))
+        analysis["total_files"] = len(python_files)
 
         print(f"📊 Found {len(python_files)} Python files")
 
         # Check for unused files
         unused = self._find_unused_files(python_files)
-        analysis['issues_found']['unused_files'] = unused
+        analysis["issues_found"]["unused_files"] = unused
 
         # Check for duplicates
         duplicates = self._find_duplicate_files(python_files)
-        analysis['issues_found']['duplicate_files'] = duplicates
+        analysis["issues_found"]["duplicate_files"] = duplicates
 
         # Check for temporary files
         temp_files = self._find_temporary_files()
-        analysis['issues_found']['temporary_files'] = temp_files
+        analysis["issues_found"]["temporary_files"] = temp_files
 
         # Check for large files
         large_files = self._find_large_files()
-        analysis['issues_found']['large_files'] = large_files
+        analysis["issues_found"]["large_files"] = large_files
 
         # Generate recommendations
-        analysis['recommendations'] = self._generate_cleanup_recommendations(analysis)
+        analysis["recommendations"] = self._generate_cleanup_recommendations(analysis)
 
         self._print_analysis_summary(analysis)
         return analysis
@@ -83,23 +84,23 @@ class CodebaseHygieneAgent:
 
         for file_path in python_files:
             try:
-                with open(file_path, 'r') as f:
+                with open(file_path, "r") as f:
                     content = f.read()
 
                 # Check if file has if __name__ == "__main__"
                 if 'if __name__ == "__main__"' in content:
-                    executed_files.add(file_path.name.replace('.py', ''))
+                    executed_files.add(file_path.name.replace(".py", ""))
 
                 # Extract import statements
-                lines = content.split('\n')
+                lines = content.split("\n")
                 for line in lines:
                     line = line.strip()
-                    if line.startswith('from ') and ' import ' in line:
-                        module = line.split(' import ')[0].replace('from ', '').strip()
-                        if not module.startswith('.'):  # Ignore relative imports for now
+                    if line.startswith("from ") and " import " in line:
+                        module = line.split(" import ")[0].replace("from ", "").strip()
+                        if not module.startswith("."):  # Ignore relative imports for now
                             imported_modules.add(module)
-                    elif line.startswith('import '):
-                        module = line.replace('import ', '').split(',')[0].split(' as ')[0].strip()
+                    elif line.startswith("import "):
+                        module = line.replace("import ", "").split(",")[0].split(" as ")[0].strip()
                         imported_modules.add(module)
 
             except Exception as e:
@@ -109,7 +110,7 @@ class CodebaseHygieneAgent:
         # Find files that are never imported or executed
         unused = []
         for file_path in python_files:
-            filename = file_path.name.replace('.py', '')
+            filename = file_path.name.replace(".py", "")
 
             # Skip if it's a main execution file
             if filename in executed_files:
@@ -120,7 +121,7 @@ class CodebaseHygieneAgent:
                 continue
 
             # Skip special files
-            if filename.startswith('__') or filename in ['setup', 'config']:
+            if filename.startswith("__") or filename in ["setup", "config"]:
                 continue
 
             unused.append(str(file_path.relative_to(self.repo_path)))
@@ -138,15 +139,19 @@ class CodebaseHygieneAgent:
         # Group by similar names
         name_groups = {}
         for file_path in python_files:
-            base_name = file_path.name.replace('.py', '')
+            base_name = file_path.name.replace(".py", "")
 
             # Look for naming patterns that suggest duplicates
             for existing_name in name_groups:
-                if (base_name in existing_name or existing_name in base_name or
-                    base_name.replace('_', '') == existing_name.replace('_', '') or
-                    base_name.endswith('_v2') or base_name.endswith('_new') or
-                    existing_name.endswith('_v2') or existing_name.endswith('_new')):
-
+                if (
+                    base_name in existing_name
+                    or existing_name in base_name
+                    or base_name.replace("_", "") == existing_name.replace("_", "")
+                    or base_name.endswith("_v2")
+                    or base_name.endswith("_new")
+                    or existing_name.endswith("_v2")
+                    or existing_name.endswith("_new")
+                ):
                     if existing_name not in name_groups:
                         name_groups[existing_name] = []
                     name_groups[existing_name].append(str(file_path.relative_to(self.repo_path)))
@@ -157,10 +162,7 @@ class CodebaseHygieneAgent:
         # Filter groups with more than 1 file
         for name, files in name_groups.items():
             if len(files) > 1:
-                duplicates.append({
-                    'pattern': name,
-                    'files': files
-                })
+                duplicates.append({"pattern": name, "files": files})
 
         print(f"      📋 Found {len(duplicates)} duplicate file groups")
         return duplicates
@@ -172,8 +174,8 @@ class CodebaseHygieneAgent:
 
         temp_files = []
 
-        for pattern in self.file_patterns['temporary'] + self.file_patterns['backup']:
-            matches = list(self.repo_path.glob(f'**/{pattern}'))
+        for pattern in self.file_patterns["temporary"] + self.file_patterns["backup"]:
+            matches = list(self.repo_path.glob(f"**/{pattern}"))
             for match in matches:
                 if match.is_file():
                     temp_files.append(str(match.relative_to(self.repo_path)))
@@ -188,15 +190,17 @@ class CodebaseHygieneAgent:
 
         large_files = []
 
-        for file_path in self.repo_path.glob('**/*'):
+        for file_path in self.repo_path.glob("**/*"):
             if file_path.is_file():
                 try:
                     size_mb = file_path.stat().st_size / (1024 * 1024)
                     if size_mb > size_limit_mb:
-                        large_files.append({
-                            'file': str(file_path.relative_to(self.repo_path)),
-                            'size_mb': round(size_mb, 2)
-                        })
+                        large_files.append(
+                            {
+                                "file": str(file_path.relative_to(self.repo_path)),
+                                "size_mb": round(size_mb, 2),
+                            }
+                        )
                 except Exception:
                     continue
 
@@ -208,21 +212,31 @@ class CodebaseHygieneAgent:
 
         recommendations = []
 
-        if analysis['issues_found']['unused_files']:
-            recommendations.append(f"🗑️ REMOVE {len(analysis['issues_found']['unused_files'])} unused files")
+        if analysis["issues_found"]["unused_files"]:
+            recommendations.append(
+                f"🗑️ REMOVE {len(analysis['issues_found']['unused_files'])} unused files"
+            )
 
-        if analysis['issues_found']['duplicate_files']:
-            recommendations.append(f"🔄 CONSOLIDATE {len(analysis['issues_found']['duplicate_files'])} duplicate file groups")
+        if analysis["issues_found"]["duplicate_files"]:
+            recommendations.append(
+                f"🔄 CONSOLIDATE {len(analysis['issues_found']['duplicate_files'])} duplicate file groups"
+            )
 
-        if analysis['issues_found']['temporary_files']:
-            recommendations.append(f"🧹 CLEAN {len(analysis['issues_found']['temporary_files'])} temporary files")
+        if analysis["issues_found"]["temporary_files"]:
+            recommendations.append(
+                f"🧹 CLEAN {len(analysis['issues_found']['temporary_files'])} temporary files"
+            )
 
-        if analysis['issues_found']['large_files']:
-            recommendations.append(f"📦 REVIEW {len(analysis['issues_found']['large_files'])} large files")
+        if analysis["issues_found"]["large_files"]:
+            recommendations.append(
+                f"📦 REVIEW {len(analysis['issues_found']['large_files'])} large files"
+            )
 
         # Repository structure recommendations
-        if analysis['total_files'] > 20:
-            recommendations.append("📁 ORGANIZE into logical subdirectories (agents/, core/, dashboard/)")
+        if analysis["total_files"] > 20:
+            recommendations.append(
+                "📁 ORGANIZE into logical subdirectories (agents/, core/, dashboard/)"
+            )
 
         recommendations.append("📋 CREATE agents/README.md documenting each agent's purpose")
         recommendations.append("🔧 STANDARDIZE naming convention (snake_case for all modules)")
@@ -238,17 +252,17 @@ class CodebaseHygieneAgent:
 
         total_issues = sum(
             len(issues) if isinstance(issues, list) else len(issues)
-            for issues in analysis['issues_found'].values()
+            for issues in analysis["issues_found"].values()
         )
 
         print(f"Issues Found: {total_issues}")
 
-        for issue_type, issues in analysis['issues_found'].items():
+        for issue_type, issues in analysis["issues_found"].items():
             if issues:
                 print(f"   • {issue_type.replace('_', ' ').title()}: {len(issues)}")
 
         print(f"\n🎯 CLEANUP RECOMMENDATIONS:")
-        for i, rec in enumerate(analysis['recommendations'], 1):
+        for i, rec in enumerate(analysis["recommendations"], 1):
             print(f"   {i}. {rec}")
 
         health_score = max(0, 100 - (total_issues * 5))
@@ -260,64 +274,64 @@ class CodebaseHygieneAgent:
         print(f"\n🧹 EXECUTING SAFE CLEANUP...")
 
         cleanup_results = {
-            'files_moved': [],
-            'files_removed': [],
-            'directories_created': [],
-            'warnings': []
+            "files_moved": [],
+            "files_removed": [],
+            "directories_created": [],
+            "warnings": [],
         }
 
         # Create organized directory structure
-        agent_dir = self.repo_path / 'agents'
+        agent_dir = self.repo_path / "agents"
         if not agent_dir.exists():
             agent_dir.mkdir()
-            cleanup_results['directories_created'].append('agents/')
+            cleanup_results["directories_created"].append("agents/")
             print("   📁 Created agents/ directory")
 
-        core_dir = self.repo_path / 'core'
+        core_dir = self.repo_path / "core"
         if not core_dir.exists():
             core_dir.mkdir()
-            cleanup_results['directories_created'].append('core/')
+            cleanup_results["directories_created"].append("core/")
             print("   📁 Created core/ directory")
 
-        dashboard_dir = self.repo_path / 'dashboard'
+        dashboard_dir = self.repo_path / "dashboard"
         if not dashboard_dir.exists():
             dashboard_dir.mkdir()
-            cleanup_results['directories_created'].append('dashboard/')
+            cleanup_results["directories_created"].append("dashboard/")
             print("   📁 Created dashboard/ directory")
 
         # Move files to appropriate directories (safe operation)
-        python_files = list(self.repo_path.glob('*.py'))
+        python_files = list(self.repo_path.glob("*.py"))
         for file_path in python_files:
             filename = file_path.name.lower()
 
-            if 'agent' in filename:
+            if "agent" in filename:
                 target = agent_dir / file_path.name
                 if not target.exists():
                     file_path.rename(target)
-                    cleanup_results['files_moved'].append(f"{file_path.name} → agents/")
+                    cleanup_results["files_moved"].append(f"{file_path.name} → agents/")
                     print(f"   📦 Moved {file_path.name} to agents/")
 
-            elif 'dashboard' in filename or 'server' in filename:
+            elif "dashboard" in filename or "server" in filename:
                 target = dashboard_dir / file_path.name
                 if not target.exists():
                     file_path.rename(target)
-                    cleanup_results['files_moved'].append(f"{file_path.name} → dashboard/")
+                    cleanup_results["files_moved"].append(f"{file_path.name} → dashboard/")
                     print(f"   📦 Moved {file_path.name} to dashboard/")
 
-            elif 'comprehensive' in filename or 'system' in filename:
+            elif "comprehensive" in filename or "system" in filename:
                 target = core_dir / file_path.name
                 if not target.exists():
                     file_path.rename(target)
-                    cleanup_results['files_moved'].append(f"{file_path.name} → core/")
+                    cleanup_results["files_moved"].append(f"{file_path.name} → core/")
                     print(f"   📦 Moved {file_path.name} to core/")
 
         # Remove temporary files (destructive - requires confirmation)
-        if confirm_destructive and analysis['issues_found']['temporary_files']:
-            for temp_file in analysis['issues_found']['temporary_files']:
+        if confirm_destructive and analysis["issues_found"]["temporary_files"]:
+            for temp_file in analysis["issues_found"]["temporary_files"]:
                 file_path = self.repo_path / temp_file
                 if file_path.exists():
                     file_path.unlink()
-                    cleanup_results['files_removed'].append(temp_file)
+                    cleanup_results["files_removed"].append(temp_file)
                     print(f"   🗑️ Removed {temp_file}")
 
         print(f"\n✅ Cleanup completed:")
@@ -330,7 +344,7 @@ class CodebaseHygieneAgent:
     def create_agent_documentation(self):
         """Create documentation for agent architecture"""
 
-        agents_readme = self.repo_path / 'agents' / 'README.md'
+        agents_readme = self.repo_path / "agents" / "README.md"
 
         readme_content = """# ABM Research Agents
 
@@ -391,7 +405,7 @@ Agents must pass QA verification before proceeding:
 5. System Integration tests complete workflow
 """
 
-        with open(agents_readme, 'w') as f:
+        with open(agents_readme, "w") as f:
             f.write(readme_content)
 
         print(f"   📋 Created agents/README.md")

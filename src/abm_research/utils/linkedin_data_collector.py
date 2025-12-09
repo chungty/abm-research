@@ -14,13 +14,16 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 import logging
+
 # Selenium imports removed - not currently used in this implementation
 # from selenium import webdriver  # For future web scraping implementation
 import openai
 
+
 @dataclass
 class LinkedInProfile:
     """Complete LinkedIn profile data"""
+
     name: str
     title: str
     company: str
@@ -35,6 +38,7 @@ class LinkedInProfile:
     profile_picture_url: str
     last_updated: datetime
 
+
 class LinkedInDataCollector:
     """
     Multi-approach LinkedIn data collection system
@@ -46,7 +50,7 @@ class LinkedInDataCollector:
         self.setup_logging()
 
         # OpenAI for profile enhancement
-        self.openai_client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+        self.openai_client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
         # Rate limiting
         self.request_delay = 2  # seconds between requests
@@ -59,19 +63,18 @@ class LinkedInDataCollector:
         """Setup logging for LinkedIn data collection"""
         logging.basicConfig(
             level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler('linkedin_collection.log'),
-                logging.StreamHandler()
-            ]
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            handlers=[logging.FileHandler("linkedin_collection.log"), logging.StreamHandler()],
         )
 
     def load_config(self):
         """Load LinkedIn data collection configuration"""
         try:
             # Use path relative to the package directory
-            config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'linkedin_config.json')
-            with open(config_path, 'r') as f:
+            config_path = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)), "config", "linkedin_config.json"
+            )
+            with open(config_path, "r") as f:
                 self.config = json.load(f)
         except FileNotFoundError:
             self.logger.warning("LinkedIn config not found, creating default config")
@@ -85,45 +88,49 @@ class LinkedInDataCollector:
                     "enabled": False,
                     "api_key": "",
                     "endpoint": "https://linkedin-profiles1.p.rapidapi.com",
-                    "rate_limit": 100
+                    "rate_limit": 100,
                 },
                 "manual_entry": {
                     "enabled": True,
-                    "data_dir": "/Users/chungty/Projects/abm-research/data/linkedin_profiles"
+                    "data_dir": "/Users/chungty/Projects/abm-research/data/linkedin_profiles",
                 },
                 "csv_import": {
                     "enabled": True,
-                    "csv_path": "/Users/chungty/Projects/abm-research/data/linkedin_contacts.csv"
+                    "csv_path": "/Users/chungty/Projects/abm-research/data/linkedin_contacts.csv",
                 },
                 "sales_navigator_export": {
                     "enabled": True,
-                    "export_dir": "/Users/chungty/Projects/abm-research/data/sales_navigator"
-                }
+                    "export_dir": "/Users/chungty/Projects/abm-research/data/sales_navigator",
+                },
             },
             "profile_enhancement": {
                 "use_ai_bio_analysis": True,
                 "use_ai_activity_simulation": True,
-                "confidence_scoring": True
+                "confidence_scoring": True,
             },
             "compliance": {
                 "respect_robots_txt": True,
                 "rate_limit_seconds": 2,
-                "user_agent": "Verdigris ABM Research Tool"
-            }
+                "user_agent": "Verdigris ABM Research Tool",
+            },
         }
 
         # Ensure config directory exists
-        config_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config')
+        config_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config")
         os.makedirs(config_dir, exist_ok=True)
 
-        config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'linkedin_config.json')
-        with open(config_path, 'w') as f:
+        config_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "config", "linkedin_config.json"
+        )
+        with open(config_path, "w") as f:
             json.dump(default_config, f, indent=2)
 
         self.config = default_config
         self.logger.info("✓ Created default LinkedIn collection config")
 
-    def collect_profile_data(self, linkedin_url: str, contact_info: Dict = None) -> Optional[LinkedInProfile]:
+    def collect_profile_data(
+        self, linkedin_url: str, contact_info: Dict = None
+    ) -> Optional[LinkedInProfile]:
         """
         Collect LinkedIn profile data using available methods
         Falls back through multiple approaches if needed
@@ -166,11 +173,11 @@ class LinkedInDataCollector:
             os.makedirs(cache_dir, exist_ok=True)
 
             # Create filename from URL
-            profile_id = linkedin_url.split('/in/')[-1].split('/')[0]
+            profile_id = linkedin_url.split("/in/")[-1].split("/")[0]
             cache_file = f"{cache_dir}/{profile_id}.json"
 
             if os.path.exists(cache_file):
-                with open(cache_file, 'r') as f:
+                with open(cache_file, "r") as f:
                     data = json.load(f)
                 return self.dict_to_profile(data)
 
@@ -192,17 +199,17 @@ class LinkedInDataCollector:
 
         try:
             headers = {
-                'X-RapidAPI-Key': self.config["collection_methods"]["rapid_api"]["api_key"],
-                'X-RapidAPI-Host': 'linkedin-profiles1.p.rapidapi.com'
+                "X-RapidAPI-Key": self.config["collection_methods"]["rapid_api"]["api_key"],
+                "X-RapidAPI-Host": "linkedin-profiles1.p.rapidapi.com",
             }
 
-            params = {'profile_url': linkedin_url}
+            params = {"profile_url": linkedin_url}
 
             response = requests.get(
                 self.config["collection_methods"]["rapid_api"]["endpoint"],
                 headers=headers,
                 params=params,
-                timeout=30
+                timeout=30,
             )
 
             if response.status_code == 200:
@@ -223,9 +230,9 @@ class LinkedInDataCollector:
         """
         self.logger.info("🤖 Generating AI-enhanced profile")
 
-        name = contact_info.get('name', 'Unknown')
-        title = contact_info.get('title', 'Professional')
-        company = contact_info.get('company', 'Technology Company')
+        name = contact_info.get("name", "Unknown")
+        title = contact_info.get("title", "Professional")
+        company = contact_info.get("company", "Technology Company")
 
         # Generate realistic bio using AI
         bio = self.generate_realistic_bio(name, title, company)
@@ -243,7 +250,7 @@ class LinkedInDataCollector:
             name=name,
             title=title,
             company=company,
-            location=contact_info.get('location', 'United States'),
+            location=contact_info.get("location", "United States"),
             bio=bio,
             experience=experience,
             education=self.generate_realistic_education(),
@@ -252,7 +259,7 @@ class LinkedInDataCollector:
             connections_count="500+",
             profile_url=linkedin_url,
             profile_picture_url="",
-            last_updated=datetime.now()
+            last_updated=datetime.now(),
         )
 
         return profile
@@ -280,7 +287,7 @@ class LinkedInDataCollector:
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=200,
-                temperature=0.7
+                temperature=0.7,
             )
 
             return response.choices[0].message.content.strip()
@@ -294,94 +301,123 @@ class LinkedInDataCollector:
         experience = []
 
         # Current role
-        experience.append({
-            'title': title,
-            'company': company,
-            'duration': '2+ years',
-            'description': f"Leading {title.lower()} initiatives focused on operational excellence and infrastructure optimization.",
-            'current': True
-        })
+        experience.append(
+            {
+                "title": title,
+                "company": company,
+                "duration": "2+ years",
+                "description": f"Leading {title.lower()} initiatives focused on operational excellence and infrastructure optimization.",
+                "current": True,
+            }
+        )
 
         # Previous role
-        if 'senior' in title.lower() or 'director' in title.lower():
-            prev_title = title.replace('Senior ', '').replace('Director of ', 'Manager of ')
-            experience.append({
-                'title': prev_title,
-                'company': 'Previous Technology Company',
-                'duration': '3 years',
-                'description': f"Managed {prev_title.lower()} operations and team development.",
-                'current': False
-            })
+        if "senior" in title.lower() or "director" in title.lower():
+            prev_title = title.replace("Senior ", "").replace("Director of ", "Manager of ")
+            experience.append(
+                {
+                    "title": prev_title,
+                    "company": "Previous Technology Company",
+                    "duration": "3 years",
+                    "description": f"Managed {prev_title.lower()} operations and team development.",
+                    "current": False,
+                }
+            )
 
         return experience
 
     def generate_realistic_skills(self, title: str) -> List[str]:
         """Generate realistic skills based on title"""
         base_skills = [
-            'Leadership', 'Project Management', 'Strategic Planning',
-            'Team Management', 'Operations Management'
+            "Leadership",
+            "Project Management",
+            "Strategic Planning",
+            "Team Management",
+            "Operations Management",
         ]
 
         title_lower = title.lower()
 
-        if 'infrastructure' in title_lower or 'operations' in title_lower:
-            base_skills.extend([
-                'Infrastructure Management', 'Data Center Operations',
-                'Critical Systems', 'Capacity Planning', 'Power Management',
-                'Reliability Engineering', 'Monitoring Systems'
-            ])
+        if "infrastructure" in title_lower or "operations" in title_lower:
+            base_skills.extend(
+                [
+                    "Infrastructure Management",
+                    "Data Center Operations",
+                    "Critical Systems",
+                    "Capacity Planning",
+                    "Power Management",
+                    "Reliability Engineering",
+                    "Monitoring Systems",
+                ]
+            )
 
-        if 'engineer' in title_lower:
-            base_skills.extend([
-                'System Design', 'Technical Architecture',
-                'Performance Optimization', 'Troubleshooting'
-            ])
+        if "engineer" in title_lower:
+            base_skills.extend(
+                [
+                    "System Design",
+                    "Technical Architecture",
+                    "Performance Optimization",
+                    "Troubleshooting",
+                ]
+            )
 
-        if 'director' in title_lower or 'vp' in title_lower:
-            base_skills.extend([
-                'Executive Leadership', 'Budget Management',
-                'Strategic Vision', 'Cross-functional Collaboration'
-            ])
+        if "director" in title_lower or "vp" in title_lower:
+            base_skills.extend(
+                [
+                    "Executive Leadership",
+                    "Budget Management",
+                    "Strategic Vision",
+                    "Cross-functional Collaboration",
+                ]
+            )
 
         return base_skills[:15]  # LinkedIn shows top skills
 
     def generate_realistic_education(self) -> List[Dict]:
         """Generate realistic education background"""
         degrees = [
-            'Bachelor of Science in Electrical Engineering',
-            'Bachelor of Science in Computer Science',
-            'Master of Business Administration (MBA)',
-            'Bachelor of Science in Mechanical Engineering'
+            "Bachelor of Science in Electrical Engineering",
+            "Bachelor of Science in Computer Science",
+            "Master of Business Administration (MBA)",
+            "Bachelor of Science in Mechanical Engineering",
         ]
 
         universities = [
-            'Stanford University', 'University of California, Berkeley',
-            'MIT', 'Carnegie Mellon University', 'University of Texas'
+            "Stanford University",
+            "University of California, Berkeley",
+            "MIT",
+            "Carnegie Mellon University",
+            "University of Texas",
         ]
 
-        return [{
-            'degree': random.choice(degrees),
-            'school': random.choice(universities),
-            'years': '2010-2014'
-        }]
+        return [
+            {
+                "degree": random.choice(degrees),
+                "school": random.choice(universities),
+                "years": "2010-2014",
+            }
+        ]
 
     def generate_realistic_activity(self, title: str, company: str) -> List[Dict]:
         """Generate realistic LinkedIn activity"""
         # Use the same logic as the original LinkedIn enrichment engine
         from linkedin_enrichment_engine import LinkedInEnrichmentEngine
+
         enrichment_engine = LinkedInEnrichmentEngine()
         return enrichment_engine._generate_realistic_activity(title)
 
-    def create_minimal_profile(self, linkedin_url: str, contact_info: Dict = None) -> LinkedInProfile:
+    def create_minimal_profile(
+        self, linkedin_url: str, contact_info: Dict = None
+    ) -> LinkedInProfile:
         """Create minimal profile when other methods fail"""
         if contact_info is None:
             contact_info = {}
 
         return LinkedInProfile(
-            name=contact_info.get('name', 'Unknown'),
-            title=contact_info.get('title', 'Professional'),
-            company=contact_info.get('company', 'Unknown Company'),
-            location=contact_info.get('location', 'Unknown'),
+            name=contact_info.get("name", "Unknown"),
+            title=contact_info.get("title", "Professional"),
+            company=contact_info.get("company", "Unknown Company"),
+            location=contact_info.get("location", "Unknown"),
             bio="Profile data not available - please add manually",
             experience=[],
             education=[],
@@ -390,7 +426,7 @@ class LinkedInDataCollector:
             connections_count="Unknown",
             profile_url=linkedin_url,
             profile_picture_url="",
-            last_updated=datetime.now()
+            last_updated=datetime.now(),
         )
 
     def save_to_cache(self, profile: LinkedInProfile):
@@ -399,29 +435,29 @@ class LinkedInDataCollector:
             cache_dir = self.config["collection_methods"]["manual_entry"]["data_dir"]
             os.makedirs(cache_dir, exist_ok=True)
 
-            profile_id = profile.profile_url.split('/in/')[-1].split('/')[0]
+            profile_id = profile.profile_url.split("/in/")[-1].split("/")[0]
             cache_file = f"{cache_dir}/{profile_id}.json"
 
             # Convert to dict for JSON serialization
             profile_dict = {
-                'name': profile.name,
-                'title': profile.title,
-                'company': profile.company,
-                'location': profile.location,
-                'bio': profile.bio,
-                'experience': profile.experience,
-                'education': profile.education,
-                'skills': profile.skills,
-                'recent_activity': profile.recent_activity,
-                'connections_count': profile.connections_count,
-                'profile_url': profile.profile_url,
-                'profile_picture_url': profile.profile_picture_url,
-                'last_updated': profile.last_updated.isoformat(),
-                'collection_method': 'enhanced_generation',
-                'collection_timestamp': datetime.now().isoformat()
+                "name": profile.name,
+                "title": profile.title,
+                "company": profile.company,
+                "location": profile.location,
+                "bio": profile.bio,
+                "experience": profile.experience,
+                "education": profile.education,
+                "skills": profile.skills,
+                "recent_activity": profile.recent_activity,
+                "connections_count": profile.connections_count,
+                "profile_url": profile.profile_url,
+                "profile_picture_url": profile.profile_picture_url,
+                "last_updated": profile.last_updated.isoformat(),
+                "collection_method": "enhanced_generation",
+                "collection_timestamp": datetime.now().isoformat(),
             }
 
-            with open(cache_file, 'w') as f:
+            with open(cache_file, "w") as f:
                 json.dump(profile_dict, f, indent=2)
 
             self.logger.info(f"✓ Cached profile data: {cache_file}")
@@ -432,19 +468,21 @@ class LinkedInDataCollector:
     def dict_to_profile(self, data: Dict) -> LinkedInProfile:
         """Convert dictionary to LinkedInProfile object"""
         return LinkedInProfile(
-            name=data.get('name', ''),
-            title=data.get('title', ''),
-            company=data.get('company', ''),
-            location=data.get('location', ''),
-            bio=data.get('bio', ''),
-            experience=data.get('experience', []),
-            education=data.get('education', []),
-            skills=data.get('skills', []),
-            recent_activity=data.get('recent_activity', []),
-            connections_count=data.get('connections_count', ''),
-            profile_url=data.get('profile_url', ''),
-            profile_picture_url=data.get('profile_picture_url', ''),
-            last_updated=datetime.fromisoformat(data.get('last_updated', datetime.now().isoformat()))
+            name=data.get("name", ""),
+            title=data.get("title", ""),
+            company=data.get("company", ""),
+            location=data.get("location", ""),
+            bio=data.get("bio", ""),
+            experience=data.get("experience", []),
+            education=data.get("education", []),
+            skills=data.get("skills", []),
+            recent_activity=data.get("recent_activity", []),
+            connections_count=data.get("connections_count", ""),
+            profile_url=data.get("profile_url", ""),
+            profile_picture_url=data.get("profile_picture_url", ""),
+            last_updated=datetime.fromisoformat(
+                data.get("last_updated", datetime.now().isoformat())
+            ),
         )
 
     def parse_rapid_api_response(self, data: Dict, linkedin_url: str) -> LinkedInProfile:
@@ -452,19 +490,19 @@ class LinkedInDataCollector:
         # This would parse the actual API response format
         # Structure depends on the specific RapidAPI service used
         return LinkedInProfile(
-            name=data.get('name', ''),
-            title=data.get('headline', ''),
-            company=data.get('current_company', ''),
-            location=data.get('location', ''),
-            bio=data.get('summary', ''),
-            experience=data.get('experience', []),
-            education=data.get('education', []),
-            skills=data.get('skills', []),
-            recent_activity=data.get('activity', []),
-            connections_count=data.get('connections_count', ''),
+            name=data.get("name", ""),
+            title=data.get("headline", ""),
+            company=data.get("current_company", ""),
+            location=data.get("location", ""),
+            bio=data.get("summary", ""),
+            experience=data.get("experience", []),
+            education=data.get("education", []),
+            skills=data.get("skills", []),
+            recent_activity=data.get("activity", []),
+            connections_count=data.get("connections_count", ""),
             profile_url=linkedin_url,
-            profile_picture_url=data.get('profile_picture', ''),
-            last_updated=datetime.now()
+            profile_picture_url=data.get("profile_picture", ""),
+            last_updated=datetime.now(),
         )
 
     def apply_rate_limit(self):
@@ -483,23 +521,24 @@ class LinkedInDataCollector:
 
         try:
             import pandas as pd
+
             df = pd.read_csv(csv_path)
 
             for _, row in df.iterrows():
                 profile = LinkedInProfile(
-                    name=row.get('name', ''),
-                    title=row.get('title', ''),
-                    company=row.get('company', ''),
-                    location=row.get('location', ''),
-                    bio=row.get('bio', ''),
+                    name=row.get("name", ""),
+                    title=row.get("title", ""),
+                    company=row.get("company", ""),
+                    location=row.get("location", ""),
+                    bio=row.get("bio", ""),
                     experience=[],  # CSV doesn't usually have this detail
                     education=[],
-                    skills=row.get('skills', '').split(',') if row.get('skills') else [],
+                    skills=row.get("skills", "").split(",") if row.get("skills") else [],
                     recent_activity=[],
-                    connections_count=row.get('connections', ''),
-                    profile_url=row.get('linkedin_url', ''),
-                    profile_picture_url='',
-                    last_updated=datetime.now()
+                    connections_count=row.get("connections", ""),
+                    profile_url=row.get("linkedin_url", ""),
+                    profile_picture_url="",
+                    last_updated=datetime.now(),
                 )
                 profiles.append(profile)
                 self.save_to_cache(profile)
@@ -510,6 +549,7 @@ class LinkedInDataCollector:
             self.logger.error(f"CSV import failed: {e}")
 
         return profiles
+
 
 # Export for use by LinkedIn enrichment engine
 linkedin_data_collector = LinkedInDataCollector()

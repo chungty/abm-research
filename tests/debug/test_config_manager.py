@@ -3,7 +3,9 @@
 Test the unified configuration manager
 """
 import sys
-sys.path.append('src')
+
+sys.path.append("src")
+
 
 def test_config_manager():
     """Test the new unified configuration manager"""
@@ -20,19 +22,25 @@ def test_config_manager():
         print(f"\n🔑 API Keys Available:")
         try:
             apollo_key = config_manager.get_apollo_api_key()
-            print(f"   Apollo: {'✓' if apollo_key else '✗'} ({'***' + apollo_key[-4:] if apollo_key else 'missing'})")
+            print(
+                f"   Apollo: {'✓' if apollo_key else '✗'} ({'***' + apollo_key[-4:] if apollo_key else 'missing'})"
+            )
         except Exception as e:
             print(f"   Apollo: ✗ ({e})")
 
         try:
             notion_key = config_manager.get_notion_api_key()
-            print(f"   Notion: {'✓' if notion_key else '✗'} ({'***' + notion_key[-4:] if notion_key else 'missing'})")
+            print(
+                f"   Notion: {'✓' if notion_key else '✗'} ({'***' + notion_key[-4:] if notion_key else 'missing'})"
+            )
         except Exception as e:
             print(f"   Notion: ✗ ({e})")
 
         try:
             openai_key = config_manager.get_openai_api_key()
-            print(f"   OpenAI: {'✓' if openai_key else '✗'} ({'***' + openai_key[-4:] if openai_key else 'missing'})")
+            print(
+                f"   OpenAI: {'✓' if openai_key else '✗'} ({'***' + openai_key[-4:] if openai_key else 'missing'})"
+            )
         except Exception as e:
             print(f"   OpenAI: ✗ ({e})")
 
@@ -41,13 +49,15 @@ def test_config_manager():
         try:
             db_ids = config_manager.get_all_database_ids()
             for db_type, db_id in db_ids.items():
-                print(f"   {db_type}: {db_id[:8]}...{db_id[-8:]} (32 chars: {'✓' if len(db_id) == 32 else '✗'})")
+                print(
+                    f"   {db_type}: {db_id[:8]}...{db_id[-8:]} (32 chars: {'✓' if len(db_id) == 32 else '✗'})"
+                )
         except Exception as e:
             print(f"   Database IDs: ✗ ({e})")
 
         # Test specific database ID access
         try:
-            accounts_id = config_manager.get_database_id('accounts')
+            accounts_id = config_manager.get_database_id("accounts")
             print(f"   Accounts ID lookup: ✓ ({accounts_id[:8]}...)")
         except Exception as e:
             print(f"   Accounts ID lookup: ✗ ({e})")
@@ -71,7 +81,11 @@ def test_config_manager():
         print(f"\n📚 External Configurations:")
         try:
             lead_config = config_manager.get_lead_scoring_config()
-            print(f"   Lead scoring config: ✓ ({len(lead_config)} items)" if lead_config else "   Lead scoring config: empty but loaded")
+            print(
+                f"   Lead scoring config: ✓ ({len(lead_config)} items)"
+                if lead_config
+                else "   Lead scoring config: empty but loaded"
+            )
         except Exception as e:
             print(f"   Lead scoring config: ✗ ({e})")
 
@@ -103,8 +117,10 @@ def test_config_manager():
     except Exception as e:
         print(f"\n❌ Configuration manager test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 if __name__ == "__main__":
     success = test_config_manager()

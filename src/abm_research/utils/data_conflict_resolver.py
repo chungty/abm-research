@@ -30,24 +30,27 @@ logger = logging.getLogger(__name__)
 
 class DataSource(Enum):
     """Supported data sources with confidence rankings"""
-    APOLLO = "apollo"           # Highest confidence - structured API data
-    LINKEDIN = "linkedin"       # Medium confidence - profile inference
-    MANUAL = "manual"          # High confidence - human verified
-    INFERRED = "inferred"      # Low confidence - algorithm generated
-    MERGED = "merged"          # Combination of multiple sources
+
+    APOLLO = "apollo"  # Highest confidence - structured API data
+    LINKEDIN = "linkedin"  # Medium confidence - profile inference
+    MANUAL = "manual"  # High confidence - human verified
+    INFERRED = "inferred"  # Low confidence - algorithm generated
+    MERGED = "merged"  # Combination of multiple sources
 
 
 class FieldType(Enum):
     """Types of contact fields for different merge strategies"""
-    IDENTIFIER = "identifier"   # email, linkedin_url - prefer most reliable
-    PERSONAL = "personal"      # name, title - prefer most complete
-    CONTACT = "contact"        # phone, address - prefer structured data
-    METADATA = "metadata"      # scores, dates - use latest/highest quality
+
+    IDENTIFIER = "identifier"  # email, linkedin_url - prefer most reliable
+    PERSONAL = "personal"  # name, title - prefer most complete
+    CONTACT = "contact"  # phone, address - prefer structured data
+    METADATA = "metadata"  # scores, dates - use latest/highest quality
 
 
 @dataclass
 class DataConflict:
     """Records a conflict between data sources"""
+
     field_name: str
     apollo_value: Any
     linkedin_value: Any
@@ -65,6 +68,7 @@ class DataConflict:
 @dataclass
 class MergeResult:
     """Result of merging contact data from multiple sources"""
+
     merged_contact: Dict[str, Any]
     conflicts_detected: List[DataConflict]
     data_quality_score: float
@@ -84,11 +88,11 @@ class DataConflictResolver:
 
         # Source confidence scoring (higher = more reliable)
         self.source_confidence = {
-            DataSource.APOLLO: 85,      # Structured API data
-            DataSource.MANUAL: 80,      # Human verified
-            DataSource.LINKEDIN: 70,    # Profile inference
-            DataSource.INFERRED: 40,    # Algorithm generated
-            DataSource.MERGED: 75       # Intelligent combination
+            DataSource.APOLLO: 85,  # Structured API data
+            DataSource.MANUAL: 80,  # Human verified
+            DataSource.LINKEDIN: 70,  # Profile inference
+            DataSource.INFERRED: 40,  # Algorithm generated
+            DataSource.MERGED: 75,  # Intelligent combination
         }
 
         # Field-specific merge strategies
@@ -97,11 +101,9 @@ class DataConflictResolver:
             "email": self._merge_email_field,
             "phone": self._merge_phone_field,
             "linkedin_url": self._merge_url_field,
-
             # Personal information - prioritize completeness
             "name": self._merge_name_field,
             "title": self._merge_title_field,
-
             # Scores and metadata - use highest quality
             "lead_score": self._merge_score_field,
             "icp_fit_score": self._merge_score_field,
@@ -109,13 +111,14 @@ class DataConflictResolver:
 
         # Email validation patterns
         self.email_patterns = {
-            "valid": re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'),
-            "placeholder": re.compile(r'(email_not_unlocked|noemail|placeholder)'),
-            "generic": re.compile(r'(info|contact|admin|support|sales)@')
+            "valid": re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"),
+            "placeholder": re.compile(r"(email_not_unlocked|noemail|placeholder)"),
+            "generic": re.compile(r"(info|contact|admin|support|sales)@"),
         }
 
-    def resolve_contact_conflicts(self, apollo_data: Dict, linkedin_data: Dict,
-                                existing_data: Optional[Dict] = None) -> MergeResult:
+    def resolve_contact_conflicts(
+        self, apollo_data: Dict, linkedin_data: Dict, existing_data: Optional[Dict] = None
+    ) -> MergeResult:
         """
         Main entry point for resolving conflicts between contact data sources
 
@@ -152,7 +155,11 @@ class DataConflictResolver:
                     if self._values_differ(apollo_value, linkedin_value):
                         # Resolve conflict using field-specific strategy
                         resolved_value, chosen_source, reason = self._resolve_field_conflict(
-                            field, apollo_value, linkedin_value, DataSource.APOLLO, DataSource.LINKEDIN
+                            field,
+                            apollo_value,
+                            linkedin_value,
+                            DataSource.APOLLO,
+                            DataSource.LINKEDIN,
                         )
 
                         # Record conflict
@@ -163,7 +170,9 @@ class DataConflictResolver:
                             chosen_value=resolved_value,
                             chosen_source=chosen_source.value,
                             resolution_reason=reason,
-                            conflict_severity=self._assess_conflict_severity(field, apollo_value, linkedin_value)
+                            conflict_severity=self._assess_conflict_severity(
+                                field, apollo_value, linkedin_value
+                            ),
                         )
                         conflicts.append(conflict)
 
@@ -176,7 +185,9 @@ class DataConflictResolver:
                             source_counts[DataSource.APOLLO.value] -= 1
                             source_counts[chosen_source.value] += 1
 
-                        self.logger.debug(f"⚡ Conflict in {field}: chose {chosen_source.value} - {reason}")
+                        self.logger.debug(
+                            f"⚡ Conflict in {field}: chose {chosen_source.value} - {reason}"
+                        )
 
                 else:
                     # No conflict - LinkedIn provides additional data
@@ -207,10 +218,12 @@ class DataConflictResolver:
             conflicts_detected=conflicts,
             data_quality_score=quality_score,
             source_summary=source_counts,
-            merge_notes=merge_notes
+            merge_notes=merge_notes,
         )
 
-        self.logger.info(f"✅ Merge complete: {len(conflicts)} conflicts, {quality_score:.1f} quality score")
+        self.logger.info(
+            f"✅ Merge complete: {len(conflicts)} conflicts, {quality_score:.1f} quality score"
+        )
         return result
 
     def _values_differ(self, value1: Any, value2: Any) -> bool:
@@ -227,27 +240,44 @@ class DataConflictResolver:
             return False
 
         # Normalize common variations
-        str1 = re.sub(r'\s+', ' ', str1)
-        str2 = re.sub(r'\s+', ' ', str2)
+        str1 = re.sub(r"\s+", " ", str1)
+        str2 = re.sub(r"\s+", " ", str2)
 
         return str1 != str2
 
-    def _resolve_field_conflict(self, field_name: str, apollo_value: Any, linkedin_value: Any,
-                              apollo_source: DataSource, linkedin_source: DataSource) -> Tuple[Any, DataSource, str]:
+    def _resolve_field_conflict(
+        self,
+        field_name: str,
+        apollo_value: Any,
+        linkedin_value: Any,
+        apollo_source: DataSource,
+        linkedin_source: DataSource,
+    ) -> Tuple[Any, DataSource, str]:
         """Resolve conflict for a specific field using field-specific strategy"""
 
         # Use field-specific strategy if available
         if field_name in self.field_strategies:
-            return self.field_strategies[field_name](apollo_value, linkedin_value, apollo_source, linkedin_source)
+            return self.field_strategies[field_name](
+                apollo_value, linkedin_value, apollo_source, linkedin_source
+            )
 
         # Default strategy: prefer source with higher confidence
         if self.source_confidence[apollo_source] > self.source_confidence[linkedin_source]:
-            return apollo_value, apollo_source, f"Apollo has higher confidence ({self.source_confidence[apollo_source]})"
+            return (
+                apollo_value,
+                apollo_source,
+                f"Apollo has higher confidence ({self.source_confidence[apollo_source]})",
+            )
         else:
-            return linkedin_value, linkedin_source, f"LinkedIn has higher confidence ({self.source_confidence[linkedin_source]})"
+            return (
+                linkedin_value,
+                linkedin_source,
+                f"LinkedIn has higher confidence ({self.source_confidence[linkedin_source]})",
+            )
 
-    def _merge_email_field(self, apollo_val: Any, linkedin_val: Any,
-                         apollo_src: DataSource, linkedin_src: DataSource) -> Tuple[Any, DataSource, str]:
+    def _merge_email_field(
+        self, apollo_val: Any, linkedin_val: Any, apollo_src: DataSource, linkedin_src: DataSource
+    ) -> Tuple[Any, DataSource, str]:
         """Email-specific merge strategy prioritizing deliverability"""
 
         apollo_email = str(apollo_val).strip() if apollo_val else ""
@@ -275,8 +305,9 @@ class DataConflictResolver:
         # Neither valid - keep Apollo as default
         return apollo_val, apollo_src, "Neither email valid, keeping Apollo"
 
-    def _merge_name_field(self, apollo_val: Any, linkedin_val: Any,
-                        apollo_src: DataSource, linkedin_src: DataSource) -> Tuple[Any, DataSource, str]:
+    def _merge_name_field(
+        self, apollo_val: Any, linkedin_val: Any, apollo_src: DataSource, linkedin_src: DataSource
+    ) -> Tuple[Any, DataSource, str]:
         """Name-specific merge strategy prioritizing completeness"""
 
         apollo_name = str(apollo_val).strip() if apollo_val else ""
@@ -292,8 +323,9 @@ class DataConflictResolver:
         # Similar length - prefer Apollo structured data
         return apollo_val, apollo_src, "Similar length, prefer Apollo structure"
 
-    def _merge_title_field(self, apollo_val: Any, linkedin_val: Any,
-                         apollo_src: DataSource, linkedin_src: DataSource) -> Tuple[Any, DataSource, str]:
+    def _merge_title_field(
+        self, apollo_val: Any, linkedin_val: Any, apollo_src: DataSource, linkedin_src: DataSource
+    ) -> Tuple[Any, DataSource, str]:
         """Title-specific merge strategy balancing structure and detail"""
 
         apollo_title = str(apollo_val).strip() if apollo_val else ""
@@ -310,15 +342,17 @@ class DataConflictResolver:
         # Otherwise prefer Apollo structured data
         return apollo_val, apollo_src, "Apollo structured title preferred"
 
-    def _merge_phone_field(self, apollo_val: Any, linkedin_val: Any,
-                         apollo_src: DataSource, linkedin_src: DataSource) -> Tuple[Any, DataSource, str]:
+    def _merge_phone_field(
+        self, apollo_val: Any, linkedin_val: Any, apollo_src: DataSource, linkedin_src: DataSource
+    ) -> Tuple[Any, DataSource, str]:
         """Phone-specific merge strategy prioritizing format and validity"""
 
         # Always prefer Apollo for phone numbers (structured API data)
         return apollo_val, apollo_src, "Apollo phone data more reliable"
 
-    def _merge_url_field(self, apollo_val: Any, linkedin_val: Any,
-                       apollo_src: DataSource, linkedin_src: DataSource) -> Tuple[Any, DataSource, str]:
+    def _merge_url_field(
+        self, apollo_val: Any, linkedin_val: Any, apollo_src: DataSource, linkedin_src: DataSource
+    ) -> Tuple[Any, DataSource, str]:
         """URL-specific merge strategy"""
 
         # For LinkedIn URLs, both sources should be similar
@@ -336,8 +370,9 @@ class DataConflictResolver:
         # Default to Apollo
         return apollo_val, apollo_src, "Apollo URL preferred"
 
-    def _merge_score_field(self, apollo_val: Any, linkedin_val: Any,
-                         apollo_src: DataSource, linkedin_src: DataSource) -> Tuple[Any, DataSource, str]:
+    def _merge_score_field(
+        self, apollo_val: Any, linkedin_val: Any, apollo_src: DataSource, linkedin_src: DataSource
+    ) -> Tuple[Any, DataSource, str]:
         """Score-specific merge strategy using highest value"""
 
         try:
@@ -381,7 +416,7 @@ class DataConflictResolver:
             "email": "Email Source",
             "title": "Title Source",
             "phone": "Phone Source",
-            "linkedin_url": "LinkedIn Source"
+            "linkedin_url": "LinkedIn Source",
         }
 
         for field_name, notion_field in key_fields.items():
@@ -396,8 +431,9 @@ class DataConflictResolver:
 
         return provenance
 
-    def _calculate_data_quality_score(self, contact: Dict, source_counts: Dict,
-                                    conflicts: List[DataConflict]) -> float:
+    def _calculate_data_quality_score(
+        self, contact: Dict, source_counts: Dict, conflicts: List[DataConflict]
+    ) -> float:
         """Calculate overall data quality score for the merged contact"""
 
         score = 0.0
@@ -454,11 +490,9 @@ class DataConflictResolver:
             )
 
         # Source distribution
-        source_summary = ", ".join([
-            f"{source}: {count}"
-            for source, count in result.source_summary.items()
-            if count > 0
-        ])
+        source_summary = ", ".join(
+            [f"{source}: {count}" for source, count in result.source_summary.items() if count > 0]
+        )
         self.logger.info(f"📊 Data sources: {source_summary}")
         self.logger.info(f"🎯 Final quality score: {result.data_quality_score:.1f}/100")
 

@@ -7,12 +7,14 @@ Investigates why database URLs don't work and finds the proper way to access dat
 
 import os
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.integrations.notion_client import NotionClient
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+
 
 def investigate_database_access():
     """Investigate database access issues and find proper URLs"""
@@ -40,8 +42,7 @@ def investigate_database_access():
         try:
             # Get database metadata
             response = notion_client._make_request(
-                'GET',
-                f"https://api.notion.com/v1/databases/{db_id}"
+                "GET", f"https://api.notion.com/v1/databases/{db_id}"
             )
 
             if response.status_code == 200:
@@ -49,13 +50,13 @@ def investigate_database_access():
 
                 # Extract key information
                 title = "Unknown"
-                if 'title' in db_data and db_data['title']:
-                    title_parts = [t.get('text', {}).get('content', '') for t in db_data['title']]
-                    title = ''.join(title_parts) or "Untitled"
+                if "title" in db_data and db_data["title"]:
+                    title_parts = [t.get("text", {}).get("content", "") for t in db_data["title"]]
+                    title = "".join(title_parts) or "Untitled"
 
-                url = db_data.get('url', 'No URL found')
-                parent = db_data.get('parent', {})
-                created_time = db_data.get('created_time', 'Unknown')
+                url = db_data.get("url", "No URL found")
+                parent = db_data.get("parent", {})
+                created_time = db_data.get("created_time", "Unknown")
 
                 print(f"   ✅ Database found: '{title}'")
                 print(f"   📝 Database URL: {url}")
@@ -63,17 +64,17 @@ def investigate_database_access():
                 print(f"   📅 Created: {created_time}")
 
                 # Check properties count
-                properties = db_data.get('properties', {})
+                properties = db_data.get("properties", {})
                 print(f"   📊 Properties: {len(properties)} fields")
 
                 # Try to construct proper Notion URL
-                if url and url != 'No URL found':
+                if url and url != "No URL found":
                     print(f"   🔗 Shareable URL: {url}")
                 else:
                     # Construct URL manually
                     workspace_url = "https://www.notion.so/verdigris"
                     # Remove hyphens from database ID for URL
-                    clean_id = db_id.replace('-', '')
+                    clean_id = db_id.replace("-", "")
                     constructed_url = f"{workspace_url}/{clean_id}"
                     print(f"   🔗 Constructed URL: {constructed_url}")
 
@@ -99,10 +100,10 @@ def investigate_database_access():
         try:
             # Try to query database
             url = f"https://api.notion.com/v1/databases/{db_id}/query"
-            response = notion_client._make_request('POST', url, json={'page_size': 5})
+            response = notion_client._make_request("POST", url, json={"page_size": 5})
 
             if response.status_code == 200:
-                results = response.json().get('results', [])
+                results = response.json().get("results", [])
                 total_count = len(results)
 
                 print(f"   ✅ Data access successful: {total_count} items returned")
@@ -110,19 +111,21 @@ def investigate_database_access():
                 if results:
                     # Show first item details
                     first_item = results[0]
-                    item_id = first_item.get('id', 'unknown')
-                    item_url = first_item.get('url', 'No URL')
-                    created_time = first_item.get('created_time', 'Unknown')
+                    item_id = first_item.get("id", "unknown")
+                    item_url = first_item.get("url", "No URL")
+                    created_time = first_item.get("created_time", "Unknown")
 
                     print(f"   📄 Sample item ID: {item_id}")
                     print(f"   🔗 Sample item URL: {item_url}")
 
                     # Try to get item title
-                    props = first_item.get('properties', {})
+                    props = first_item.get("properties", {})
                     for prop_name, prop_data in props.items():
-                        if prop_data.get('type') == 'title' and prop_data.get('title'):
-                            title_parts = [t.get('text', {}).get('content', '') for t in prop_data['title']]
-                            title = ''.join(title_parts)
+                        if prop_data.get("type") == "title" and prop_data.get("title"):
+                            title_parts = [
+                                t.get("text", {}).get("content", "") for t in prop_data["title"]
+                            ]
+                            title = "".join(title_parts)
                             if title:
                                 print(f"   📝 Sample item title: '{title}'")
                                 break
@@ -142,12 +145,12 @@ def investigate_database_access():
 
     try:
         # Try to get current user info (tests basic API access)
-        response = notion_client._make_request('GET', 'https://api.notion.com/v1/users/me')
+        response = notion_client._make_request("GET", "https://api.notion.com/v1/users/me")
 
         if response.status_code == 200:
             user_data = response.json()
-            user_name = user_data.get('name', 'Unknown')
-            user_type = user_data.get('type', 'Unknown')
+            user_name = user_data.get("name", "Unknown")
+            user_type = user_data.get("type", "Unknown")
 
             print(f"   ✅ API access working")
             print(f"   👤 Integration user: {user_name} ({user_type})")
@@ -180,6 +183,7 @@ def investigate_database_access():
     print("   → Navigate to each database")
     print("   → Copy the actual URL from your browser")
     print("   → These are the URLs that will work for sharing")
+
 
 if __name__ == "__main__":
     investigate_database_access()

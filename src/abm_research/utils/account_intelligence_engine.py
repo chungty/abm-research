@@ -32,25 +32,25 @@ class AccountIntelligence:
 
     # Leadership & Decision Makers
     recent_leadership_changes: str = ""  # "New CTO hired in Q4 2024"
-    key_decision_makers: str = ""        # "CTO: John Smith, VP Eng: Sarah Chen"
+    key_decision_makers: str = ""  # "CTO: John Smith, VP Eng: Sarah Chen"
 
     # Growth & Funding Signals
-    recent_funding: str = ""             # "Series C $50M led by Andreessen Horowitz"
-    growth_stage: str = "Unknown"        # Startup, Scale-Up, Growth, Mature, Enterprise
-    hiring_velocity: str = ""            # "20+ engineering hires in last 6 months"
+    recent_funding: str = ""  # "Series C $50M led by Andreessen Horowitz"
+    growth_stage: str = "Unknown"  # Startup, Scale-Up, Growth, Mature, Enterprise
+    hiring_velocity: str = ""  # "20+ engineering hires in last 6 months"
 
     # Technology Intelligence
-    current_tech_stack: str = ""         # "AWS, Kubernetes, PostgreSQL, React"
-    competitor_tools: str = ""           # "Currently using DataDog, considering alternatives"
+    current_tech_stack: str = ""  # "AWS, Kubernetes, PostgreSQL, React"
+    competitor_tools: str = ""  # "Currently using DataDog, considering alternatives"
 
     # Engagement Opportunities
-    recent_announcements: str = ""       # "Launched new AI platform, expanded to EU"
-    conversation_triggers: str = ""      # "Scaling challenges, power optimization needs"
+    recent_announcements: str = ""  # "Launched new AI platform, expanded to EU"
+    conversation_triggers: str = ""  # "Scaling challenges, power optimization needs"
 
     # Metadata
-    intelligence_date: str = ""          # When this intelligence was gathered
-    data_sources: List[str] = None       # ["linkedin", "website", "news", "jobs"]
-    confidence_score: float = 0.0        # 0-100 overall confidence in data quality
+    intelligence_date: str = ""  # When this intelligence was gathered
+    data_sources: List[str] = None  # ["linkedin", "website", "news", "jobs"]
+    confidence_score: float = 0.0  # 0-100 overall confidence in data quality
 
     def __post_init__(self):
         if self.data_sources is None:
@@ -69,9 +69,9 @@ class AccountIntelligenceEngine:
         self.logger = logging.getLogger(__name__)
         self.cache = {}  # Simple in-memory cache for this session
         self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
-        })
+        self.session.headers.update(
+            {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+        )
 
         # Load configuration
         self._load_intelligence_config()
@@ -85,63 +85,156 @@ class AccountIntelligenceEngine:
                 "Scale-Up": (51, 200),
                 "Growth": (201, 1000),
                 "Mature": (1001, 5000),
-                "Enterprise": (5001, float('inf'))
+                "Enterprise": (5001, float("inf")),
             },
-
             # Physical data center infrastructure keywords (Verdigris focus)
             "infrastructure_keywords": {
                 # GPU Infrastructure & AI Hardware
-                "gpu_infrastructure": ["NVIDIA", "AMD", "GPU cluster", "H100", "A100", "V100",
-                                     "DGX", "HGX", "Tesla", "RTX", "Quadro", "GPU farm",
-                                     "AI cluster", "ML infrastructure", "CUDA", "ROCm"],
-
+                "gpu_infrastructure": [
+                    "NVIDIA",
+                    "AMD",
+                    "GPU cluster",
+                    "H100",
+                    "A100",
+                    "V100",
+                    "DGX",
+                    "HGX",
+                    "Tesla",
+                    "RTX",
+                    "Quadro",
+                    "GPU farm",
+                    "AI cluster",
+                    "ML infrastructure",
+                    "CUDA",
+                    "ROCm",
+                ],
                 # Physical Power Infrastructure
-                "power_systems": ["UPS", "Uninterruptible Power Supply", "APC", "Eaton",
-                                "Schneider Electric", "Vertiv", "Liebert", "PDU",
-                                "Power Distribution Unit", "Rack PDU", "power monitoring",
-                                "power management", "power meters", "energy monitoring"],
-
+                "power_systems": [
+                    "UPS",
+                    "Uninterruptible Power Supply",
+                    "APC",
+                    "Eaton",
+                    "Schneider Electric",
+                    "Vertiv",
+                    "Liebert",
+                    "PDU",
+                    "Power Distribution Unit",
+                    "Rack PDU",
+                    "power monitoring",
+                    "power management",
+                    "power meters",
+                    "energy monitoring",
+                ],
                 # Cooling & Environmental
-                "cooling_systems": ["CRAC", "CRAH", "Computer Room Air", "precision cooling",
-                                  "liquid cooling", "immersion cooling", "Vertiv cooling",
-                                  "Schneider cooling", "Liebert cooling", "data center cooling",
-                                  "thermal management", "environmental monitoring"],
-
+                "cooling_systems": [
+                    "CRAC",
+                    "CRAH",
+                    "Computer Room Air",
+                    "precision cooling",
+                    "liquid cooling",
+                    "immersion cooling",
+                    "Vertiv cooling",
+                    "Schneider cooling",
+                    "Liebert cooling",
+                    "data center cooling",
+                    "thermal management",
+                    "environmental monitoring",
+                ],
                 # DCIM & BMS Software
-                "dcim_software": ["DCIM", "Data Center Infrastructure Management",
-                                "StruxureWare", "Schneider Electric DCIM", "Vertiv Trellis",
-                                "Nlyte", "Sunbird", "CA DCIM", "Device42", "Raritan DCIM",
-                                "BMS", "Building Management System", "facility management"],
-
+                "dcim_software": [
+                    "DCIM",
+                    "Data Center Infrastructure Management",
+                    "StruxureWare",
+                    "Schneider Electric DCIM",
+                    "Vertiv Trellis",
+                    "Nlyte",
+                    "Sunbird",
+                    "CA DCIM",
+                    "Device42",
+                    "Raritan DCIM",
+                    "BMS",
+                    "Building Management System",
+                    "facility management",
+                ],
                 # Network & Server Infrastructure
-                "server_infrastructure": ["Dell PowerEdge", "HPE ProLiant", "Cisco UCS",
-                                        "Supermicro", "rack servers", "blade servers",
-                                        "hyperconverged", "server room", "data center",
-                                        "colocation", "colo", "edge computing"],
-
+                "server_infrastructure": [
+                    "Dell PowerEdge",
+                    "HPE ProLiant",
+                    "Cisco UCS",
+                    "Supermicro",
+                    "rack servers",
+                    "blade servers",
+                    "hyperconverged",
+                    "server room",
+                    "data center",
+                    "colocation",
+                    "colo",
+                    "edge computing",
+                ],
                 # Storage & Backup Power
-                "storage_power": ["NetApp", "EMC", "Pure Storage", "battery backup",
-                                "flywheel", "generator", "diesel generator", "fuel cells",
-                                "energy storage", "backup power", "critical power"],
-
+                "storage_power": [
+                    "NetApp",
+                    "EMC",
+                    "Pure Storage",
+                    "battery backup",
+                    "flywheel",
+                    "generator",
+                    "diesel generator",
+                    "fuel cells",
+                    "energy storage",
+                    "backup power",
+                    "critical power",
+                ],
                 # Data Center Vendors
-                "infrastructure_vendors": ["Schneider Electric", "APC by Schneider", "Vertiv",
-                                         "Eaton", "Liebert", "Rittal", "Chatsworth Products",
-                                         "nVent", "Panduit", "CommScope", "Raritan", "Server Technology"]
+                "infrastructure_vendors": [
+                    "Schneider Electric",
+                    "APC by Schneider",
+                    "Vertiv",
+                    "Eaton",
+                    "Liebert",
+                    "Rittal",
+                    "Chatsworth Products",
+                    "nVent",
+                    "Panduit",
+                    "CommScope",
+                    "Raritan",
+                    "Server Technology",
+                ],
             },
-
             # Funding stage keywords
-            "funding_keywords": ["Series A", "Series B", "Series C", "Series D",
-                               "seed funding", "venture capital", "raised", "funding round",
-                               "investment", "valuation", "IPO", "acquisition"],
-
+            "funding_keywords": [
+                "Series A",
+                "Series B",
+                "Series C",
+                "Series D",
+                "seed funding",
+                "venture capital",
+                "raised",
+                "funding round",
+                "investment",
+                "valuation",
+                "IPO",
+                "acquisition",
+            ],
             # Leadership change indicators
-            "leadership_keywords": ["appointed", "hired", "joined", "new", "CTO", "CIO",
-                                  "VP", "Chief", "Head of", "Director", "promoted"]
+            "leadership_keywords": [
+                "appointed",
+                "hired",
+                "joined",
+                "new",
+                "CTO",
+                "CIO",
+                "VP",
+                "Chief",
+                "Head of",
+                "Director",
+                "promoted",
+            ],
         }
 
-    def gather_account_intelligence(self, company_name: str, company_domain: str,
-                                  apollo_data: Optional[Dict] = None) -> AccountIntelligence:
+    def gather_account_intelligence(
+        self, company_name: str, company_domain: str, apollo_data: Optional[Dict] = None
+    ) -> AccountIntelligence:
         """
         Main entry point for comprehensive account intelligence gathering
 
@@ -167,10 +260,12 @@ class AccountIntelligenceEngine:
         # Parallel intelligence gathering for performance
         with ThreadPoolExecutor(max_workers=4) as executor:
             futures = {
-                executor.submit(self._analyze_company_website, company_domain, company_name): "website",
+                executor.submit(
+                    self._analyze_company_website, company_domain, company_name
+                ): "website",
                 executor.submit(self._search_company_news, company_name): "news",
                 executor.submit(self._analyze_job_postings, company_name): "jobs",
-                executor.submit(self._search_linkedin_company, company_name): "linkedin"
+                executor.submit(self._search_linkedin_company, company_name): "linkedin",
             }
 
             results = {}
@@ -194,7 +289,9 @@ class AccountIntelligenceEngine:
 
         duration = time.time() - start_time
         self.logger.info(f"✅ Account intelligence gathered in {duration:.2f}s")
-        self.logger.info(f"📊 Sources: {len(intelligence.data_sources)}, Confidence: {intelligence.confidence_score:.1f}")
+        self.logger.info(
+            f"📊 Sources: {len(intelligence.data_sources)}, Confidence: {intelligence.confidence_score:.1f}"
+        )
 
         return intelligence
 
@@ -209,14 +306,10 @@ class AccountIntelligenceEngine:
                 f"https://{domain}/about",
                 f"https://{domain}/careers",
                 f"https://{domain}/news",
-                f"https://{domain}/blog"
+                f"https://{domain}/blog",
             ]
 
-            website_data = {
-                "tech_stack": [],
-                "announcements": [],
-                "hiring_signals": []
-            }
+            website_data = {"tech_stack": [], "announcements": [], "hiring_signals": []}
 
             for url in pages_to_check:
                 try:
@@ -234,7 +327,7 @@ class AccountIntelligenceEngine:
                             r"(announced|launched|released|unveiled)[\s\w]*in\s+202[3-4]",
                             r"new\s+(product|platform|service|feature)",
                             r"expanded?\s+to\s+[\w\s]+",
-                            r"partnership\s+with\s+[\w\s]+"
+                            r"partnership\s+with\s+[\w\s]+",
                         ]
 
                         for pattern in announcement_patterns:
@@ -243,9 +336,13 @@ class AccountIntelligenceEngine:
 
                         # Hiring velocity signals
                         if "careers" in url or "jobs" in url:
-                            job_count = len(re.findall(r'(engineer|developer|software|technical)', content))
+                            job_count = len(
+                                re.findall(r"(engineer|developer|software|technical)", content)
+                            )
                             if job_count > 10:
-                                website_data["hiring_signals"].append(f"10+ technical positions open")
+                                website_data["hiring_signals"].append(
+                                    f"10+ technical positions open"
+                                )
 
                 except requests.RequestException:
                     continue  # Skip this page if it fails
@@ -262,18 +359,14 @@ class AccountIntelligenceEngine:
             # This would ideally use a news API like NewsAPI, Google News API, etc.
             # For now, implementing a basic search structure
 
-            news_data = {
-                "funding_events": [],
-                "leadership_changes": [],
-                "major_announcements": []
-            }
+            news_data = {"funding_events": [], "leadership_changes": [], "major_announcements": []}
 
             # Simulate news search results (in production, use real news APIs)
             search_queries = [
                 f'"{company_name}" funding raised',
                 f'"{company_name}" Series A B C',
                 f'"{company_name}" hired CTO CIO VP',
-                f'"{company_name}" expansion launch'
+                f'"{company_name}" expansion launch',
             ]
 
             # In a real implementation, you would:
@@ -294,11 +387,7 @@ class AccountIntelligenceEngine:
     def _analyze_job_postings(self, company_name: str) -> Dict:
         """Analyze job postings for hiring velocity and tech needs"""
         try:
-            jobs_data = {
-                "hiring_velocity": "",
-                "tech_requirements": [],
-                "growth_indicators": []
-            }
+            jobs_data = {"hiring_velocity": "", "tech_requirements": [], "growth_indicators": []}
 
             # In production, this would query:
             # - LinkedIn Jobs API
@@ -318,11 +407,7 @@ class AccountIntelligenceEngine:
     def _search_linkedin_company(self, company_name: str) -> Dict:
         """Search LinkedIn for company page intelligence"""
         try:
-            linkedin_data = {
-                "leadership_updates": [],
-                "company_updates": [],
-                "employee_growth": ""
-            }
+            linkedin_data = {"leadership_updates": [], "company_updates": [], "employee_growth": ""}
 
             # In production, this would use LinkedIn Company API or web scraping
             # to gather:
@@ -339,8 +424,9 @@ class AccountIntelligenceEngine:
             self.logger.warning(f"LinkedIn search failed for {company_name}: {e}")
             return {}
 
-    def _merge_intelligence_results(self, intelligence: AccountIntelligence,
-                                  results: Dict, apollo_data: Optional[Dict]):
+    def _merge_intelligence_results(
+        self, intelligence: AccountIntelligence, results: Dict, apollo_data: Optional[Dict]
+    ):
         """Merge all intelligence sources into final result"""
 
         # Leadership intelligence
@@ -364,14 +450,38 @@ class AccountIntelligenceEngine:
             infrastructure_list = list(set(results["website"]["tech_stack"]))  # Remove duplicates
 
             # Prioritize GPU and power infrastructure for Verdigris sales
-            gpu_infrastructure = [item for item in infrastructure_list
-                                if any(gpu_term in item.lower() for gpu_term in ["nvidia", "amd", "gpu", "h100", "a100", "dgx"])]
-            power_infrastructure = [item for item in infrastructure_list
-                                  if any(power_term in item.lower() for power_term in ["ups", "pdu", "apc", "schneider", "vertiv", "power"])]
-            cooling_infrastructure = [item for item in infrastructure_list
-                                    if any(cooling_term in item.lower() for cooling_term in ["crac", "crah", "cooling", "thermal"])]
-            dcim_software = [item for item in infrastructure_list
-                           if any(dcim_term in item.lower() for dcim_term in ["dcim", "struxure", "trellis", "nlyte"])]
+            gpu_infrastructure = [
+                item
+                for item in infrastructure_list
+                if any(
+                    gpu_term in item.lower()
+                    for gpu_term in ["nvidia", "amd", "gpu", "h100", "a100", "dgx"]
+                )
+            ]
+            power_infrastructure = [
+                item
+                for item in infrastructure_list
+                if any(
+                    power_term in item.lower()
+                    for power_term in ["ups", "pdu", "apc", "schneider", "vertiv", "power"]
+                )
+            ]
+            cooling_infrastructure = [
+                item
+                for item in infrastructure_list
+                if any(
+                    cooling_term in item.lower()
+                    for cooling_term in ["crac", "crah", "cooling", "thermal"]
+                )
+            ]
+            dcim_software = [
+                item
+                for item in infrastructure_list
+                if any(
+                    dcim_term in item.lower()
+                    for dcim_term in ["dcim", "struxure", "trellis", "nlyte"]
+                )
+            ]
 
             # Build prioritized infrastructure summary
             prioritized_infrastructure = []
@@ -380,13 +490,16 @@ class AccountIntelligenceEngine:
             if power_infrastructure:
                 prioritized_infrastructure.extend(power_infrastructure[:3])  # Top 3 power findings
             if cooling_infrastructure:
-                prioritized_infrastructure.extend(cooling_infrastructure[:2])  # Top 2 cooling findings
+                prioritized_infrastructure.extend(
+                    cooling_infrastructure[:2]
+                )  # Top 2 cooling findings
             if dcim_software:
                 prioritized_infrastructure.extend(dcim_software[:2])  # Top 2 DCIM findings
 
             # Add remaining infrastructure if we have space
-            other_infrastructure = [item for item in infrastructure_list
-                                  if item not in prioritized_infrastructure]
+            other_infrastructure = [
+                item for item in infrastructure_list if item not in prioritized_infrastructure
+            ]
             remaining_slots = max(0, 10 - len(prioritized_infrastructure))
             prioritized_infrastructure.extend(other_infrastructure[:remaining_slots])
 
@@ -443,12 +556,20 @@ class AccountIntelligenceEngine:
         """Convert intelligence to enhanced schema format with confidence indicators"""
 
         # Helper function to add confidence indicators
-        def format_with_confidence(value: str, field_searched: bool = True,
-                                 confidence: int = None, sources_searched: int = None) -> str:
+        def format_with_confidence(
+            value: str,
+            field_searched: bool = True,
+            confidence: int = None,
+            sources_searched: int = None,
+        ) -> str:
             if not field_searched:
                 return "N/A - not searched in this analysis"
             elif not value or value.strip() == "":
-                search_info = f"searched {sources_searched} sources" if sources_searched else "searched multiple sources"
+                search_info = (
+                    f"searched {sources_searched} sources"
+                    if sources_searched
+                    else "searched multiple sources"
+                )
                 conf_info = f"{confidence}% confidence" if confidence else "95% confidence"
                 return f"Not found ({search_info}, {conf_info})"
             else:
@@ -464,46 +585,46 @@ class AccountIntelligenceEngine:
                 intelligence.current_tech_stack,
                 True,
                 base_confidence + 5 if intelligence.current_tech_stack else None,
-                len([s for s in intelligence.data_sources if s in ['website', 'news']])
+                len([s for s in intelligence.data_sources if s in ["website", "news"]]),
             ),
             "Recent Leadership Changes": format_with_confidence(
                 intelligence.recent_leadership_changes,
                 True,
                 base_confidence if intelligence.recent_leadership_changes else None,
-                len([s for s in intelligence.data_sources if s in ['linkedin', 'news']])
+                len([s for s in intelligence.data_sources if s in ["linkedin", "news"]]),
             ),
             "Recent Funding": format_with_confidence(
                 intelligence.recent_funding,
                 True,
                 base_confidence + 10 if intelligence.recent_funding else None,
-                len([s for s in intelligence.data_sources if s in ['news', 'linkedin']])
+                len([s for s in intelligence.data_sources if s in ["news", "linkedin"]]),
             ),
             "Growth Stage": intelligence.growth_stage,  # Select field, no confidence needed
             "Hiring Velocity": format_with_confidence(
                 intelligence.hiring_velocity,
                 True,
                 base_confidence if intelligence.hiring_velocity else None,
-                len([s for s in intelligence.data_sources if s in ['website', 'jobs']])
+                len([s for s in intelligence.data_sources if s in ["website", "jobs"]]),
             ),
             "Key Decision Makers": format_with_confidence(
                 intelligence.key_decision_makers,
                 False,  # Not searched in basic intelligence gathering
                 None,
-                None
+                None,
             ),
             "Competitor Tools": format_with_confidence(
                 intelligence.competitor_tools,
                 False,  # Not searched in basic intelligence gathering
                 None,
-                None
+                None,
             ),
             "Recent Announcements": format_with_confidence(
                 intelligence.recent_announcements,
                 True,
                 base_confidence if intelligence.recent_announcements else None,
-                len([s for s in intelligence.data_sources if s in ['website', 'news']])
+                len([s for s in intelligence.data_sources if s in ["website", "news"]]),
             ),
-            "Conversation Triggers": self._generate_conversation_triggers(intelligence)
+            "Conversation Triggers": self._generate_conversation_triggers(intelligence),
         }
 
     def _generate_conversation_triggers(self, intelligence: AccountIntelligence) -> str:
@@ -513,13 +634,17 @@ class AccountIntelligenceEngine:
         # Infrastructure-based triggers (Verdigris focus)
         if intelligence.current_tech_stack:
             # Check for GPU infrastructure
-            if any(gpu_term in intelligence.current_tech_stack.lower()
-                   for gpu_term in ["nvidia", "gpu", "h100", "a100", "dgx"]):
+            if any(
+                gpu_term in intelligence.current_tech_stack.lower()
+                for gpu_term in ["nvidia", "gpu", "h100", "a100", "dgx"]
+            ):
                 triggers.append("GPU power monitoring and optimization opportunities")
 
             # Check for data center infrastructure
-            if any(dc_term in intelligence.current_tech_stack.lower()
-                   for dc_term in ["ups", "pdu", "data center", "server", "cooling"]):
+            if any(
+                dc_term in intelligence.current_tech_stack.lower()
+                for dc_term in ["ups", "pdu", "data center", "server", "cooling"]
+            ):
                 triggers.append("Data center power efficiency and monitoring needs")
 
         # Growth-based triggers

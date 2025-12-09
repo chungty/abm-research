@@ -13,9 +13,11 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 from collections import defaultdict, Counter
 
+
 @dataclass
 class BuyingSignalTrend:
     """Trend analysis for buying signals"""
+
     signal_category: str
     trend_direction: str  # "increasing", "decreasing", "stable"
     trend_strength: float  # 0-1 scale
@@ -23,9 +25,11 @@ class BuyingSignalTrend:
     recency_factor: float  # How recent the signals are
     market_context: str  # Broader market trend explanation
 
+
 @dataclass
 class BuyingSignalPriority:
     """Priority scoring and explanation"""
+
     signal_id: str
     priority_score: int  # 1-100 scale
     priority_level: str  # "Critical", "High", "Medium", "Low"
@@ -34,15 +38,18 @@ class BuyingSignalPriority:
     confidence_reasoning: str  # Why this confidence level
     sales_angle: str  # Recommended approach angle
 
+
 @dataclass
 class EnhancedBuyingSignal:
     """Enhanced buying signal with trend analysis and priority"""
+
     original_signal: Dict
     trend_analysis: BuyingSignalTrend
     priority_analysis: BuyingSignalPriority
     competitive_context: str  # Market timing considerations
     verdigris_relevance: str  # Specific Verdigris angle
     recommended_actions: List[str]  # Specific next steps
+
 
 class EnhancedBuyingSignalsAnalyzer:
     """
@@ -55,35 +62,36 @@ class EnhancedBuyingSignalsAnalyzer:
 
         # Signal category mappings for trend analysis
         self.signal_categories = {
-            'funding': ['funding', 'investment', 'capital', 'series', 'venture'],
-            'expansion': ['expansion', 'scaling', 'growth', 'hiring', 'new office'],
-            'technology': ['cloud', 'AI', 'infrastructure', 'platform', 'modernization'],
-            'partnership': ['partnership', 'acquisition', 'merger', 'collaboration'],
-            'leadership': ['CEO', 'CTO', 'VP', 'executive', 'leadership'],
-            'product': ['product launch', 'new feature', 'release', 'innovation'],
-            'market': ['market entry', 'competitive', 'industry'],
-            'compliance': ['compliance', 'regulation', 'security', 'audit']
+            "funding": ["funding", "investment", "capital", "series", "venture"],
+            "expansion": ["expansion", "scaling", "growth", "hiring", "new office"],
+            "technology": ["cloud", "AI", "infrastructure", "platform", "modernization"],
+            "partnership": ["partnership", "acquisition", "merger", "collaboration"],
+            "leadership": ["CEO", "CTO", "VP", "executive", "leadership"],
+            "product": ["product launch", "new feature", "release", "innovation"],
+            "market": ["market entry", "competitive", "industry"],
+            "compliance": ["compliance", "regulation", "security", "audit"],
         }
 
         # Priority scoring weights
         self.priority_weights = {
-            'recency': 0.3,      # How recent the signal is
-            'relevance': 0.25,   # Relevance to Verdigris solutions
-            'urgency': 0.2,      # Market timing urgency
-            'size': 0.15,        # Company/opportunity size
-            'confidence': 0.1    # Signal confidence/reliability
+            "recency": 0.3,  # How recent the signal is
+            "relevance": 0.25,  # Relevance to Verdigris solutions
+            "urgency": 0.2,  # Market timing urgency
+            "size": 0.15,  # Company/opportunity size
+            "confidence": 0.1,  # Signal confidence/reliability
         }
 
         # Verdigris solution mappings
         self.verdigris_solutions = {
-            'energy_monitoring': ['energy', 'power', 'consumption', 'efficiency', 'sustainability'],
-            'ai_analytics': ['AI', 'analytics', 'machine learning', 'data', 'insights'],
-            'iot_platform': ['IoT', 'sensors', 'monitoring', 'devices', 'connected'],
-            'cost_optimization': ['cost', 'optimization', 'savings', 'efficiency', 'reduction']
+            "energy_monitoring": ["energy", "power", "consumption", "efficiency", "sustainability"],
+            "ai_analytics": ["AI", "analytics", "machine learning", "data", "insights"],
+            "iot_platform": ["IoT", "sensors", "monitoring", "devices", "connected"],
+            "cost_optimization": ["cost", "optimization", "savings", "efficiency", "reduction"],
         }
 
-    def analyze_buying_signals(self, trigger_events: List[Dict],
-                             account_data: Dict = None) -> List[EnhancedBuyingSignal]:
+    def analyze_buying_signals(
+        self, trigger_events: List[Dict], account_data: Dict = None
+    ) -> List[EnhancedBuyingSignal]:
         """
         Analyze buying signals with enhanced trend analysis and priority scoring
         """
@@ -121,7 +129,7 @@ class EnhancedBuyingSignalsAnalyzer:
                     priority_analysis=priority,
                     competitive_context=competitive_context,
                     verdigris_relevance=verdigris_relevance,
-                    recommended_actions=recommended_actions
+                    recommended_actions=recommended_actions,
                 )
 
                 enhanced_signals.append(enhanced_signal)
@@ -134,9 +142,15 @@ class EnhancedBuyingSignalsAnalyzer:
         enhanced_signals.sort(key=lambda x: x.priority_analysis.priority_score, reverse=True)
 
         print(f"✅ Enhanced analysis complete:")
-        print(f"   🔥 Critical signals: {len([s for s in enhanced_signals if s.priority_analysis.priority_level == 'Critical'])}")
-        print(f"   📈 High priority: {len([s for s in enhanced_signals if s.priority_analysis.priority_level == 'High'])}")
-        print(f"   📊 Medium priority: {len([s for s in enhanced_signals if s.priority_analysis.priority_level == 'Medium'])}")
+        print(
+            f"   🔥 Critical signals: {len([s for s in enhanced_signals if s.priority_analysis.priority_level == 'Critical'])}"
+        )
+        print(
+            f"   📈 High priority: {len([s for s in enhanced_signals if s.priority_analysis.priority_level == 'High'])}"
+        )
+        print(
+            f"   📊 Medium priority: {len([s for s in enhanced_signals if s.priority_analysis.priority_level == 'Medium'])}"
+        )
 
         return enhanced_signals
 
@@ -152,16 +166,17 @@ class EnhancedBuyingSignalsAnalyzer:
 
     def _categorize_single_signal(self, event: Dict) -> str:
         """Categorize a single signal based on its content"""
-        description = event.get('description', '').lower()
+        description = event.get("description", "").lower()
 
         for category, keywords in self.signal_categories.items():
             if any(keyword.lower() in description for keyword in keywords):
                 return category
 
-        return 'general'
+        return "general"
 
-    def _analyze_trends(self, signals_by_category: Dict[str, List[Dict]],
-                       all_events: List[Dict]) -> Dict[str, BuyingSignalTrend]:
+    def _analyze_trends(
+        self, signals_by_category: Dict[str, List[Dict]], all_events: List[Dict]
+    ) -> Dict[str, BuyingSignalTrend]:
         """Analyze trends across signal categories"""
         trends = {}
 
@@ -174,11 +189,13 @@ class EnhancedBuyingSignalsAnalyzer:
             recency_scores = []
 
             for signal in signals:
-                detected_date = signal.get('detected_date')
+                detected_date = signal.get("detected_date")
                 if detected_date:
                     try:
                         if isinstance(detected_date, str):
-                            signal_time = datetime.fromisoformat(detected_date.replace('Z', '+00:00'))
+                            signal_time = datetime.fromisoformat(
+                                detected_date.replace("Z", "+00:00")
+                            )
                         else:
                             signal_time = detected_date
 
@@ -212,7 +229,7 @@ class EnhancedBuyingSignalsAnalyzer:
                 trend_strength=trend_strength,
                 frequency_change=signal_count * 10,  # Simplified frequency metric
                 recency_factor=avg_recency,
-                market_context=market_context
+                market_context=market_context,
             )
 
         return trends
@@ -225,11 +242,12 @@ class EnhancedBuyingSignalsAnalyzer:
             trend_strength=0.3,
             frequency_change=10.0,
             recency_factor=0.5,
-            market_context=f"New {category} activity detected - monitor for developing trends"
+            market_context=f"New {category} activity detected - monitor for developing trends",
         )
 
-    def _calculate_priority_analysis(self, event: Dict, account_data: Dict,
-                                   trend: BuyingSignalTrend) -> BuyingSignalPriority:
+    def _calculate_priority_analysis(
+        self, event: Dict, account_data: Dict, trend: BuyingSignalTrend
+    ) -> BuyingSignalPriority:
         """Calculate comprehensive priority analysis for a signal"""
 
         # Base priority components
@@ -237,15 +255,15 @@ class EnhancedBuyingSignalsAnalyzer:
         relevance_score = self._calculate_relevance_score(event)
         urgency_score = self._calculate_urgency_score(event, trend)
         size_score = self._calculate_size_score(event, account_data)
-        confidence_score = event.get('confidence_score', 70) / 100
+        confidence_score = event.get("confidence_score", 70) / 100
 
         # Weighted priority calculation
         priority_score = int(
-            recency_score * self.priority_weights['recency'] * 100 +
-            relevance_score * self.priority_weights['relevance'] * 100 +
-            urgency_score * self.priority_weights['urgency'] * 100 +
-            size_score * self.priority_weights['size'] * 100 +
-            confidence_score * self.priority_weights['confidence'] * 100
+            recency_score * self.priority_weights["recency"] * 100
+            + relevance_score * self.priority_weights["relevance"] * 100
+            + urgency_score * self.priority_weights["urgency"] * 100
+            + size_score * self.priority_weights["size"] * 100
+            + confidence_score * self.priority_weights["confidence"] * 100
         )
 
         # Determine priority level
@@ -262,7 +280,9 @@ class EnhancedBuyingSignalsAnalyzer:
         urgency_factors = self._identify_urgency_factors(event, trend)
 
         # Timing recommendation
-        timing_recommendation = self._generate_timing_recommendation(priority_level, urgency_factors)
+        timing_recommendation = self._generate_timing_recommendation(
+            priority_level, urgency_factors
+        )
 
         # Confidence reasoning
         confidence_reasoning = self._explain_confidence_reasoning(event, priority_score)
@@ -271,24 +291,24 @@ class EnhancedBuyingSignalsAnalyzer:
         sales_angle = self._determine_sales_angle(event, trend)
 
         return BuyingSignalPriority(
-            signal_id=event.get('id', 'unknown'),
+            signal_id=event.get("id", "unknown"),
             priority_score=priority_score,
             priority_level=priority_level,
             urgency_factors=urgency_factors,
             timing_recommendation=timing_recommendation,
             confidence_reasoning=confidence_reasoning,
-            sales_angle=sales_angle
+            sales_angle=sales_angle,
         )
 
     def _calculate_recency_score(self, event: Dict) -> float:
         """Calculate recency score (0-1) based on when signal was detected"""
-        detected_date = event.get('detected_date')
+        detected_date = event.get("detected_date")
         if not detected_date:
             return 0.3  # Default for missing date
 
         try:
             if isinstance(detected_date, str):
-                signal_time = datetime.fromisoformat(detected_date.replace('Z', '+00:00'))
+                signal_time = datetime.fromisoformat(detected_date.replace("Z", "+00:00"))
             else:
                 signal_time = detected_date
 
@@ -310,7 +330,7 @@ class EnhancedBuyingSignalsAnalyzer:
 
     def _calculate_relevance_score(self, event: Dict) -> float:
         """Calculate relevance score to Verdigris solutions"""
-        description = event.get('description', '').lower()
+        description = event.get("description", "").lower()
 
         relevance_score = 0.0
         total_solutions = len(self.verdigris_solutions)
@@ -333,8 +353,8 @@ class EnhancedBuyingSignalsAnalyzer:
             base_urgency += 0.1
 
         # Boost for time-sensitive signal types
-        description = event.get('description', '').lower()
-        urgent_keywords = ['funding', 'hiring', 'expansion', 'new', 'launch', 'merger']
+        description = event.get("description", "").lower()
+        urgent_keywords = ["funding", "hiring", "expansion", "new", "launch", "merger"]
 
         for keyword in urgent_keywords:
             if keyword in description:
@@ -348,7 +368,7 @@ class EnhancedBuyingSignalsAnalyzer:
         if not account_data:
             return 0.5
 
-        employee_count = account_data.get('employee_count', 50)
+        employee_count = account_data.get("employee_count", 50)
 
         if employee_count >= 500:
             return 1.0
@@ -363,7 +383,7 @@ class EnhancedBuyingSignalsAnalyzer:
         """Identify specific factors creating urgency"""
         factors = []
 
-        description = event.get('description', '').lower()
+        description = event.get("description", "").lower()
 
         if trend.recency_factor > 0.8:
             factors.append("Very recent activity (within 3 days)")
@@ -371,18 +391,20 @@ class EnhancedBuyingSignalsAnalyzer:
         if trend.trend_direction == "increasing":
             factors.append(f"Increasing {trend.signal_category} activity trend")
 
-        if 'funding' in description:
+        if "funding" in description:
             factors.append("New funding creates budget availability")
 
-        if any(word in description for word in ['new', 'launch', 'expansion']):
+        if any(word in description for word in ["new", "launch", "expansion"]):
             factors.append("Growth initiatives indicate infrastructure needs")
 
-        if any(word in description for word in ['hiring', 'team', 'scale']):
+        if any(word in description for word in ["hiring", "team", "scale"]):
             factors.append("Scaling operations require monitoring solutions")
 
         return factors or ["Standard market timing considerations"]
 
-    def _generate_timing_recommendation(self, priority_level: str, urgency_factors: List[str]) -> str:
+    def _generate_timing_recommendation(
+        self, priority_level: str, urgency_factors: List[str]
+    ) -> str:
         """Generate timing recommendation for outreach"""
         if priority_level == "Critical":
             return "Contact within 24-48 hours - strike while hot"
@@ -395,12 +417,12 @@ class EnhancedBuyingSignalsAnalyzer:
 
     def _explain_confidence_reasoning(self, event: Dict, priority_score: int) -> str:
         """Explain confidence level reasoning"""
-        confidence = event.get('confidence', 'Medium')
-        source_type = event.get('source_type', 'Unknown')
+        confidence = event.get("confidence", "Medium")
+        source_type = event.get("source_type", "Unknown")
 
-        if confidence == 'High' and priority_score >= 70:
+        if confidence == "High" and priority_score >= 70:
             return f"High confidence from {source_type} source with strong priority indicators"
-        elif confidence == 'High':
+        elif confidence == "High":
             return f"Reliable {source_type} source provides high confidence"
         elif priority_score >= 80:
             return "Multiple priority factors increase confidence despite medium source reliability"
@@ -409,18 +431,18 @@ class EnhancedBuyingSignalsAnalyzer:
 
     def _determine_sales_angle(self, event: Dict, trend: BuyingSignalTrend) -> str:
         """Determine recommended sales approach angle"""
-        description = event.get('description', '').lower()
+        description = event.get("description", "").lower()
         category = trend.signal_category
 
-        if 'funding' in description:
+        if "funding" in description:
             return "Focus on ROI and scalability - they have budget for infrastructure investment"
-        elif category == 'technology':
+        elif category == "technology":
             return "Lead with technical capabilities and modernization benefits"
-        elif category == 'expansion':
+        elif category == "expansion":
             return "Emphasize monitoring and efficiency for new operations"
-        elif category == 'leadership':
+        elif category == "leadership":
             return "Executive-level value proposition focusing on strategic outcomes"
-        elif 'hiring' in description:
+        elif "hiring" in description:
             return "Position as solution for managing increased operational complexity"
         else:
             return "Consultative approach - understand their current challenges first"
@@ -428,35 +450,38 @@ class EnhancedBuyingSignalsAnalyzer:
     def _analyze_competitive_context(self, event: Dict, category: str) -> str:
         """Analyze competitive timing and market context"""
         contexts = {
-            'funding': "Newly funded companies prioritize infrastructure investments - ideal timing before they commit to alternatives",
-            'expansion': "Expansion phases create urgency for monitoring solutions - competitors will be targeting this opportunity",
-            'technology': "Technology modernization indicates openness to new solutions - window of opportunity before status quo sets",
-            'leadership': "Leadership changes create opportunity to introduce new vendor relationships",
-            'partnership': "Partnership announcements may indicate increased infrastructure needs or budget availability",
-            'product': "New product launches require additional monitoring and optimization capabilities"
+            "funding": "Newly funded companies prioritize infrastructure investments - ideal timing before they commit to alternatives",
+            "expansion": "Expansion phases create urgency for monitoring solutions - competitors will be targeting this opportunity",
+            "technology": "Technology modernization indicates openness to new solutions - window of opportunity before status quo sets",
+            "leadership": "Leadership changes create opportunity to introduce new vendor relationships",
+            "partnership": "Partnership announcements may indicate increased infrastructure needs or budget availability",
+            "product": "New product launches require additional monitoring and optimization capabilities",
         }
 
-        return contexts.get(category, "Standard competitive timing - monitor for additional signals")
+        return contexts.get(
+            category, "Standard competitive timing - monitor for additional signals"
+        )
 
     def _analyze_verdigris_relevance(self, event: Dict) -> str:
         """Analyze specific Verdigris solution relevance"""
-        description = event.get('description', '').lower()
+        description = event.get("description", "").lower()
 
-        if any(word in description for word in ['energy', 'power', 'sustainability']):
+        if any(word in description for word in ["energy", "power", "sustainability"]):
             return "Direct energy monitoring opportunity - core Verdigris value proposition"
-        elif any(word in description for word in ['AI', 'analytics', 'data']):
+        elif any(word in description for word in ["AI", "analytics", "data"]):
             return "AI analytics angle - position advanced monitoring insights"
-        elif any(word in description for word in ['iot', 'sensors', 'connected']):
+        elif any(word in description for word in ["iot", "sensors", "connected"]):
             return "IoT platform opportunity - emphasize connected monitoring ecosystem"
-        elif any(word in description for word in ['cost', 'efficiency', 'optimization']):
+        elif any(word in description for word in ["cost", "efficiency", "optimization"]):
             return "Cost optimization focus - highlight energy savings and ROI"
-        elif any(word in description for word in ['expansion', 'growth', 'scaling']):
+        elif any(word in description for word in ["expansion", "growth", "scaling"]):
             return "Growth enablement - monitoring infrastructure for new facilities"
         else:
             return "General infrastructure opportunity - explore specific monitoring needs"
 
-    def _generate_recommended_actions(self, event: Dict, priority: BuyingSignalPriority,
-                                    trend: BuyingSignalTrend) -> List[str]:
+    def _generate_recommended_actions(
+        self, event: Dict, priority: BuyingSignalPriority, trend: BuyingSignalTrend
+    ) -> List[str]:
         """Generate specific recommended actions"""
         actions = []
 
@@ -469,7 +494,7 @@ class EnhancedBuyingSignalsAnalyzer:
         if trend.trend_direction == "increasing":
             actions.append("📈 Emphasize timing and market momentum")
 
-        if event.get('source_url'):
+        if event.get("source_url"):
             actions.append("📰 Reference the specific news/source in outreach")
 
         actions.append("🤝 Research key contacts in relevant departments")
@@ -480,15 +505,17 @@ class EnhancedBuyingSignalsAnalyzer:
     def _generate_market_context(self, category: str, signals: List[Dict]) -> str:
         """Generate market context explanation"""
         contexts = {
-            'funding': f"VC funding activity creates infrastructure investment opportunities ({len(signals)} recent signals)",
-            'expansion': f"Market expansion trends indicate growth infrastructure needs ({len(signals)} expansion signals)",
-            'technology': f"Technology modernization wave across industry ({len(signals)} tech initiatives)",
-            'leadership': f"Leadership transition period creating vendor evaluation opportunities ({len(signals)} changes)",
-            'partnership': f"Partnership activity indicates resource availability ({len(signals)} announcements)",
-            'product': f"Product innovation cycle creating monitoring needs ({len(signals)} launches)"
+            "funding": f"VC funding activity creates infrastructure investment opportunities ({len(signals)} recent signals)",
+            "expansion": f"Market expansion trends indicate growth infrastructure needs ({len(signals)} expansion signals)",
+            "technology": f"Technology modernization wave across industry ({len(signals)} tech initiatives)",
+            "leadership": f"Leadership transition period creating vendor evaluation opportunities ({len(signals)} changes)",
+            "partnership": f"Partnership activity indicates resource availability ({len(signals)} announcements)",
+            "product": f"Product innovation cycle creating monitoring needs ({len(signals)} launches)",
         }
 
-        return contexts.get(category, f"General market activity in {category} category ({len(signals)} signals)")
+        return contexts.get(
+            category, f"General market activity in {category} category ({len(signals)} signals)"
+        )
 
     def generate_buying_signals_report(self, enhanced_signals: List[EnhancedBuyingSignal]) -> str:
         """Generate comprehensive buying signals analysis report"""
@@ -509,7 +536,9 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 ## 🔥 Critical Priority Signals
 """
 
-        critical_signals = [s for s in enhanced_signals if s.priority_analysis.priority_level == 'Critical']
+        critical_signals = [
+            s for s in enhanced_signals if s.priority_analysis.priority_level == "Critical"
+        ]
         for i, signal in enumerate(critical_signals[:3], 1):  # Top 3 critical
             report += f"""
 ### Signal {i}: {signal.original_signal.get('description', 'Unknown Signal')}
@@ -530,7 +559,9 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             categories.add(signal.trend_analysis.signal_category)
 
         for category in sorted(categories):
-            category_signals = [s for s in enhanced_signals if s.trend_analysis.signal_category == category]
+            category_signals = [
+                s for s in enhanced_signals if s.trend_analysis.signal_category == category
+            ]
             if category_signals:
                 trend = category_signals[0].trend_analysis
                 report += f"""
@@ -543,44 +574,49 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
         return report.strip()
 
-    def convert_to_dashboard_format(self, enhanced_signals: List[EnhancedBuyingSignal]) -> List[Dict]:
+    def convert_to_dashboard_format(
+        self, enhanced_signals: List[EnhancedBuyingSignal]
+    ) -> List[Dict]:
         """Convert enhanced signals to dashboard-friendly format"""
 
         dashboard_signals = []
 
         for signal in enhanced_signals:
             dashboard_signal = {
-                'id': signal.original_signal.get('id'),
-                'description': signal.original_signal.get('description'),
-                'priority_score': signal.priority_analysis.priority_score,
-                'priority_level': signal.priority_analysis.priority_level,
-                'urgency_factors': signal.priority_analysis.urgency_factors,
-                'timing_recommendation': signal.priority_analysis.timing_recommendation,
-                'sales_angle': signal.priority_analysis.sales_angle,
-                'trend_direction': signal.trend_analysis.trend_direction,
-                'trend_strength': signal.trend_analysis.trend_strength,
-                'verdigris_relevance': signal.verdigris_relevance,
-                'competitive_context': signal.competitive_context,
-                'recommended_actions': signal.recommended_actions,
-                'source_url': signal.original_signal.get('source_url'),
-                'confidence': signal.original_signal.get('confidence'),
-                'detected_date': signal.original_signal.get('detected_date'),
-                'market_context': signal.trend_analysis.market_context,
-                'confidence_reasoning': signal.priority_analysis.confidence_reasoning
+                "id": signal.original_signal.get("id"),
+                "description": signal.original_signal.get("description"),
+                "priority_score": signal.priority_analysis.priority_score,
+                "priority_level": signal.priority_analysis.priority_level,
+                "urgency_factors": signal.priority_analysis.urgency_factors,
+                "timing_recommendation": signal.priority_analysis.timing_recommendation,
+                "sales_angle": signal.priority_analysis.sales_angle,
+                "trend_direction": signal.trend_analysis.trend_direction,
+                "trend_strength": signal.trend_analysis.trend_strength,
+                "verdigris_relevance": signal.verdigris_relevance,
+                "competitive_context": signal.competitive_context,
+                "recommended_actions": signal.recommended_actions,
+                "source_url": signal.original_signal.get("source_url"),
+                "confidence": signal.original_signal.get("confidence"),
+                "detected_date": signal.original_signal.get("detected_date"),
+                "market_context": signal.trend_analysis.market_context,
+                "confidence_reasoning": signal.priority_analysis.confidence_reasoning,
             }
 
             dashboard_signals.append(dashboard_signal)
 
         return dashboard_signals
 
+
 # Export for use by other modules
 enhanced_buying_signals_analyzer = EnhancedBuyingSignalsAnalyzer()
+
 
 def main():
     """Test the enhanced buying signals analyzer"""
     # This would be called with real trigger events data
     print("🔍 Enhanced Buying Signals Analyzer initialized")
     print("💡 Use analyze_buying_signals() method to process trigger events")
+
 
 if __name__ == "__main__":
     main()

@@ -50,7 +50,7 @@ class StrategicPartnership:
     partnership_action: PartnershipAction = PartnershipAction.MONITOR
 
     # Relations
-    account: Optional['Account'] = None
+    account: Optional["Account"] = None
 
     # Metadata
     created_at: datetime = field(default_factory=datetime.now)
@@ -73,22 +73,24 @@ class StrategicPartnership:
             PartnershipCategory.RACKS: "Rack-level monitoring for precise capacity planning and right-sizing deployments",
             PartnershipCategory.GPUS: "High-density monitoring for AI workloads with predictive capacity planning for GPU clusters",
             PartnershipCategory.CRITICAL_FACILITIES: "Design-build integration opportunity to specify Verdigris monitoring in new facility construction",
-            PartnershipCategory.PROFESSIONAL_SERVICES: "Post-commissioning continuous validation and ongoing energy audit data provision"
+            PartnershipCategory.PROFESSIONAL_SERVICES: "Post-commissioning continuous validation and ongoing energy audit data provision",
         }
-        return angles.get(self.category, "General monitoring and optimization integration opportunity")
+        return angles.get(
+            self.category, "General monitoring and optimization integration opportunity"
+        )
 
     def _get_default_action(self) -> PartnershipAction:
         """Get default partnership action based on category priority"""
         high_priority_categories = [
             PartnershipCategory.DCIM,
             PartnershipCategory.GPUS,
-            PartnershipCategory.CRITICAL_FACILITIES
+            PartnershipCategory.CRITICAL_FACILITIES,
         ]
 
         medium_priority_categories = [
             PartnershipCategory.COOLING,
             PartnershipCategory.EMS,
-            PartnershipCategory.PROFESSIONAL_SERVICES
+            PartnershipCategory.PROFESSIONAL_SERVICES,
         ]
 
         if self.category in high_priority_categories:
@@ -99,9 +101,14 @@ class StrategicPartnership:
             return PartnershipAction.MONITOR
 
     @classmethod
-    def from_detection(cls, partner_name: str, category: PartnershipCategory,
-                      evidence: str, source_url: Optional[str] = None,
-                      confidence_modifier: float = 1.0) -> 'StrategicPartnership':
+    def from_detection(
+        cls,
+        partner_name: str,
+        category: PartnershipCategory,
+        evidence: str,
+        source_url: Optional[str] = None,
+        confidence_modifier: float = 1.0,
+    ) -> "StrategicPartnership":
         """Create partnership from detection with automatic confidence scoring"""
 
         # Determine confidence based on source and evidence quality
@@ -112,18 +119,26 @@ class StrategicPartnership:
             category=category,
             relationship_evidence=evidence,
             confidence=confidence,
-            evidence_url=source_url
+            evidence_url=source_url,
         )
 
     @staticmethod
-    def _determine_confidence(evidence: str, source_url: Optional[str], modifier: float) -> PartnershipConfidence:
+    def _determine_confidence(
+        evidence: str, source_url: Optional[str], modifier: float
+    ) -> PartnershipConfidence:
         """Determine confidence level based on evidence and source"""
         base_score = 50  # Medium by default
 
         # Boost for strong evidence keywords
         evidence_lower = evidence.lower()
-        high_confidence_terms = ['partnership', 'integration', 'deployment', 'contract', 'agreement']
-        medium_confidence_terms = ['using', 'implements', 'works with', 'powered by']
+        high_confidence_terms = [
+            "partnership",
+            "integration",
+            "deployment",
+            "contract",
+            "agreement",
+        ]
+        medium_confidence_terms = ["using", "implements", "works with", "powered by"]
 
         if any(term in evidence_lower for term in high_confidence_terms):
             base_score += 30
@@ -133,9 +148,9 @@ class StrategicPartnership:
         # Boost for reliable sources
         if source_url:
             url_lower = source_url.lower()
-            if any(domain in url_lower for domain in ['newsroom', 'press-release', 'case-study']):
+            if any(domain in url_lower for domain in ["newsroom", "press-release", "case-study"]):
                 base_score += 25
-            elif any(domain in url_lower for domain in ['linkedin.com', 'careers']):
+            elif any(domain in url_lower for domain in ["linkedin.com", "careers"]):
                 base_score += 15
 
         # Apply modifier
@@ -159,7 +174,7 @@ class StrategicPartnership:
             PartnershipCategory.EMS: 65,
             PartnershipCategory.PROFESSIONAL_SERVICES: 60,
             PartnershipCategory.DC_EQUIPMENT: 50,
-            PartnershipCategory.RACKS: 40
+            PartnershipCategory.RACKS: 40,
         }
 
         base_score = category_scores.get(self.category, 30)
@@ -174,11 +189,15 @@ class StrategicPartnership:
 
     def is_high_priority(self) -> bool:
         """Check if partnership requires immediate investigation"""
-        return (self.category in [
-            PartnershipCategory.DCIM,
-            PartnershipCategory.GPUS,
-            PartnershipCategory.CRITICAL_FACILITIES
-        ] and self.confidence != PartnershipConfidence.LOW)
+        return (
+            self.category
+            in [
+                PartnershipCategory.DCIM,
+                PartnershipCategory.GPUS,
+                PartnershipCategory.CRITICAL_FACILITIES,
+            ]
+            and self.confidence != PartnershipConfidence.LOW
+        )
 
     def get_co_sell_potential(self) -> str:
         """Get specific co-sell strategy based on partner and category"""
@@ -190,26 +209,33 @@ class StrategicPartnership:
             PartnershipCategory.EMS: f"Data enhancement: Upgrade {self.partner_name} EMS with Verdigris granular power intelligence",
             PartnershipCategory.PROFESSIONAL_SERVICES: f"Service extension: {self.partner_name} commissioning + Verdigris ongoing monitoring = continuous optimization",
             PartnershipCategory.DC_EQUIPMENT: f"Equipment intelligence: {self.partner_name} hardware + Verdigris monitoring = predictive maintenance capability",
-            PartnershipCategory.RACKS: f"Rack optimization: {self.partner_name} infrastructure + Verdigris per-rack monitoring = precise capacity planning"
+            PartnershipCategory.RACKS: f"Rack optimization: {self.partner_name} infrastructure + Verdigris per-rack monitoring = precise capacity planning",
         }
-        return strategies.get(self.category, f"Integration opportunity with {self.partner_name} {self.category.value} solutions")
+        return strategies.get(
+            self.category,
+            f"Integration opportunity with {self.partner_name} {self.category.value} solutions",
+        )
 
     def to_notion_format(self) -> Dict[str, Any]:
         """Convert to Notion database format"""
         return {
-            'Partner name': {'title': [{'text': {'content': self.partner_name}}]},
-            'Category': {'select': {'name': self.category.value}},
-            'Relationship evidence URL': {'url': self.evidence_url} if self.evidence_url else None,
-            'Detected date': {'date': {'start': self.detected_date.isoformat()}},
-            'Confidence': {'select': {'name': self.confidence.value}},
-            'Verdigris opportunity angle': {'rich_text': [{'text': {'content': self.opportunity_angle}}]},
-            'Partnership team action': {'select': {'name': self.partnership_action.value}}
+            "Partner name": {"title": [{"text": {"content": self.partner_name}}]},
+            "Category": {"select": {"name": self.category.value}},
+            "Relationship evidence URL": {"url": self.evidence_url} if self.evidence_url else None,
+            "Detected date": {"date": {"start": self.detected_date.isoformat()}},
+            "Confidence": {"select": {"name": self.confidence.value}},
+            "Verdigris opportunity angle": {
+                "rich_text": [{"text": {"content": self.opportunity_angle}}]
+            },
+            "Partnership team action": {"select": {"name": self.partnership_action.value}},
         }
 
     def __str__(self) -> str:
         return f"Partnership({self.partner_name}, {self.category.value}, {self.confidence.value})"
 
     def __repr__(self) -> str:
-        return (f"StrategicPartnership(partner='{self.partner_name}', "
-                f"category={self.category.value}, "
-                f"confidence={self.confidence.value})")
+        return (
+            f"StrategicPartnership(partner='{self.partner_name}', "
+            f"category={self.category.value}, "
+            f"confidence={self.confidence.value})"
+        )

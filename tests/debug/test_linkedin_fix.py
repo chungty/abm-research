@@ -5,7 +5,9 @@ Test LinkedIn enrichment fix for missing enrich_contact method
 
 import sys
 import os
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
+
 
 def test_linkedin_fix():
     """
@@ -19,18 +21,18 @@ def test_linkedin_fix():
 
         # Test contact data
         test_contact = {
-            'name': 'Lachlan Donald',
-            'title': 'VP of Engineering Infrastructure',
-            'company': 'Groq',
-            'linkedin_url': 'https://linkedin.com/in/example',
-            'lead_score': 85  # High score to trigger enrichment
+            "name": "Lachlan Donald",
+            "title": "VP of Engineering Infrastructure",
+            "company": "Groq",
+            "linkedin_url": "https://linkedin.com/in/example",
+            "lead_score": 85,  # High score to trigger enrichment
         }
 
         print(f"👤 Testing contact: {test_contact['name']}")
         print(f"📊 Lead score: {test_contact['lead_score']}")
 
         # Test if the enrich_contact method exists
-        if hasattr(linkedin_enrichment_engine, 'enrich_contact'):
+        if hasattr(linkedin_enrichment_engine, "enrich_contact"):
             print("✅ enrich_contact method found")
 
             # Test the method call
@@ -48,7 +50,9 @@ def test_linkedin_fix():
     except Exception as e:
         print(f"❌ Error during test: {e}")
         import traceback
+
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     test_linkedin_fix()

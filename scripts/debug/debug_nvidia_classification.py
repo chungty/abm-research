@@ -6,7 +6,8 @@ Tests exactly what data the classifier receives and why it fails
 
 import sys
 import os
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.utils.partnership_classifier import partnership_classifier
 from abm_research.core.abm_system import ComprehensiveABMSystem
@@ -18,8 +19,8 @@ print("=" * 50)
 abm = ComprehensiveABMSystem()
 
 print("1. Getting NVIDIA account intelligence...")
-result = abm.conduct_complete_account_research('NVIDIA Corporation', 'nvidia.com')
-account_data = result.get('account', {})
+result = abm.conduct_complete_account_research("NVIDIA Corporation", "nvidia.com")
+account_data = result.get("account", {})
 
 print(f"✅ Account intelligence gathered")
 print(f"📊 Data keys: {list(account_data.keys())}")
@@ -27,24 +28,24 @@ print()
 
 print("2. Data being passed to classifier:")
 relevant_fields = [
-    ('name', 'Company Name'),
-    ('business_model', 'Growth Stage'),
-    ('physical_infrastructure', 'Physical Infrastructure'),
-    ('recent_announcements', 'Recent Announcements')
+    ("name", "Company Name"),
+    ("business_model", "Growth Stage"),
+    ("physical_infrastructure", "Physical Infrastructure"),
+    ("recent_announcements", "Recent Announcements"),
 ]
 
 classifier_input = {}
 for field_name, account_field in relevant_fields:
-    value = account_data.get(account_field, '')
+    value = account_data.get(account_field, "")
     classifier_input[field_name] = value
     print(f"  📝 {field_name}: '{value}'")
 print()
 
 # Create combined text like the classifier does
-company_name = classifier_input.get('name', '').lower()
-business_model = classifier_input.get('business_model', '').lower()
-infrastructure = classifier_input.get('physical_infrastructure', '').lower()
-announcements = classifier_input.get('recent_announcements', '').lower()
+company_name = classifier_input.get("name", "").lower()
+business_model = classifier_input.get("business_model", "").lower()
+infrastructure = classifier_input.get("physical_infrastructure", "").lower()
+announcements = classifier_input.get("recent_announcements", "").lower()
 
 combined_text = f"{company_name} {business_model} {infrastructure} {announcements}"
 print(f"3. Combined text for classification:")
@@ -59,13 +60,24 @@ print("4. Manual scoring breakdown:")
 print("  🎯 Strategic Partner Indicators:")
 strategic_indicators = {
     "hardware_vendors": [
-        "nvidia", "amd", "intel", "server manufacturer", "gpu vendor",
-        "storage vendor", "networking equipment", "data center equipment"
+        "nvidia",
+        "amd",
+        "intel",
+        "server manufacturer",
+        "gpu vendor",
+        "storage vendor",
+        "networking equipment",
+        "data center equipment",
     ],
     "ai_infrastructure": [
-        "ai inference", "gpu as a service", "ml platform", "ai training platform",
-        "compute as a service", "ai cloud", "inference api"
-    ]
+        "ai inference",
+        "gpu as a service",
+        "ml platform",
+        "ai training platform",
+        "compute as a service",
+        "ai cloud",
+        "inference api",
+    ],
 }
 
 total_strategic_score = 0
@@ -102,13 +114,13 @@ print()
 print("6. Manual company data test:")
 # Test with manual data to see if the issue is in data mapping
 manual_data = {
-    'name': 'NVIDIA Corporation',
-    'business_model': 'hardware vendor gpu manufacturer',
-    'physical_infrastructure': 'nvidia gpu h100 a100 data center equipment',
-    'tech_stack': 'cuda gpu computing ai training',
-    'recent_announcements': 'nvidia ai gpu datacenter',
-    'employee_count': 50000,
-    'growth_stage': 'mature'
+    "name": "NVIDIA Corporation",
+    "business_model": "hardware vendor gpu manufacturer",
+    "physical_infrastructure": "nvidia gpu h100 a100 data center equipment",
+    "tech_stack": "cuda gpu computing ai training",
+    "recent_announcements": "nvidia ai gpu datacenter",
+    "employee_count": 50000,
+    "growth_stage": "mature",
 }
 
 manual_classification = partnership_classifier.classify_partnership(manual_data)

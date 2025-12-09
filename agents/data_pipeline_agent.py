@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 
+
 class DataPipelineAgent:
     """Executes complete 5-phase ABM research and populates Notion databases"""
 
@@ -20,24 +21,20 @@ class DataPipelineAgent:
         self.references_path = Path("/tmp/verdigris-abm-research/references")
 
         # API configurations
-        self.apollo_api_key = os.getenv('APOLLO_API_KEY')
-        self.openai_api_key = os.getenv('OPENAI_API_KEY')
-        self.notion_api_key = os.getenv('NOTION_ABM_API_KEY')
+        self.apollo_api_key = os.getenv("APOLLO_API_KEY")
+        self.openai_api_key = os.getenv("OPENAI_API_KEY")
+        self.notion_api_key = os.getenv("NOTION_ABM_API_KEY")
 
         # Actual Notion database IDs provided by user (no dashes!)
         self.notion_database_ids = {
-            'accounts': 'c31d728f477049e28f6bd68717e2c160',
-            'trigger_events': 'c8ae1662cba94ea39cb32bcea3621963',
-            'contacts': 'a6e0cace85de4afdbe6c9c926d1d0e3d',
-            'partnerships': 'fa1467c0ad154b09bb03cc715f9b8577'
+            "accounts": "c31d728f477049e28f6bd68717e2c160",
+            "trigger_events": "c8ae1662cba94ea39cb32bcea3621963",
+            "contacts": "a6e0cace85de4afdbe6c9c926d1d0e3d",
+            "partnerships": "fa1467c0ad154b09bb03cc715f9b8577",
         }
 
         self.pipeline_log = []
-        self.retry_config = {
-            'max_retries': 3,
-            'backoff_multiplier': 2,
-            'initial_delay': 1
-        }
+        self.retry_config = {"max_retries": 3, "backoff_multiplier": 2, "initial_delay": 1}
 
         print("🔄 Data Pipeline Agent initialized")
         print(f"🎯 Target databases: {len(self.notion_database_ids)} Notion databases")
@@ -65,12 +62,12 @@ class DataPipelineAgent:
         print(f"\n🚀 EXECUTING FULL ABM PIPELINE FOR: {company_domain}")
 
         pipeline_results = {
-            'company_domain': company_domain,
-            'execution_start': datetime.now().isoformat(),
-            'phases_completed': [],
-            'notion_population_status': {},
-            'errors': [],
-            'overall_success': False
+            "company_domain": company_domain,
+            "execution_start": datetime.now().isoformat(),
+            "phases_completed": [],
+            "notion_population_status": {},
+            "errors": [],
+            "overall_success": False,
         }
 
         try:
@@ -78,48 +75,53 @@ class DataPipelineAgent:
             print("\n🔄 EXECUTING COMPLETE 5-PHASE WORKFLOW")
             comprehensive_data = self._execute_comprehensive_workflow(company_domain)
 
-            if comprehensive_data and comprehensive_data.get('research_complete'):
+            if comprehensive_data and comprehensive_data.get("research_complete"):
                 # Extract data from comprehensive results
-                if comprehensive_data.get('phase1_account_intelligence'):
-                    pipeline_results['phases_completed'].append('phase_1')
-                    pipeline_results['phase_1_data'] = comprehensive_data['phase1_account_intelligence']
+                if comprehensive_data.get("phase1_account_intelligence"):
+                    pipeline_results["phases_completed"].append("phase_1")
+                    pipeline_results["phase_1_data"] = comprehensive_data[
+                        "phase1_account_intelligence"
+                    ]
 
-                if comprehensive_data.get('phase2_contacts'):
-                    pipeline_results['phases_completed'].append('phase_2')
-                    pipeline_results['phase_2_data'] = comprehensive_data['phase2_contacts']
+                if comprehensive_data.get("phase2_contacts"):
+                    pipeline_results["phases_completed"].append("phase_2")
+                    pipeline_results["phase_2_data"] = comprehensive_data["phase2_contacts"]
 
-                if comprehensive_data.get('phase3_enriched_contacts'):
-                    pipeline_results['phases_completed'].append('phase_3')
-                    pipeline_results['phase_3_data'] = comprehensive_data['phase3_enriched_contacts']
+                if comprehensive_data.get("phase3_enriched_contacts"):
+                    pipeline_results["phases_completed"].append("phase_3")
+                    pipeline_results["phase_3_data"] = comprehensive_data[
+                        "phase3_enriched_contacts"
+                    ]
 
-                if comprehensive_data.get('phase4_engagement_intelligence'):
-                    pipeline_results['phases_completed'].append('phase_4')
-                    pipeline_results['phase_4_data'] = comprehensive_data['phase4_engagement_intelligence']
+                if comprehensive_data.get("phase4_engagement_intelligence"):
+                    pipeline_results["phases_completed"].append("phase_4")
+                    pipeline_results["phase_4_data"] = comprehensive_data[
+                        "phase4_engagement_intelligence"
+                    ]
 
-                if comprehensive_data.get('phase5_partnerships'):
-                    pipeline_results['phases_completed'].append('phase_5')
-                    pipeline_results['phase_5_data'] = comprehensive_data['phase5_partnerships']
+                if comprehensive_data.get("phase5_partnerships"):
+                    pipeline_results["phases_completed"].append("phase_5")
+                    pipeline_results["phase_5_data"] = comprehensive_data["phase5_partnerships"]
 
-                pipeline_results['comprehensive_data'] = comprehensive_data
+                pipeline_results["comprehensive_data"] = comprehensive_data
                 print(f"   ✅ All {len(pipeline_results['phases_completed'])}/5 phases completed")
             else:
-                pipeline_results['errors'].append("Comprehensive workflow failed or incomplete")
+                pipeline_results["errors"].append("Comprehensive workflow failed or incomplete")
 
             # Populate Notion Databases
             print("\n📝 POPULATING NOTION DATABASES")
             notion_success = self._populate_all_notion_databases(pipeline_results)
-            pipeline_results['notion_population_status'] = notion_success
+            pipeline_results["notion_population_status"] = notion_success
 
             # Determine overall success
-            pipeline_results['overall_success'] = (
-                len(pipeline_results['phases_completed']) == 5 and
-                all(notion_success.values())
-            )
+            pipeline_results["overall_success"] = len(
+                pipeline_results["phases_completed"]
+            ) == 5 and all(notion_success.values())
 
-            pipeline_results['execution_end'] = datetime.now().isoformat()
+            pipeline_results["execution_end"] = datetime.now().isoformat()
 
         except Exception as e:
-            pipeline_results['errors'].append(f"Pipeline execution failed: {str(e)}")
+            pipeline_results["errors"].append(f"Pipeline execution failed: {str(e)}")
             print(f"❌ Pipeline execution failed: {e}")
 
         self._print_pipeline_summary(pipeline_results)
@@ -131,6 +133,7 @@ class DataPipelineAgent:
         try:
             # Import and execute comprehensive workflow
             import sys
+
             sys.path.append(str(self.repo_path))
 
             from comprehensive_abm_research import VerdigrisABMResearch
@@ -155,6 +158,7 @@ class DataPipelineAgent:
             if abm_research_file.exists():
                 # Import and execute phase 1
                 import sys
+
                 sys.path.append(str(self.repo_path))
 
                 from comprehensive_abm_research import VerdigrisABMResearch
@@ -180,6 +184,7 @@ class DataPipelineAgent:
 
         try:
             import sys
+
             sys.path.append(str(self.repo_path))
 
             from comprehensive_abm_research import VerdigrisABMResearch
@@ -193,7 +198,7 @@ class DataPipelineAgent:
             # Count by buying committee role
             role_counts = {}
             for contact in contacts_data:
-                role = contact.get('buying_committee_role', 'Unknown')
+                role = contact.get("buying_committee_role", "Unknown")
                 role_counts[role] = role_counts.get(role, 0) + 1
 
             for role, count in role_counts.items():
@@ -211,8 +216,7 @@ class DataPipelineAgent:
         try:
             # Filter high-priority contacts (score > 60)
             high_priority_contacts = [
-                contact for contact in phase2_data
-                if contact.get('initial_lead_score', 0) > 60
+                contact for contact in phase2_data if contact.get("initial_lead_score", 0) > 60
             ]
 
             print(f"   🎯 High-priority contacts to enrich: {len(high_priority_contacts)}")
@@ -221,8 +225,10 @@ class DataPipelineAgent:
             enriched_contacts = []
             for contact in high_priority_contacts:
                 # Add engagement potential scoring
-                contact['engagement_potential_score'] = self._calculate_engagement_potential(contact)
-                contact['final_lead_score'] = self._calculate_final_lead_score(contact)
+                contact["engagement_potential_score"] = self._calculate_engagement_potential(
+                    contact
+                )
+                contact["final_lead_score"] = self._calculate_final_lead_score(contact)
 
                 enriched_contacts.append(contact)
 
@@ -239,18 +245,21 @@ class DataPipelineAgent:
         try:
             # Filter contacts with final score > 70
             engagement_ready_contacts = [
-                contact for contact in phase3_data
-                if contact.get('final_lead_score', 0) > 70
+                contact for contact in phase3_data if contact.get("final_lead_score", 0) > 70
             ]
 
-            print(f"   🎯 Contacts ready for engagement intelligence: {len(engagement_ready_contacts)}")
+            print(
+                f"   🎯 Contacts ready for engagement intelligence: {len(engagement_ready_contacts)}"
+            )
 
             # Generate engagement intelligence using OpenAI
             for contact in engagement_ready_contacts:
                 engagement_intel = self._generate_engagement_intelligence(contact)
                 contact.update(engagement_intel)
 
-            print(f"   ✅ Engagement intelligence generated for {len(engagement_ready_contacts)} contacts")
+            print(
+                f"   ✅ Engagement intelligence generated for {len(engagement_ready_contacts)} contacts"
+            )
             return phase3_data
 
         except Exception as e:
@@ -262,6 +271,7 @@ class DataPipelineAgent:
 
         try:
             import sys
+
             sys.path.append(str(self.repo_path))
 
             from comprehensive_abm_research import VerdigrisABMResearch
@@ -275,7 +285,7 @@ class DataPipelineAgent:
             # Count by category
             category_counts = {}
             for partnership in partnerships_data:
-                category = partnership.get('category', 'Unknown')
+                category = partnership.get("category", "Unknown")
                 category_counts[category] = category_counts.get(category, 0) + 1
 
             for category, count in category_counts.items():
@@ -294,12 +304,12 @@ class DataPipelineAgent:
         score = 0
 
         # LinkedIn activity simulation
-        if 'linkedin_url' in contact:
+        if "linkedin_url" in contact:
             score += 30  # Assume medium activity
 
         # Content relevance simulation
-        title = contact.get('title', '').lower()
-        relevant_keywords = ['power', 'energy', 'infrastructure', 'operations', 'reliability']
+        title = contact.get("title", "").lower()
+        relevant_keywords = ["power", "energy", "infrastructure", "operations", "reliability"]
 
         for keyword in relevant_keywords:
             if keyword in title:
@@ -307,7 +317,7 @@ class DataPipelineAgent:
                 break
 
         # Network quality (placeholder)
-        if 'director' in title or 'vp' in title:
+        if "director" in title or "vp" in title:
             score += 25
 
         return min(score, 100)
@@ -315,9 +325,9 @@ class DataPipelineAgent:
     def _calculate_final_lead_score(self, contact: Dict) -> float:
         """Calculate final lead score using the specification formula"""
 
-        icp_fit = contact.get('icp_fit_score', 0)
-        buying_power = contact.get('buying_power_score', 0)
-        engagement_potential = contact.get('engagement_potential_score', 0)
+        icp_fit = contact.get("icp_fit_score", 0)
+        buying_power = contact.get("buying_power_score", 0)
+        engagement_potential = contact.get("engagement_potential_score", 0)
 
         # Formula from lead_scoring_config.json: (ICP Fit × 0.40) + (Buying Power × 0.30) + (Engagement × 0.30)
         final_score = (icp_fit * 0.40) + (buying_power * 0.30) + (engagement_potential * 0.30)
@@ -328,14 +338,14 @@ class DataPipelineAgent:
         """Generate engagement intelligence using OpenAI"""
 
         # Simplified intelligence generation (placeholder for OpenAI integration)
-        title = contact.get('title', '')
-        company = contact.get('company', '')
+        title = contact.get("title", "")
+        company = contact.get("company", "")
 
         intelligence = {
-            'problems_they_likely_own': self._map_problems_from_title(title),
-            'content_themes_they_value': self._identify_content_themes(title),
-            'connection_pathways': f"Research mutual connections in data center operations space",
-            'value_add_ideas': self._generate_value_add_ideas(title, company)
+            "problems_they_likely_own": self._map_problems_from_title(title),
+            "content_themes_they_value": self._identify_content_themes(title),
+            "connection_pathways": f"Research mutual connections in data center operations space",
+            "value_add_ideas": self._generate_value_add_ideas(title, company),
         }
 
         return intelligence
@@ -346,32 +356,32 @@ class DataPipelineAgent:
         title_lower = title.lower()
         problems = []
 
-        if any(word in title_lower for word in ['operations', 'manager', 'director']):
-            problems.extend(['Power capacity planning', 'Uptime pressure', 'Cost optimization'])
+        if any(word in title_lower for word in ["operations", "manager", "director"]):
+            problems.extend(["Power capacity planning", "Uptime pressure", "Cost optimization"])
 
-        if any(word in title_lower for word in ['infrastructure', 'engineering']):
-            problems.extend(['Predictive maintenance', 'Risk detection'])
+        if any(word in title_lower for word in ["infrastructure", "engineering"]):
+            problems.extend(["Predictive maintenance", "Risk detection"])
 
-        if any(word in title_lower for word in ['facility', 'site']):
-            problems.extend(['Energy efficiency', 'Remote monitoring'])
+        if any(word in title_lower for word in ["facility", "site"]):
+            problems.extend(["Energy efficiency", "Remote monitoring"])
 
         return problems[:4]  # Limit to top problems
 
     def _identify_content_themes(self, title: str) -> List[str]:
         """Identify content themes they would value"""
 
-        themes = ['Power optimization', 'Reliability engineering']
+        themes = ["Power optimization", "Reliability engineering"]
 
         title_lower = title.lower()
 
-        if 'ai' in title_lower or 'gpu' in title_lower:
-            themes.append('AI infrastructure')
+        if "ai" in title_lower or "gpu" in title_lower:
+            themes.append("AI infrastructure")
 
-        if 'sustainability' in title_lower or 'energy' in title_lower:
-            themes.append('Sustainability')
+        if "sustainability" in title_lower or "energy" in title_lower:
+            themes.append("Sustainability")
 
-        if 'cost' in title_lower:
-            themes.append('Cost reduction')
+        if "cost" in title_lower:
+            themes.append("Cost reduction")
 
         return themes
 
@@ -382,13 +392,17 @@ class DataPipelineAgent:
 
         title_lower = title.lower()
 
-        if 'operations' in title_lower:
-            ideas.append(f"Share Verdigris operational efficiency case study relevant to {company}'s infrastructure")
+        if "operations" in title_lower:
+            ideas.append(
+                f"Share Verdigris operational efficiency case study relevant to {company}'s infrastructure"
+            )
 
-        if 'director' in title_lower or 'vp' in title_lower:
-            ideas.append("Invite to Verdigris executive roundtable on data center power optimization")
+        if "director" in title_lower or "vp" in title_lower:
+            ideas.append(
+                "Invite to Verdigris executive roundtable on data center power optimization"
+            )
 
-        if 'ai' in title_lower:
+        if "ai" in title_lower:
             ideas.append("Provide GPU rack power monitoring insights for high-density workloads")
         else:
             ideas.append("Offer power visibility assessment to identify optimization opportunities")
@@ -399,33 +413,39 @@ class DataPipelineAgent:
         """Populate all 4 Notion databases with pipeline results"""
 
         population_status = {
-            'accounts': False,
-            'trigger_events': False,
-            'contacts': False,
-            'partnerships': False
+            "accounts": False,
+            "trigger_events": False,
+            "contacts": False,
+            "partnerships": False,
         }
 
         try:
             # Populate Accounts database
-            if 'phase_1_data' in pipeline_results:
-                population_status['accounts'] = self._populate_accounts_database(pipeline_results['phase_1_data'])
+            if "phase_1_data" in pipeline_results:
+                population_status["accounts"] = self._populate_accounts_database(
+                    pipeline_results["phase_1_data"]
+                )
 
             # Populate Trigger Events database
-            if 'phase_1_data' in pipeline_results:
-                trigger_events = pipeline_results['phase_1_data'].get('trigger_events', [])
-                population_status['trigger_events'] = self._populate_trigger_events_database(trigger_events)
+            if "phase_1_data" in pipeline_results:
+                trigger_events = pipeline_results["phase_1_data"].get("trigger_events", [])
+                population_status["trigger_events"] = self._populate_trigger_events_database(
+                    trigger_events
+                )
 
             # Populate Contacts database - use enriched contacts from phase 3
-            if 'phase_3_data' in pipeline_results:
+            if "phase_3_data" in pipeline_results:
                 # Extract contacts from phase 3 enriched data
-                contacts_data = pipeline_results['phase_3_data'].get('enriched_contacts', [])
-                population_status['contacts'] = self._populate_contacts_database(contacts_data)
+                contacts_data = pipeline_results["phase_3_data"].get("enriched_contacts", [])
+                population_status["contacts"] = self._populate_contacts_database(contacts_data)
 
             # Populate Strategic Partnerships database
-            if 'phase_5_data' in pipeline_results:
+            if "phase_5_data" in pipeline_results:
                 # Extract partnerships from phase 5 data
-                partnerships_data = pipeline_results['phase_5_data'].get('partnerships', [])
-                population_status['partnerships'] = self._populate_partnerships_database(partnerships_data)
+                partnerships_data = pipeline_results["phase_5_data"].get("partnerships", [])
+                population_status["partnerships"] = self._populate_partnerships_database(
+                    partnerships_data
+                )
 
         except Exception as e:
             print(f"   ❌ Notion population failed: {e}")
@@ -445,37 +465,33 @@ class DataPipelineAgent:
             headers = {
                 "Authorization": f"Bearer {self.notion_api_key}",
                 "Content-Type": "application/json",
-                "Notion-Version": "2022-06-28"
+                "Notion-Version": "2022-06-28",
             }
 
             payload = {
-                "parent": {"database_id": self.notion_database_ids['accounts']},
+                "parent": {"database_id": self.notion_database_ids["accounts"]},
                 "properties": {
                     "Company name": {
-                        "title": [{"text": {"content": account_data.get('company_name', '')}}]
+                        "title": [{"text": {"content": account_data.get("company_name", "")}}]
                     },
                     "Domain": {
-                        "rich_text": [{"text": {"content": account_data.get('domain', '')}}]
+                        "rich_text": [{"text": {"content": account_data.get("domain", "")}}]
                     },
-                    "Employee count": {
-                        "number": account_data.get('employee_count', 0)
-                    },
-                    "ICP fit score": {
-                        "number": account_data.get('icp_fit_score', 0)
-                    },
-                    "Account research status": {
-                        "select": {"name": "Complete"}
-                    }
-                }
+                    "Employee count": {"number": account_data.get("employee_count", 0)},
+                    "ICP fit score": {"number": account_data.get("icp_fit_score", 0)},
+                    "Account research status": {"select": {"name": "Complete"}},
+                },
             }
 
-            response = self._make_api_request('POST', notion_url, headers, payload)
+            response = self._make_api_request("POST", notion_url, headers, payload)
 
             if response and response.status_code == 200:
                 print("   ✅ Accounts database populated")
                 return True
             else:
-                print(f"   ❌ Failed to populate accounts database: {response.status_code if response else 'No response'}")
+                print(
+                    f"   ❌ Failed to populate accounts database: {response.status_code if response else 'No response'}"
+                )
                 return False
 
         except Exception as e:
@@ -504,10 +520,14 @@ class DataPipelineAgent:
             success_rate = successful_inserts / total_contacts if total_contacts > 0 else 0
 
             if success_rate > 0.8:  # 80% success threshold
-                print(f"   ✅ Contacts database populated ({successful_inserts}/{total_contacts} contacts)")
+                print(
+                    f"   ✅ Contacts database populated ({successful_inserts}/{total_contacts} contacts)"
+                )
                 return True
             else:
-                print(f"   ❌ Contacts population failed ({successful_inserts}/{total_contacts} contacts)")
+                print(
+                    f"   ❌ Contacts population failed ({successful_inserts}/{total_contacts} contacts)"
+                )
                 return False
 
         except Exception as e:
@@ -523,47 +543,39 @@ class DataPipelineAgent:
             headers = {
                 "Authorization": f"Bearer {self.notion_api_key}",
                 "Content-Type": "application/json",
-                "Notion-Version": "2022-06-28"
+                "Notion-Version": "2022-06-28",
             }
 
             # Prepare problems and themes as multi-select
-            problems = contact.get('problems_they_likely_own', [])
-            themes = contact.get('content_themes_they_value', [])
+            problems = contact.get("problems_they_likely_own", [])
+            themes = contact.get("content_themes_they_value", [])
 
             payload = {
-                "parent": {"database_id": self.notion_database_ids['contacts']},
+                "parent": {"database_id": self.notion_database_ids["contacts"]},
                 "properties": {
-                    "Name": {
-                        "title": [{"text": {"content": contact.get('name', '')}}]
-                    },
-                    "Title": {
-                        "rich_text": [{"text": {"content": contact.get('title', '')}}]
-                    },
-                    "LinkedIn URL": {
-                        "url": contact.get('linkedin_url', '')
-                    },
+                    "Name": {"title": [{"text": {"content": contact.get("name", "")}}]},
+                    "Title": {"rich_text": [{"text": {"content": contact.get("title", "")}}]},
+                    "LinkedIn URL": {"url": contact.get("linkedin_url", "")},
                     "Buying committee role": {
-                        "select": {"name": contact.get('buying_committee_role', 'Influencer')}
+                        "select": {"name": contact.get("buying_committee_role", "Influencer")}
                     },
-                    "ICP Fit Score": {
-                        "number": contact.get('icp_fit_score', 0)
-                    },
-                    "Buying Power Score": {
-                        "number": contact.get('buying_power_score', 0)
-                    },
+                    "ICP Fit Score": {"number": contact.get("icp_fit_score", 0)},
+                    "Buying Power Score": {"number": contact.get("buying_power_score", 0)},
                     "Engagement Potential Score": {
-                        "number": contact.get('engagement_potential_score', 0)
+                        "number": contact.get("engagement_potential_score", 0)
                     },
-                    "Final Lead Score": {
-                        "number": contact.get('final_lead_score', 0)
-                    },
+                    "Final Lead Score": {"number": contact.get("final_lead_score", 0)},
                     "Research status": {
-                        "select": {"name": "Analyzed" if contact.get('final_lead_score', 0) > 70 else "Enriched"}
-                    }
-                }
+                        "select": {
+                            "name": "Analyzed"
+                            if contact.get("final_lead_score", 0) > 70
+                            else "Enriched"
+                        }
+                    },
+                },
             }
 
-            response = self._make_api_request('POST', notion_url, headers, payload)
+            response = self._make_api_request("POST", notion_url, headers, payload)
             return response and response.status_code == 200
 
         except Exception as e:
@@ -582,29 +594,37 @@ class DataPipelineAgent:
         print("   🤝 Partnerships database population (placeholder)")
         return True
 
-    def _make_api_request(self, method: str, url: str, headers: Dict, payload: Dict = None) -> Optional[requests.Response]:
+    def _make_api_request(
+        self, method: str, url: str, headers: Dict, payload: Dict = None
+    ) -> Optional[requests.Response]:
         """Make API request with retry logic"""
 
-        for attempt in range(self.retry_config['max_retries']):
+        for attempt in range(self.retry_config["max_retries"]):
             try:
-                if method == 'POST':
+                if method == "POST":
                     response = requests.post(url, headers=headers, json=payload)
                 else:
                     response = requests.get(url, headers=headers)
 
                 if response.status_code == 429:  # Rate limited
-                    delay = self.retry_config['initial_delay'] * (self.retry_config['backoff_multiplier'] ** attempt)
+                    delay = self.retry_config["initial_delay"] * (
+                        self.retry_config["backoff_multiplier"] ** attempt
+                    )
                     time.sleep(delay)
                     continue
 
                 return response
 
             except Exception as e:
-                if attempt == self.retry_config['max_retries'] - 1:
-                    print(f"   ⚠️ API request failed after {self.retry_config['max_retries']} attempts: {e}")
+                if attempt == self.retry_config["max_retries"] - 1:
+                    print(
+                        f"   ⚠️ API request failed after {self.retry_config['max_retries']} attempts: {e}"
+                    )
                     return None
 
-                delay = self.retry_config['initial_delay'] * (self.retry_config['backoff_multiplier'] ** attempt)
+                delay = self.retry_config["initial_delay"] * (
+                    self.retry_config["backoff_multiplier"] ** attempt
+                )
                 time.sleep(delay)
 
         return None
@@ -615,33 +635,33 @@ class DataPipelineAgent:
         print(f"\n📋 DATA PIPELINE EXECUTION SUMMARY")
         print("=" * 50)
 
-        success_status = "✅ SUCCESS" if results['overall_success'] else "❌ FAILED"
+        success_status = "✅ SUCCESS" if results["overall_success"] else "❌ FAILED"
         print(f"Overall Status: {success_status}")
         print(f"Company: {results['company_domain']}")
 
         execution_time = "Unknown"
-        if 'execution_start' in results and 'execution_end' in results:
-            start = datetime.fromisoformat(results['execution_start'])
-            end = datetime.fromisoformat(results['execution_end'])
+        if "execution_start" in results and "execution_end" in results:
+            start = datetime.fromisoformat(results["execution_start"])
+            end = datetime.fromisoformat(results["execution_end"])
             execution_time = f"{(end - start).total_seconds():.1f} seconds"
 
         print(f"Execution Time: {execution_time}")
 
         print(f"\n🔄 PHASES COMPLETED: {len(results['phases_completed'])}/5")
-        for i, phase in enumerate(['phase_1', 'phase_2', 'phase_3', 'phase_4', 'phase_5'], 1):
-            status = "✅" if phase in results['phases_completed'] else "❌"
-            phase_name = phase.replace('_', ' ').title()
+        for i, phase in enumerate(["phase_1", "phase_2", "phase_3", "phase_4", "phase_5"], 1):
+            status = "✅" if phase in results["phases_completed"] else "❌"
+            phase_name = phase.replace("_", " ").title()
             print(f"   {status} Phase {i}: {phase_name}")
 
-        if results.get('notion_population_status'):
+        if results.get("notion_population_status"):
             print(f"\n📝 NOTION DATABASE POPULATION:")
-            for db_name, status in results['notion_population_status'].items():
+            for db_name, status in results["notion_population_status"].items():
                 status_icon = "✅" if status else "❌"
                 print(f"   {status_icon} {db_name.title()}")
 
-        if results.get('errors'):
+        if results.get("errors"):
             print(f"\n⚠️ ERRORS ENCOUNTERED:")
-            for i, error in enumerate(results['errors'], 1):
+            for i, error in enumerate(results["errors"], 1):
                 print(f"   {i}. {error}")
 
 

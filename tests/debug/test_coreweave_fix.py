@@ -4,9 +4,11 @@ Test CoreWeave enrichment after removing mock data filter
 """
 import os
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.utils.company_enrichment_service import CompanyEnrichmentService
+
 
 def test_coreweave_enrichment():
     """Test that CoreWeave can now be enriched without mock data errors"""
@@ -41,6 +43,7 @@ def test_coreweave_enrichment():
         print(f"⚠️  Other error (may be expected): {e}")
         print("✅ At least the mock data filter is removed")
         return True
+
 
 if __name__ == "__main__":
     success = test_coreweave_enrichment()

@@ -6,10 +6,11 @@ Test Apollo API health and credentials
 import os
 import requests
 
+
 def test_apollo_health():
     """Test Apollo API health and credentials"""
 
-    api_key = os.getenv('APOLLO_API_KEY')
+    api_key = os.getenv("APOLLO_API_KEY")
     if not api_key:
         print("❌ APOLLO_API_KEY environment variable not set")
         return
@@ -17,9 +18,9 @@ def test_apollo_health():
     print(f"🔑 Using Apollo API Key: {api_key[:15]}...")
 
     headers = {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
-        'X-Api-Key': api_key
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+        "X-Api-Key": api_key,
     }
 
     try:
@@ -38,6 +39,7 @@ def test_apollo_health():
 
     except Exception as e:
         print(f"❌ Error testing Apollo API: {e}")
+
 
 if __name__ == "__main__":
     test_apollo_health()

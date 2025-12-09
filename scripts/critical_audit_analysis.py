@@ -9,13 +9,14 @@ import requests
 import json
 from datetime import datetime
 
+
 def critical_audit_analysis():
     """Perform critical audit of current ABM system implementation"""
 
     print("🔍 CRITICAL AUDIT ANALYSIS OF ABM SYSTEM")
     print("=" * 50)
 
-    api_key = os.getenv('NOTION_ABM_API_KEY')
+    api_key = os.getenv("NOTION_ABM_API_KEY")
     if not api_key:
         print("❌ NOTION_ABM_API_KEY not found")
         return False
@@ -23,14 +24,14 @@ def critical_audit_analysis():
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "Notion-Version": "2022-06-28"
+        "Notion-Version": "2022-06-28",
     }
 
     database_ids = {
-        'accounts': 'c31d728f477049e28f6bd68717e2c160',
-        'contacts': 'a6e0cace85de4afdbe6c9c926d1d0e3d',
-        'trigger_events': 'c8ae1662cba94ea39cb32bcea3621963',
-        'partnerships': 'fa1467c0ad154b09bb03cc715f9b8577'
+        "accounts": "c31d728f477049e28f6bd68717e2c160",
+        "contacts": "a6e0cace85de4afdbe6c9c926d1d0e3d",
+        "trigger_events": "c8ae1662cba94ea39cb32bcea3621963",
+        "partnerships": "fa1467c0ad154b09bb03cc715f9b8577",
     }
 
     print("\n📊 CURRENT DATABASE STATE ANALYSIS")
@@ -40,11 +41,13 @@ def critical_audit_analysis():
     for db_name, db_id in database_ids.items():
         try:
             query_url = f"https://api.notion.com/v1/databases/{db_id}/query"
-            response = requests.post(query_url, headers=headers, json={"page_size": 100}, timeout=15)
+            response = requests.post(
+                query_url, headers=headers, json={"page_size": 100}, timeout=15
+            )
 
             if response.status_code == 200:
                 data = response.json()
-                all_data[db_name] = data.get('results', [])
+                all_data[db_name] = data.get("results", [])
                 print(f"   {db_name.upper()}: {len(all_data[db_name])} records")
             else:
                 all_data[db_name] = []
@@ -59,17 +62,17 @@ def critical_audit_analysis():
 
     # 1. Contact Discovery Coverage Analysis
     print("\n1. ❌ CONTACT DISCOVERY IS INCOMPLETE:")
-    contacts_data = all_data.get('contacts', [])
+    contacts_data = all_data.get("contacts", [])
     genesis_contacts = []
 
     for contact in contacts_data:
-        props = contact.get('properties', {})
-        name_prop = props.get('Name', {}).get('title', [])
+        props = contact.get("properties", {})
+        name_prop = props.get("Name", {}).get("title", [])
         if name_prop:
-            name = name_prop[0].get('text', {}).get('content', '')
-            title_prop = props.get('Title', {}).get('rich_text', [])
-            title = title_prop[0].get('text', {}).get('content', '') if title_prop else 'No title'
-            genesis_contacts.append({'name': name, 'title': title})
+            name = name_prop[0].get("text", {}).get("content", "")
+            title_prop = props.get("Title", {}).get("rich_text", [])
+            title = title_prop[0].get("text", {}).get("content", "") if title_prop else "No title"
+            genesis_contacts.append({"name": name, "title": title})
 
     print(f"   • Current Genesis Cloud contacts: {len(genesis_contacts)}")
     for contact in genesis_contacts:
@@ -82,7 +85,9 @@ def critical_audit_analysis():
 
     # 2. MEDDIC Segmentation Analysis
     print("\n2. ❌ MEDDIC SEGMENTATION IS GENERIC:")
-    print(f"   • Current buying committee roles are generic (Economic Buyer, Technical Evaluator, etc.)")
+    print(
+        f"   • Current buying committee roles are generic (Economic Buyer, Technical Evaluator, etc.)"
+    )
     print(f"   • ❌ No Verdigris Signals-specific MEDDIC mapping:")
     print(f"     - BUYER: Who has budget for power monitoring solutions?")
     print(f"     - USER: Who would use Signals day-to-day for power monitoring?")
@@ -95,11 +100,11 @@ def critical_audit_analysis():
 
     # Check for duplicates
     account_names = []
-    for account in all_data.get('accounts', []):
-        props = account.get('properties', {})
-        name_prop = props.get('Name', {}).get('title', [])
+    for account in all_data.get("accounts", []):
+        props = account.get("properties", {})
+        name_prop = props.get("Name", {}).get("title", [])
         if name_prop:
-            name = name_prop[0].get('text', {}).get('content', '')
+            name = name_prop[0].get("text", {}).get("content", "")
             account_names.append(name)
 
     duplicates = len(account_names) - len(set(account_names))
@@ -108,8 +113,12 @@ def critical_audit_analysis():
         print(f"     ❌ Found duplicate account records")
 
     # Check contact completeness
-    contacts_with_email = sum(1 for c in contacts_data if c.get('properties', {}).get('Email', {}).get('email'))
-    contacts_with_linkedin = sum(1 for c in contacts_data if c.get('properties', {}).get('LinkedIn URL', {}).get('url'))
+    contacts_with_email = sum(
+        1 for c in contacts_data if c.get("properties", {}).get("Email", {}).get("email")
+    )
+    contacts_with_linkedin = sum(
+        1 for c in contacts_data if c.get("properties", {}).get("LinkedIn URL", {}).get("url")
+    )
 
     print(f"   • Contacts with email: {contacts_with_email}/{len(contacts_data)}")
     print(f"   • Contacts with LinkedIn: {contacts_with_linkedin}/{len(contacts_data)}")
@@ -132,7 +141,7 @@ def critical_audit_analysis():
     response = requests.get(trigger_db_url, headers=headers)
     if response.status_code == 200:
         db_info = response.json()
-        trigger_props = list(db_info.get('properties', {}).keys())
+        trigger_props = list(db_info.get("properties", {}).keys())
         print(f"   • Trigger Events fields: {trigger_props}")
         print(f"     ❌ Missing: event_type, confidence, relevance_score, detected_date")
 
@@ -141,7 +150,7 @@ def critical_audit_analysis():
     response = requests.get(partnerships_db_url, headers=headers)
     if response.status_code == 200:
         db_info = response.json()
-        partnerships_props = list(db_info.get('properties', {}).keys())
+        partnerships_props = list(db_info.get("properties", {}).keys())
         print(f"   • Partnerships fields: {partnerships_props}")
         print(f"     ❌ Missing: category, confidence, opportunity_angle, team_action")
 
@@ -165,7 +174,7 @@ def critical_audit_analysis():
         "7. Expand research to 2-3 additional target accounts",
         "8. Implement buying signal detection",
         "9. Add warm introduction pathway mapping",
-        "10. Create contact deduplication process"
+        "10. Create contact deduplication process",
     ]
 
     for fix in priority_fixes:
@@ -180,13 +189,14 @@ def critical_audit_analysis():
     print(f"   • Who has budget for infrastructure monitoring software?")
 
     return {
-        'total_contacts': len(contacts_data),
-        'contacts_with_email': contacts_with_email,
-        'contacts_with_linkedin': contacts_with_linkedin,
-        'account_duplicates': duplicates,
-        'databases_with_minimal_schema': 2,  # trigger_events and partnerships
-        'critical_gaps_identified': 10
+        "total_contacts": len(contacts_data),
+        "contacts_with_email": contacts_with_email,
+        "contacts_with_linkedin": contacts_with_linkedin,
+        "account_duplicates": duplicates,
+        "databases_with_minimal_schema": 2,  # trigger_events and partnerships
+        "critical_gaps_identified": 10,
     }
+
 
 if __name__ == "__main__":
     results = critical_audit_analysis()

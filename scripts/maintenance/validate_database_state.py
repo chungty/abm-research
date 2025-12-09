@@ -11,14 +11,16 @@ Checks the current state of all 4 Notion databases to verify:
 
 import os
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.integrations.notion_client import NotionClient
 import logging
 from collections import defaultdict
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
+
 
 def validate_database_state():
     """Comprehensive validation of all Notion databases"""
@@ -36,9 +38,13 @@ def validate_database_state():
 
         # Query accounts database directly
         url = f"https://api.notion.com/v1/databases/{notion_client.database_ids['accounts']}/query"
-        accounts_response = notion_client._make_request('POST', url, json={})
+        accounts_response = notion_client._make_request("POST", url, json={})
         accounts_data = accounts_response.json()
-        active_accounts = [account for account in accounts_data.get('results', []) if not account.get('archived', False)]
+        active_accounts = [
+            account
+            for account in accounts_data.get("results", [])
+            if not account.get("archived", False)
+        ]
 
         print(f"📊 Total accounts: {len(accounts_data.get('results', []))}")
         print(f"📊 Active accounts: {len(active_accounts)}")
@@ -46,30 +52,30 @@ def validate_database_state():
         if active_accounts:
             print("📋 Active accounts:")
             for account in active_accounts:
-                props = account.get('properties', {})
+                props = account.get("properties", {})
 
                 # Safe parsing with fallbacks
-                name = 'Unknown'
+                name = "Unknown"
                 try:
-                    title_field = props.get('Company Name', {}).get('title', [])
+                    title_field = props.get("Company Name", {}).get("title", [])
                     if title_field and len(title_field) > 0:
-                        name = title_field[0].get('text', {}).get('content', 'Unknown')
+                        name = title_field[0].get("text", {}).get("content", "Unknown")
                 except:
                     pass
 
-                domain = 'Unknown'
+                domain = "Unknown"
                 try:
-                    domain_field = props.get('Domain', {}).get('rich_text', [])
+                    domain_field = props.get("Domain", {}).get("rich_text", [])
                     if domain_field and len(domain_field) > 0:
-                        domain = domain_field[0].get('text', {}).get('content', 'Unknown')
+                        domain = domain_field[0].get("text", {}).get("content", "Unknown")
                 except:
                     pass
 
-                industry = 'Unknown'
+                industry = "Unknown"
                 try:
-                    industry_field = props.get('Industry', {}).get('select')
+                    industry_field = props.get("Industry", {}).get("select")
                     if industry_field:
-                        industry = industry_field.get('name', 'Unknown')
+                        industry = industry_field.get("name", "Unknown")
                 except:
                     pass
 
@@ -82,9 +88,13 @@ def validate_database_state():
 
         # Query contacts database directly
         url = f"https://api.notion.com/v1/databases/{notion_client.database_ids['contacts']}/query"
-        contacts_response = notion_client._make_request('POST', url, json={})
+        contacts_response = notion_client._make_request("POST", url, json={})
         contacts_data = contacts_response.json()
-        active_contacts = [contact for contact in contacts_data.get('results', []) if not contact.get('archived', False)]
+        active_contacts = [
+            contact
+            for contact in contacts_data.get("results", [])
+            if not contact.get("archived", False)
+        ]
 
         print(f"📊 Total contacts: {len(contacts_data.get('results', []))}")
         print(f"📊 Active contacts: {len(active_contacts)}")
@@ -92,30 +102,30 @@ def validate_database_state():
         # Group contacts by company
         contacts_by_company = defaultdict(list)
         for contact in active_contacts:
-            props = contact.get('properties', {})
+            props = contact.get("properties", {})
 
             # Safe parsing with fallbacks for contacts
-            name = 'Unknown'
+            name = "Unknown"
             try:
-                name_field = props.get('Name', {}).get('title', [])
+                name_field = props.get("Name", {}).get("title", [])
                 if name_field and len(name_field) > 0:
-                    name = name_field[0].get('text', {}).get('content', 'Unknown')
+                    name = name_field[0].get("text", {}).get("content", "Unknown")
             except:
                 pass
 
-            company = 'Unknown'
+            company = "Unknown"
             try:
-                company_field = props.get('Company', {}).get('rich_text', [])
+                company_field = props.get("Company", {}).get("rich_text", [])
                 if company_field and len(company_field) > 0:
-                    company = company_field[0].get('text', {}).get('content', 'Unknown')
+                    company = company_field[0].get("text", {}).get("content", "Unknown")
             except:
                 pass
 
-            title = 'Unknown'
+            title = "Unknown"
             try:
-                title_field = props.get('Title', {}).get('rich_text', [])
+                title_field = props.get("Title", {}).get("rich_text", [])
                 if title_field and len(title_field) > 0:
-                    title = title_field[0].get('text', {}).get('content', 'Unknown')
+                    title = title_field[0].get("text", {}).get("content", "Unknown")
             except:
                 pass
 
@@ -137,9 +147,11 @@ def validate_database_state():
 
         # Query trigger events database directly
         url = f"https://api.notion.com/v1/databases/{notion_client.database_ids['trigger_events']}/query"
-        events_response = notion_client._make_request('POST', url, json={})
+        events_response = notion_client._make_request("POST", url, json={})
         events_data = events_response.json()
-        active_events = [event for event in events_data.get('results', []) if not event.get('archived', False)]
+        active_events = [
+            event for event in events_data.get("results", []) if not event.get("archived", False)
+        ]
 
         print(f"📊 Total events: {len(events_data.get('results', []))}")
         print(f"📊 Active events: {len(active_events)}")
@@ -148,14 +160,14 @@ def validate_database_state():
             # Group events by type
             events_by_type = defaultdict(int)
             for event in active_events:
-                props = event.get('properties', {})
+                props = event.get("properties", {})
 
                 # Safe parsing with fallback for event type
-                event_type = 'Unknown'
+                event_type = "Unknown"
                 try:
-                    event_type_field = props.get('Event Type', {}).get('select')
+                    event_type_field = props.get("Event Type", {}).get("select")
                     if event_type_field:
-                        event_type = event_type_field.get('name', 'Unknown')
+                        event_type = event_type_field.get("name", "Unknown")
                 except:
                     pass
 
@@ -172,9 +184,13 @@ def validate_database_state():
 
         # Query partnerships database directly
         url = f"https://api.notion.com/v1/databases/{notion_client.database_ids['partnerships']}/query"
-        partnerships_response = notion_client._make_request('POST', url, json={})
+        partnerships_response = notion_client._make_request("POST", url, json={})
         partnerships_data = partnerships_response.json()
-        active_partnerships = [partnership for partnership in partnerships_data.get('results', []) if not partnership.get('archived', False)]
+        active_partnerships = [
+            partnership
+            for partnership in partnerships_data.get("results", [])
+            if not partnership.get("archived", False)
+        ]
 
         print(f"📊 Total partnerships: {len(partnerships_data.get('results', []))}")
         print(f"📊 Active partnerships: {len(active_partnerships)}")
@@ -183,14 +199,14 @@ def validate_database_state():
             # Group partnerships by type
             partnerships_by_type = defaultdict(int)
             for partnership in active_partnerships:
-                props = partnership.get('properties', {})
+                props = partnership.get("properties", {})
 
                 # Safe parsing with fallback for partnership type
-                partnership_type = 'Unknown'
+                partnership_type = "Unknown"
                 try:
-                    partnership_type_field = props.get('Partnership Type', {}).get('select')
+                    partnership_type_field = props.get("Partnership Type", {}).get("select")
                     if partnership_type_field:
-                        partnership_type = partnership_type_field.get('name', 'Unknown')
+                        partnership_type = partnership_type_field.get("name", "Unknown")
                 except:
                     pass
 
@@ -212,7 +228,9 @@ def validate_database_state():
 
         # Health assessment
         if len(active_accounts) > 0:
-            avg_contacts_per_account = len(active_contacts) / len(active_accounts) if active_accounts else 0
+            avg_contacts_per_account = (
+                len(active_contacts) / len(active_accounts) if active_accounts else 0
+            )
             print(f"📈 Average contacts per account: {avg_contacts_per_account:.1f}")
 
             if len(active_accounts) <= 10:
@@ -238,6 +256,7 @@ def validate_database_state():
         return False
 
     return True
+
 
 if __name__ == "__main__":
     try:

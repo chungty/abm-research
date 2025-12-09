@@ -4,7 +4,8 @@ Debug Partnership Classifier Scoring Logic
 """
 
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.utils.partnership_classifier import partnership_classifier
 
@@ -13,14 +14,14 @@ print("=" * 60)
 
 # Test with the exact data from the debug output
 company_data = {
-    'name': 'NVIDIA Corporation',
-    'domain': 'nvidia.com',
-    'business_model': 'Unknown',
-    'physical_infrastructure': 'H100, DGX, NVIDIA, UPS, colo, edge computing, nVent (73% confidence)',
-    'tech_stack': 'H100, DGX, NVIDIA, UPS, colo, edge computing, nVent (73% confidence)',
-    'recent_announcements': 'Not found (searched 2 sources, 95% confidence)',
-    'employee_count': 0,
-    'growth_stage': 'Unknown'
+    "name": "NVIDIA Corporation",
+    "domain": "nvidia.com",
+    "business_model": "Unknown",
+    "physical_infrastructure": "H100, DGX, NVIDIA, UPS, colo, edge computing, nVent (73% confidence)",
+    "tech_stack": "H100, DGX, NVIDIA, UPS, colo, edge computing, nVent (73% confidence)",
+    "recent_announcements": "Not found (searched 2 sources, 95% confidence)",
+    "employee_count": 0,
+    "growth_stage": "Unknown",
 }
 
 print("📊 Input Data:")
@@ -29,11 +30,11 @@ for key, value in company_data.items():
 print()
 
 # Create combined text like the classifier does
-company_name = company_data.get('name', '').lower()
-business_model = company_data.get('business_model', '').lower()
-infrastructure = company_data.get('physical_infrastructure', '').lower()
-tech_stack = company_data.get('tech_stack', '').lower()
-announcements = company_data.get('recent_announcements', '').lower()
+company_name = company_data.get("name", "").lower()
+business_model = company_data.get("business_model", "").lower()
+infrastructure = company_data.get("physical_infrastructure", "").lower()
+tech_stack = company_data.get("tech_stack", "").lower()
+announcements = company_data.get("recent_announcements", "").lower()
 
 combined_text = f"{company_name} {business_model} {infrastructure} {tech_stack} {announcements}"
 print(f"🔤 Combined Text for Analysis:")
@@ -45,8 +46,14 @@ print()
 print("🎯 Manual Strategic Partner Scoring:")
 strategic_indicators = {
     "hardware_vendors": [
-        "nvidia", "amd", "intel", "server manufacturer", "gpu vendor",
-        "storage vendor", "networking equipment", "data center equipment"
+        "nvidia",
+        "amd",
+        "intel",
+        "server manufacturer",
+        "gpu vendor",
+        "storage vendor",
+        "networking equipment",
+        "data center equipment",
     ]
 }
 

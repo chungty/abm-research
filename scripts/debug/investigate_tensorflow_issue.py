@@ -8,12 +8,14 @@ to understand the database structure issue.
 
 import os
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.integrations.notion_client import NotionClient
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+
 
 def investigate_tensorflow_page():
     """Investigate the specific TensorFlow page the user identified"""
@@ -22,7 +24,9 @@ def investigate_tensorflow_page():
     print("=" * 60)
     print("User reported: TensorFlow appears as 'TensorFlow-Optimization-Partnership'")
     print("Expected: TensorFlow should be properly structured as an account")
-    print("URL: https://www.notion.so/verdigris/TensorFlow-Optimization-Partnership-2b27f5fee5e2816c8298e823f1d23f70")
+    print(
+        "URL: https://www.notion.so/verdigris/TensorFlow-Optimization-Partnership-2b27f5fee5e2816c8298e823f1d23f70"
+    )
     print()
 
     # Extract page ID from URL
@@ -37,12 +41,13 @@ def investigate_tensorflow_page():
     print("-" * 40)
     try:
         # Format the page ID properly (add hyphens)
-        formatted_page_id = f"{page_id[:8]}-{page_id[8:12]}-{page_id[12:16]}-{page_id[16:20]}-{page_id[20:]}"
+        formatted_page_id = (
+            f"{page_id[:8]}-{page_id[8:12]}-{page_id[12:16]}-{page_id[16:20]}-{page_id[20:]}"
+        )
         print(f"🔍 Formatted Page ID: {formatted_page_id}")
 
         response = notion_client._make_request(
-            'GET',
-            f"https://api.notion.com/v1/pages/{formatted_page_id}"
+            "GET", f"https://api.notion.com/v1/pages/{formatted_page_id}"
         )
 
         if response.status_code == 200:
@@ -50,9 +55,9 @@ def investigate_tensorflow_page():
             print(f"✅ Found page: {page_data.get('properties', {}).get('title', {})}")
 
             # Check which database this belongs to
-            parent = page_data.get('parent', {})
-            if parent.get('type') == 'database_id':
-                database_id = parent.get('database_id')
+            parent = page_data.get("parent", {})
+            if parent.get("type") == "database_id":
+                database_id = parent.get("database_id")
                 print(f"📊 Parent Database ID: {database_id}")
 
                 # Check which of our databases this matches
@@ -65,25 +70,27 @@ def investigate_tensorflow_page():
 
             # Show all properties
             print("\n📋 Page Properties:")
-            properties = page_data.get('properties', {})
+            properties = page_data.get("properties", {})
             for prop_name, prop_data in properties.items():
-                prop_type = prop_data.get('type', 'unknown')
+                prop_type = prop_data.get("type", "unknown")
                 print(f"   • {prop_name} ({prop_type})")
 
                 # Try to extract the value based on type
-                if prop_type == 'title' and prop_data.get('title'):
-                    title_parts = [t.get('text', {}).get('content', '') for t in prop_data['title']]
-                    value = ''.join(title_parts)
+                if prop_type == "title" and prop_data.get("title"):
+                    title_parts = [t.get("text", {}).get("content", "") for t in prop_data["title"]]
+                    value = "".join(title_parts)
                     print(f"     Value: '{value}'")
-                elif prop_type == 'rich_text' and prop_data.get('rich_text'):
-                    text_parts = [t.get('text', {}).get('content', '') for t in prop_data['rich_text']]
-                    value = ''.join(text_parts)
+                elif prop_type == "rich_text" and prop_data.get("rich_text"):
+                    text_parts = [
+                        t.get("text", {}).get("content", "") for t in prop_data["rich_text"]
+                    ]
+                    value = "".join(text_parts)
                     if value:
                         print(f"     Value: '{value}'")
-                elif prop_type == 'select' and prop_data.get('select'):
-                    value = prop_data['select'].get('name', '')
+                elif prop_type == "select" and prop_data.get("select"):
+                    value = prop_data["select"].get("name", "")
                     print(f"     Value: '{value}'")
-                elif prop_type == 'url' and prop_data.get('url'):
+                elif prop_type == "url" and prop_data.get("url"):
                     print(f"     Value: '{prop_data['url']}'")
         else:
             print(f"❌ Could not retrieve page: {response.status_code}")
@@ -96,7 +103,7 @@ def investigate_tensorflow_page():
     print("\n📋 STEP 2: Search All Databases for TensorFlow")
     print("-" * 50)
 
-    databases_to_search = ['accounts', 'contacts', 'trigger_events', 'partnerships']
+    databases_to_search = ["accounts", "contacts", "trigger_events", "partnerships"]
     tensorflow_entries = {}
 
     for db_name in databases_to_search:
@@ -114,49 +121,51 @@ def investigate_tensorflow_page():
                 "filter": {
                     "or": [
                         {
-                            "property": "Company Name" if db_name == 'partnerships' else "Company",
-                            "rich_text": {
-                                "contains": "TensorFlow"
-                            }
+                            "property": "Company Name" if db_name == "partnerships" else "Company",
+                            "rich_text": {"contains": "TensorFlow"},
                         },
                         {
-                            "property": "Company Name" if db_name == 'partnerships' else "Company",
-                            "rich_text": {
-                                "contains": "Tensor"
-                            }
-                        }
+                            "property": "Company Name" if db_name == "partnerships" else "Company",
+                            "rich_text": {"contains": "Tensor"},
+                        },
                     ]
                 }
             }
 
-            response = notion_client._make_request('POST', url, json=search_filter)
-            results = response.json().get('results', [])
+            response = notion_client._make_request("POST", url, json=search_filter)
+            results = response.json().get("results", [])
 
             if results:
                 tensorflow_entries[db_name] = results
                 print(f"   ✅ Found {len(results)} TensorFlow entries in {db_name}")
 
                 for i, entry in enumerate(results, 1):
-                    entry_id = entry.get('id', 'unknown')
-                    props = entry.get('properties', {})
+                    entry_id = entry.get("id", "unknown")
+                    props = entry.get("properties", {})
 
                     # Try to get the company name
                     company_name = "Unknown"
-                    company_field_name = "Company Name" if db_name == 'partnerships' else "Company"
+                    company_field_name = "Company Name" if db_name == "partnerships" else "Company"
 
                     if company_field_name in props:
                         company_prop = props[company_field_name]
-                        if company_prop.get('type') == 'rich_text':
-                            text_parts = [t.get('text', {}).get('content', '') for t in company_prop.get('rich_text', [])]
-                            company_name = ''.join(text_parts)
-                        elif company_prop.get('type') == 'title':
-                            text_parts = [t.get('text', {}).get('content', '') for t in company_prop.get('title', [])]
-                            company_name = ''.join(text_parts)
+                        if company_prop.get("type") == "rich_text":
+                            text_parts = [
+                                t.get("text", {}).get("content", "")
+                                for t in company_prop.get("rich_text", [])
+                            ]
+                            company_name = "".join(text_parts)
+                        elif company_prop.get("type") == "title":
+                            text_parts = [
+                                t.get("text", {}).get("content", "")
+                                for t in company_prop.get("title", [])
+                            ]
+                            company_name = "".join(text_parts)
 
                     print(f"     Entry {i}: {company_name} (ID: {entry_id[:8]}...)")
 
                     # Check if this matches the page we're investigating
-                    if entry_id.replace('-', '') == page_id:
+                    if entry_id.replace("-", "") == page_id:
                         print(f"     🎯 MATCH: This is the page from your URL!")
             else:
                 print(f"   ❌ No TensorFlow entries found in {db_name}")
@@ -181,11 +190,14 @@ def investigate_tensorflow_page():
             print("   ⚠️  TensorFlow data is scattered across multiple databases")
             print("   ⚠️  This suggests missing database relationships")
 
-        if 'partnerships' in tensorflow_entries and len(tensorflow_entries.get('partnerships', [])) > 0:
+        if (
+            "partnerships" in tensorflow_entries
+            and len(tensorflow_entries.get("partnerships", [])) > 0
+        ):
             print("   ⚠️  TensorFlow appears as partnership instead of account")
             print("   ⚠️  This indicates incorrect data classification")
 
-        if 'accounts' not in tensorflow_entries or len(tensorflow_entries.get('accounts', [])) == 0:
+        if "accounts" not in tensorflow_entries or len(tensorflow_entries.get("accounts", [])) == 0:
             print("   ⚠️  No TensorFlow account entry found")
             print("   ⚠️  Missing primary account record")
     else:
@@ -193,6 +205,7 @@ def investigate_tensorflow_page():
         print("⚠️  This suggests the data may be in a different location or format")
 
     return tensorflow_entries
+
 
 def analyze_database_structure():
     """Analyze the overall database structure to understand relation issues"""
@@ -203,32 +216,35 @@ def analyze_database_structure():
     notion_client = NotionClient()
 
     # Get schema for each database
-    for db_name in ['accounts', 'contacts', 'trigger_events', 'partnerships']:
+    for db_name in ["accounts", "contacts", "trigger_events", "partnerships"]:
         if db_name not in notion_client.database_ids:
             continue
 
         print(f"\n📋 {db_name.title()} Database Schema:")
         try:
             db_id = notion_client.database_ids[db_name]
-            response = notion_client._make_request('GET', f"https://api.notion.com/v1/databases/{db_id}")
+            response = notion_client._make_request(
+                "GET", f"https://api.notion.com/v1/databases/{db_id}"
+            )
 
             if response.status_code == 200:
                 db_data = response.json()
-                properties = db_data.get('properties', {})
+                properties = db_data.get("properties", {})
 
                 for prop_name, prop_info in properties.items():
-                    prop_type = prop_info.get('type', 'unknown')
+                    prop_type = prop_info.get("type", "unknown")
                     print(f"   • {prop_name}: {prop_type}")
 
                     # Check for relation fields
-                    if prop_type == 'relation':
-                        related_db = prop_info.get('relation', {}).get('database_id')
+                    if prop_type == "relation":
+                        related_db = prop_info.get("relation", {}).get("database_id")
                         print(f"     → Relations to: {related_db}")
             else:
                 print(f"   ❌ Could not retrieve schema: {response.status_code}")
 
         except Exception as e:
             print(f"   ❌ Error getting schema: {e}")
+
 
 if __name__ == "__main__":
     # Run investigation

@@ -42,7 +42,7 @@ class TriggerEvent:
     event_date: Optional[date] = None  # when the event actually occurred
 
     # Relations
-    account: Optional['Account'] = None
+    account: Optional["Account"] = None
 
     # Metadata
     created_at: datetime = field(default_factory=datetime.now)
@@ -66,8 +66,14 @@ class TriggerEvent:
             self.confidence_level = ConfidenceLevel.LOW
 
     @classmethod
-    def from_detection(cls, description: str, event_type: EventType, source_url: str,
-                      event_date: Optional[date] = None, confidence_modifier: float = 1.0) -> 'TriggerEvent':
+    def from_detection(
+        cls,
+        description: str,
+        event_type: EventType,
+        source_url: str,
+        event_date: Optional[date] = None,
+        confidence_modifier: float = 1.0,
+    ) -> "TriggerEvent":
         """Create trigger event from detection with automatic scoring"""
 
         # Base confidence by source type
@@ -84,7 +90,7 @@ class TriggerEvent:
             confidence_score=confidence_score,
             relevance_score=relevance_score,
             source_url=source_url,
-            event_date=event_date or date.today()
+            event_date=event_date or date.today(),
         )
 
     @staticmethod
@@ -97,16 +103,23 @@ class TriggerEvent:
 
         # High confidence sources (90-100)
         high_confidence_domains = [
-            'newsroom', 'press-releases', 'investors', 'sec.gov',
-            'linkedin.com/company', 'careers.'
+            "newsroom",
+            "press-releases",
+            "investors",
+            "sec.gov",
+            "linkedin.com/company",
+            "careers.",
         ]
         if any(domain in url_lower for domain in high_confidence_domains):
             return 95
 
         # Medium confidence sources (60-80)
         medium_confidence_domains = [
-            'datacenterdynamics.com', 'datacenterknowledge.com',
-            'bloomberg.com', 'reuters.com', 'wsj.com'
+            "datacenterdynamics.com",
+            "datacenterknowledge.com",
+            "bloomberg.com",
+            "reuters.com",
+            "wsj.com",
         ]
         if any(domain in url_lower for domain in medium_confidence_domains):
             return 70
@@ -121,14 +134,26 @@ class TriggerEvent:
 
         # High relevance keywords
         high_relevance_terms = [
-            'power', 'energy', 'capacity', 'uptime', 'ai infrastructure',
-            'gpu', 'data center operations', 'electrical', 'cooling'
+            "power",
+            "energy",
+            "capacity",
+            "uptime",
+            "ai infrastructure",
+            "gpu",
+            "data center operations",
+            "electrical",
+            "cooling",
         ]
 
         # Medium relevance keywords
         medium_relevance_terms = [
-            'infrastructure', 'facility', 'expansion', 'merger',
-            'acquisition', 'sustainability', 'cost reduction'
+            "infrastructure",
+            "facility",
+            "expansion",
+            "merger",
+            "acquisition",
+            "sustainability",
+            "cost reduction",
         ]
 
         # Base score by event type
@@ -139,7 +164,7 @@ class TriggerEvent:
             EventType.EXPANSION: 70,
             EventType.LEADERSHIP_CHANGE: 65,
             EventType.SUSTAINABILITY: 60,
-            EventType.INHERITED_INFRASTRUCTURE: 55
+            EventType.INHERITED_INFRASTRUCTURE: 55,
         }
 
         base_score = type_base_scores.get(event_type, 50)
@@ -169,9 +194,7 @@ class TriggerEvent:
 
     def is_high_priority(self) -> bool:
         """Check if event is high priority (high confidence and relevance)"""
-        return (self.confidence_score >= 80 and
-                self.relevance_score >= 70 and
-                self.is_recent())
+        return self.confidence_score >= 80 and self.relevance_score >= 70 and self.is_recent()
 
     def get_verdigris_angle(self) -> str:
         """Get specific Verdigris value proposition based on event type"""
@@ -182,26 +205,30 @@ class TriggerEvent:
             EventType.LEADERSHIP_CHANGE: "New leaders often review vendor stack and seek quick wins - good timing for Verdigris introduction",
             EventType.DOWNTIME_INCIDENT: "Recent outage pain creates urgency for predictive monitoring and risk detection capabilities",
             EventType.SUSTAINABILITY: "ESG reporting requirements need accurate power metering - Verdigris provides granular energy data",
-            EventType.INHERITED_INFRASTRUCTURE: "Acquired infrastructure creates visibility gaps and integration complexity - Verdigris unifies monitoring across disparate systems"
+            EventType.INHERITED_INFRASTRUCTURE: "Acquired infrastructure creates visibility gaps and integration complexity - Verdigris unifies monitoring across disparate systems",
         }
-        return angles.get(self.event_type, "General data center monitoring and optimization opportunity")
+        return angles.get(
+            self.event_type, "General data center monitoring and optimization opportunity"
+        )
 
     def to_notion_format(self) -> Dict[str, Any]:
         """Convert to Notion database format"""
         return {
-            'Event description': {'title': [{'text': {'content': self.description}}]},
-            'Event type': {'select': {'name': self.event_type.value}},
-            'Confidence': {'select': {'name': self.confidence_level.value}},
-            'Confidence score': {'number': round(self.confidence_score, 1)},
-            'Relevance score': {'number': round(self.relevance_score, 1)},
-            'Detected date': {'date': {'start': self.detected_date.isoformat()}},
-            'Source URL': {'url': self.source_url} if self.source_url else None
+            "Event description": {"title": [{"text": {"content": self.description}}]},
+            "Event type": {"select": {"name": self.event_type.value}},
+            "Confidence": {"select": {"name": self.confidence_level.value}},
+            "Confidence score": {"number": round(self.confidence_score, 1)},
+            "Relevance score": {"number": round(self.relevance_score, 1)},
+            "Detected date": {"date": {"start": self.detected_date.isoformat()}},
+            "Source URL": {"url": self.source_url} if self.source_url else None,
         }
 
     def __str__(self) -> str:
         return f"TriggerEvent({self.event_type.value}, R:{self.relevance_score:.0f}, C:{self.confidence_score:.0f})"
 
     def __repr__(self) -> str:
-        return (f"TriggerEvent(type={self.event_type.value}, "
-                f"relevance={self.relevance_score:.1f}, "
-                f"confidence={self.confidence_score:.1f})")
+        return (
+            f"TriggerEvent(type={self.event_type.value}, "
+            f"relevance={self.relevance_score:.1f}, "
+            f"confidence={self.confidence_score:.1f})"
+        )

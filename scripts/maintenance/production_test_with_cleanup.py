@@ -8,14 +8,16 @@ for proper validation, then provides easy cleanup of test data.
 
 import os
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.core.abm_system import ComprehensiveABMSystem
 from abm_research.integrations.notion_client import NotionClient
 import logging
 from datetime import datetime
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+
 
 def production_test_with_tracking():
     """Run production tests with clear tracking for cleanup"""
@@ -29,9 +31,9 @@ def production_test_with_tracking():
     # Track what we're testing for easy cleanup
     test_session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     test_companies = [
-        ('NVIDIA Corporation', 'nvidia.com', 'GPU Infrastructure Test'),
-        ('CoreWeave', 'coreweave.com', 'GPU Cloud Provider Test'),
-        ('Lambda Labs', 'lambdalabs.com', 'GPU Infrastructure Test')
+        ("NVIDIA Corporation", "nvidia.com", "GPU Infrastructure Test"),
+        ("CoreWeave", "coreweave.com", "GPU Cloud Provider Test"),
+        ("Lambda Labs", "lambdalabs.com", "GPU Infrastructure Test"),
     ]
 
     print(f"📋 Test Session ID: {test_session_id}")
@@ -55,17 +57,17 @@ def production_test_with_tracking():
             result = abm.conduct_complete_account_research(company_name, domain)
 
             # Extract key results
-            account = result.get('account', {})
-            contacts = result.get('contacts', [])
-            trigger_events = result.get('trigger_events', [])
-            partnerships = result.get('partnerships', [])
-            notion_persistence = result.get('notion_persistence', {})
+            account = result.get("account", {})
+            contacts = result.get("contacts", [])
+            trigger_events = result.get("trigger_events", [])
+            partnerships = result.get("partnerships", [])
+            notion_persistence = result.get("notion_persistence", {})
 
             # Check if data was actually saved
-            account_saved = notion_persistence.get('account_saved', False)
-            contacts_saved = notion_persistence.get('contacts_saved', 0)
-            events_saved = notion_persistence.get('events_saved', 0)
-            partnerships_saved = notion_persistence.get('partnerships_saved', 0)
+            account_saved = notion_persistence.get("account_saved", False)
+            contacts_saved = notion_persistence.get("contacts_saved", 0)
+            events_saved = notion_persistence.get("events_saved", 0)
+            partnerships_saved = notion_persistence.get("partnerships_saved", 0)
 
             print(f"✅ ABM Research Results:")
             print(f"   📊 Account data generated: {'✅' if account.get('name') else '❌'}")
@@ -80,48 +82,54 @@ def production_test_with_tracking():
             print(f"   🤝 Partnerships saved: {partnerships_saved}")
 
             # Test specific validation for GPU companies
-            physical_infrastructure = account.get('Physical Infrastructure', '')
-            has_gpu_terms = any(gpu_term in physical_infrastructure.lower()
-                              for gpu_term in ['gpu', 'nvidia', 'h100', 'a100', 'v100', 'dgx'])
+            physical_infrastructure = account.get("Physical Infrastructure", "")
+            has_gpu_terms = any(
+                gpu_term in physical_infrastructure.lower()
+                for gpu_term in ["gpu", "nvidia", "h100", "a100", "v100", "dgx"]
+            )
 
             print(f"   🔍 GPU Infrastructure Detected: {'✅ YES' if has_gpu_terms else '❌ NO'}")
             if has_gpu_terms:
                 print(f"      📋 Infrastructure: {physical_infrastructure[:100]}...")
 
             # Track for cleanup
-            test_results.append({
-                'company': company_name,
-                'domain': domain,
-                'purpose': purpose,
-                'account_saved': account_saved,
-                'contacts_saved': contacts_saved,
-                'events_saved': events_saved,
-                'partnerships_saved': partnerships_saved,
-                'test_passed': account_saved and contacts_saved > 0,
-                'session_id': test_session_id
-            })
+            test_results.append(
+                {
+                    "company": company_name,
+                    "domain": domain,
+                    "purpose": purpose,
+                    "account_saved": account_saved,
+                    "contacts_saved": contacts_saved,
+                    "events_saved": events_saved,
+                    "partnerships_saved": partnerships_saved,
+                    "test_passed": account_saved and contacts_saved > 0,
+                    "session_id": test_session_id,
+                }
+            )
 
         except Exception as e:
             print(f"   ❌ Test failed: {e}")
-            test_results.append({
-                'company': company_name,
-                'domain': domain,
-                'purpose': purpose,
-                'error': str(e),
-                'test_passed': False,
-                'session_id': test_session_id
-            })
+            test_results.append(
+                {
+                    "company": company_name,
+                    "domain": domain,
+                    "purpose": purpose,
+                    "error": str(e),
+                    "test_passed": False,
+                    "session_id": test_session_id,
+                }
+            )
 
     # Test Summary
     print(f"\n📊 TEST SESSION SUMMARY")
     print("=" * 50)
-    successful_tests = len([r for r in test_results if r.get('test_passed', False)])
+    successful_tests = len([r for r in test_results if r.get("test_passed", False)])
     print(f"✅ Successful tests: {successful_tests}/{len(test_results)}")
 
-    total_accounts = sum(1 for r in test_results if r.get('account_saved', False))
-    total_contacts = sum(r.get('contacts_saved', 0) for r in test_results)
-    total_events = sum(r.get('events_saved', 0) for r in test_results)
-    total_partnerships = sum(r.get('partnerships_saved', 0) for r in test_results)
+    total_accounts = sum(1 for r in test_results if r.get("account_saved", False))
+    total_contacts = sum(r.get("contacts_saved", 0) for r in test_results)
+    total_events = sum(r.get("events_saved", 0) for r in test_results)
+    total_partnerships = sum(r.get("partnerships_saved", 0) for r in test_results)
 
     print(f"📋 Total data written to production:")
     print(f"   🏢 Accounts: {total_accounts}")
@@ -130,6 +138,7 @@ def production_test_with_tracking():
     print(f"   🤝 Partnerships: {total_partnerships}")
 
     return test_results, test_session_id
+
 
 def cleanup_test_data(test_session_companies):
     """Clean up the test data we just created"""
@@ -156,7 +165,7 @@ def cleanup_test_data(test_session_companies):
                     "PATCH",
                     f"https://api.notion.com/v1/pages/{account_id}",
                     headers=notion_client.headers,
-                    json={"archived": True}
+                    json={"archived": True},
                 )
                 print(f"   ✅ Archived account: {company_name}")
                 accounts_cleaned += 1
@@ -167,16 +176,16 @@ def cleanup_test_data(test_session_companies):
     print("\n👥 Cleaning Contacts...")
     contacts_cleaned = 0
     url = f"https://api.notion.com/v1/databases/{notion_client.database_ids['contacts']}/query"
-    contacts_response = notion_client._make_request('POST', url, json={})
-    all_contacts = contacts_response.json().get('results', [])
+    contacts_response = notion_client._make_request("POST", url, json={})
+    all_contacts = contacts_response.json().get("results", [])
 
     for contact in all_contacts:
-        props = contact.get('properties', {})
-        company = 'Unknown'
+        props = contact.get("properties", {})
+        company = "Unknown"
         try:
-            company_field = props.get('Company', {}).get('rich_text', [])
+            company_field = props.get("Company", {}).get("rich_text", [])
             if company_field and len(company_field) > 0:
-                company = company_field[0].get('text', {}).get('content', 'Unknown')
+                company = company_field[0].get("text", {}).get("content", "Unknown")
         except:
             pass
 
@@ -186,7 +195,7 @@ def cleanup_test_data(test_session_companies):
                     "PATCH",
                     f"https://api.notion.com/v1/pages/{contact['id']}",
                     headers=notion_client.headers,
-                    json={"archived": True}
+                    json={"archived": True},
                 )
                 print(f"   ✅ Archived contact from {company}")
                 contacts_cleaned += 1
@@ -196,17 +205,19 @@ def cleanup_test_data(test_session_companies):
     # Clean events and partnerships (similar logic)
     print("\n🎯 Cleaning Trigger Events...")
     events_cleaned = 0
-    url = f"https://api.notion.com/v1/databases/{notion_client.database_ids['trigger_events']}/query"
-    events_response = notion_client._make_request('POST', url, json={})
-    all_events = events_response.json().get('results', [])
+    url = (
+        f"https://api.notion.com/v1/databases/{notion_client.database_ids['trigger_events']}/query"
+    )
+    events_response = notion_client._make_request("POST", url, json={})
+    all_events = events_response.json().get("results", [])
 
     for event in all_events:
-        props = event.get('properties', {})
-        company = 'Unknown'
+        props = event.get("properties", {})
+        company = "Unknown"
         try:
-            company_field = props.get('Company', {}).get('rich_text', [])
+            company_field = props.get("Company", {}).get("rich_text", [])
             if company_field and len(company_field) > 0:
-                company = company_field[0].get('text', {}).get('content', 'Unknown')
+                company = company_field[0].get("text", {}).get("content", "Unknown")
         except:
             pass
 
@@ -216,7 +227,7 @@ def cleanup_test_data(test_session_companies):
                     "PATCH",
                     f"https://api.notion.com/v1/pages/{event['id']}",
                     headers=notion_client.headers,
-                    json={"archived": True}
+                    json={"archived": True},
                 )
                 print(f"   ✅ Archived event from {company}")
                 events_cleaned += 1
@@ -226,6 +237,7 @@ def cleanup_test_data(test_session_companies):
     total_cleaned = accounts_cleaned + contacts_cleaned + events_cleaned
     print(f"\n✅ Cleanup Summary: {total_cleaned} items archived")
     return total_cleaned
+
 
 if __name__ == "__main__":
     print("🚀 Production Testing with Validation and Cleanup")
@@ -245,7 +257,7 @@ if __name__ == "__main__":
     print()
 
     # Extract company names for cleanup
-    test_companies = [r['company'] for r in test_results if r.get('account_saved', False)]
+    test_companies = [r["company"] for r in test_results if r.get("account_saved", False)]
 
     if test_companies:
         print(f"When you're ready, you can clean up the test data:")
@@ -254,15 +266,15 @@ if __name__ == "__main__":
 
         user_input = input("Clean up test data now? (y/n): ").lower().strip()
 
-        if user_input == 'y':
+        if user_input == "y":
             cleanup_test_data(test_companies)
             print("\n🎉 Test complete! Production databases cleaned.")
         else:
             print(f"\n⚠️  Test data remains in production.")
             print(f"Run cleanup manually when ready:")
-            print(f"python3 -c \"")
+            print(f'python3 -c "')
             print(f"from production_test_with_cleanup import cleanup_test_data")
-            print(f"cleanup_test_data({test_companies})\"")
+            print(f'cleanup_test_data({test_companies})"')
     else:
         print("✅ No test data was successfully written - nothing to clean up.")
 

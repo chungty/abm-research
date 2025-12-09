@@ -15,24 +15,26 @@ from config.settings import (
     NOTION_ACCOUNTS_DB_ID,
     NOTION_CONTACTS_DB_ID,
     NOTION_TRIGGER_EVENTS_DB_ID,
-    NOTION_PARTNERSHIPS_DB_ID
+    NOTION_PARTNERSHIPS_DB_ID,
 )
 
 # Load environment variables
-env_path = Path(__file__).parent.parent / '.env'
+env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(env_path)
+
 
 def get_headers():
     """Get Notion API headers"""
-    api_key = os.getenv('NOTION_ABM_API_KEY')
+    api_key = os.getenv("NOTION_ABM_API_KEY")
     if not api_key:
         raise ValueError("NOTION_ABM_API_KEY not found")
 
     return {
-        'Authorization': f'Bearer {api_key}',
-        'Content-Type': 'application/json',
-        'Notion-Version': '2022-06-28'
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "Notion-Version": "2022-06-28",
     }
+
 
 def analyze_database_schema(database_id: str, database_name: str):
     """Analyze current database schema"""
@@ -48,11 +50,11 @@ def analyze_database_schema(database_id: str, database_name: str):
 
         if response.status_code == 200:
             data = response.json()
-            properties = data.get('properties', {})
+            properties = data.get("properties", {})
 
             print(f"📊 Current Properties ({len(properties)}):")
             for prop_name, prop_config in properties.items():
-                prop_type = prop_config.get('type', 'unknown')
+                prop_type = prop_config.get("type", "unknown")
                 print(f"   • {prop_name} ({prop_type})")
 
             return properties
@@ -63,6 +65,7 @@ def analyze_database_schema(database_id: str, database_name: str):
     except Exception as e:
         print(f"❌ Analysis failed: {e}")
         return {}
+
 
 def enhance_accounts_database(database_id: str):
     """Enhance Accounts database with missing fields"""
@@ -84,7 +87,7 @@ def enhance_accounts_database(database_id: str):
                 "options": [
                     {"name": "Not Started", "color": "gray"},
                     {"name": "In Progress", "color": "yellow"},
-                    {"name": "Complete", "color": "green"}
+                    {"name": "Complete", "color": "green"},
                 ]
             }
         },
@@ -96,7 +99,7 @@ def enhance_accounts_database(database_id: str):
                     {"name": "Hyperscaler", "color": "purple"},
                     {"name": "AI-focused DC", "color": "orange"},
                     {"name": "Energy-intensive Facilities", "color": "red"},
-                    {"name": "Other", "color": "gray"}
+                    {"name": "Other", "color": "gray"},
                 ]
             }
         },
@@ -107,7 +110,7 @@ def enhance_accounts_database(database_id: str):
         "Apollo Account ID": {"rich_text": {}},
         "Apollo Organization ID": {"rich_text": {}},
         "Last Updated": {"date": {}},
-        "Created At": {"created_time": {}}
+        "Created At": {"created_time": {}},
     }
 
     # Find missing fields
@@ -141,6 +144,7 @@ def enhance_accounts_database(database_id: str):
         print(f"   ❌ Enhancement failed: {e}")
         return False
 
+
 def enhance_contacts_database(database_id: str, accounts_db_id: str):
     """Enhance Contacts database with Verdigris Signals MEDDIC framework"""
 
@@ -165,7 +169,7 @@ def enhance_contacts_database(database_id: str, accounts_db_id: str):
                     {"name": "Champion", "color": "purple"},
                     {"name": "Influencer", "color": "yellow"},
                     {"name": "User", "color": "gray"},
-                    {"name": "Blocker", "color": "red"}
+                    {"name": "Blocker", "color": "red"},
                 ]
             }
         },
@@ -174,7 +178,7 @@ def enhance_contacts_database(database_id: str, accounts_db_id: str):
         "Engagement Potential Score": {"number": {"format": "number"}},
         "Final Lead Score": {
             "formula": {
-                "expression": "round(prop(\"ICP Fit Score\") * 0.4 + prop(\"Buying Power Score\") * 0.3 + prop(\"Engagement Potential Score\") * 0.3)"
+                "expression": 'round(prop("ICP Fit Score") * 0.4 + prop("Buying Power Score") * 0.3 + prop("Engagement Potential Score") * 0.3)'
             }
         },
         "Research Status": {
@@ -182,7 +186,7 @@ def enhance_contacts_database(database_id: str, accounts_db_id: str):
                 "options": [
                     {"name": "Not Started", "color": "gray"},
                     {"name": "Enriched", "color": "yellow"},
-                    {"name": "Analyzed", "color": "green"}
+                    {"name": "Analyzed", "color": "green"},
                 ]
             }
         },
@@ -193,7 +197,7 @@ def enhance_contacts_database(database_id: str, accounts_db_id: str):
                     {"name": "Weekly+", "color": "green"},
                     {"name": "Monthly", "color": "yellow"},
                     {"name": "Quarterly", "color": "orange"},
-                    {"name": "Inactive", "color": "red"}
+                    {"name": "Inactive", "color": "red"},
                 ]
             }
         },
@@ -201,7 +205,7 @@ def enhance_contacts_database(database_id: str, accounts_db_id: str):
             "select": {
                 "options": [
                     {"name": "High", "color": "green"},
-                    {"name": "Standard", "color": "yellow"}
+                    {"name": "Standard", "color": "yellow"},
                 ]
             }
         },
@@ -215,7 +219,7 @@ def enhance_contacts_database(database_id: str, accounts_db_id: str):
                     {"name": "Energy Efficiency", "color": "blue"},
                     {"name": "Reliability Engineering", "color": "purple"},
                     {"name": "Compliance/Reporting", "color": "pink"},
-                    {"name": "Capacity Planning", "color": "brown"}
+                    {"name": "Capacity Planning", "color": "brown"},
                 ]
             }
         },
@@ -228,7 +232,7 @@ def enhance_contacts_database(database_id: str, accounts_db_id: str):
                     {"name": "Reliability Engineering", "color": "blue"},
                     {"name": "Cost Reduction", "color": "yellow"},
                     {"name": "Predictive Analytics", "color": "orange"},
-                    {"name": "Energy Management", "color": "pink"}
+                    {"name": "Energy Management", "color": "pink"},
                 ]
             }
         },
@@ -236,7 +240,7 @@ def enhance_contacts_database(database_id: str, accounts_db_id: str):
         "Value-Add Ideas": {"rich_text": {}},
         "Apollo Contact ID": {"rich_text": {}},
         "Apollo Person ID": {"rich_text": {}},
-        "Created At": {"created_time": {}}
+        "Created At": {"created_time": {}},
     }
 
     # Find missing fields
@@ -270,6 +274,7 @@ def enhance_contacts_database(database_id: str, accounts_db_id: str):
         print(f"   ❌ Enhancement failed: {e}")
         return False
 
+
 def enhance_trigger_events_database(database_id: str, accounts_db_id: str):
     """Enhance Trigger Events database"""
 
@@ -290,7 +295,7 @@ def enhance_trigger_events_database(database_id: str, accounts_db_id: str):
                     {"name": "AI Workload", "color": "purple"},
                     {"name": "Energy Pressure", "color": "red"},
                     {"name": "Incident", "color": "orange"},
-                    {"name": "Sustainability", "color": "yellow"}
+                    {"name": "Sustainability", "color": "yellow"},
                 ]
             }
         },
@@ -299,7 +304,7 @@ def enhance_trigger_events_database(database_id: str, accounts_db_id: str):
                 "options": [
                     {"name": "High", "color": "green"},
                     {"name": "Medium", "color": "yellow"},
-                    {"name": "Low", "color": "red"}
+                    {"name": "Low", "color": "red"},
                 ]
             }
         },
@@ -314,11 +319,11 @@ def enhance_trigger_events_database(database_id: str, accounts_db_id: str):
                     {"name": "Company Website", "color": "green"},
                     {"name": "LinkedIn", "color": "purple"},
                     {"name": "Press Release", "color": "orange"},
-                    {"name": "Industry Report", "color": "yellow"}
+                    {"name": "Industry Report", "color": "yellow"},
                 ]
             }
         },
-        "Created At": {"created_time": {}}
+        "Created At": {"created_time": {}},
     }
 
     # Find missing fields
@@ -352,6 +357,7 @@ def enhance_trigger_events_database(database_id: str, accounts_db_id: str):
         print(f"   ❌ Enhancement failed: {e}")
         return False
 
+
 def enhance_partnerships_database(database_id: str, accounts_db_id: str):
     """Enhance Strategic Partnerships database"""
 
@@ -374,7 +380,7 @@ def enhance_partnerships_database(database_id: str, accounts_db_id: str):
                     {"name": "Racks", "color": "brown"},
                     {"name": "GPUs", "color": "red"},
                     {"name": "Critical Facilities Contractors", "color": "pink"},
-                    {"name": "Professional Services", "color": "gray"}
+                    {"name": "Professional Services", "color": "gray"},
                 ]
             }
         },
@@ -383,7 +389,7 @@ def enhance_partnerships_database(database_id: str, accounts_db_id: str):
                 "options": [
                     {"name": "High", "color": "green"},
                     {"name": "Medium", "color": "yellow"},
-                    {"name": "Low", "color": "red"}
+                    {"name": "Low", "color": "red"},
                 ]
             }
         },
@@ -397,12 +403,12 @@ def enhance_partnerships_database(database_id: str, accounts_db_id: str):
                     {"name": "Investigate", "color": "red"},
                     {"name": "Contact", "color": "orange"},
                     {"name": "Monitor", "color": "yellow"},
-                    {"name": "Not Relevant", "color": "gray"}
+                    {"name": "Not Relevant", "color": "gray"},
                 ]
             }
         },
         "Priority Score": {"number": {"format": "number"}},
-        "Created At": {"created_time": {}}
+        "Created At": {"created_time": {}},
     }
 
     # Find missing fields
@@ -436,6 +442,7 @@ def enhance_partnerships_database(database_id: str, accounts_db_id: str):
         print(f"   ❌ Enhancement failed: {e}")
         return False
 
+
 def main():
     """Main function to enhance all existing databases"""
 
@@ -444,34 +451,36 @@ def main():
 
     # Use environment variables for database IDs - no more hardcoded values!
     database_ids = {
-        'accounts': NOTION_ACCOUNTS_DB_ID,
-        'trigger_events': NOTION_TRIGGER_EVENTS_DB_ID,
-        'contacts': NOTION_CONTACTS_DB_ID,
-        'partnerships': NOTION_PARTNERSHIPS_DB_ID
+        "accounts": NOTION_ACCOUNTS_DB_ID,
+        "trigger_events": NOTION_TRIGGER_EVENTS_DB_ID,
+        "contacts": NOTION_CONTACTS_DB_ID,
+        "partnerships": NOTION_PARTNERSHIPS_DB_ID,
     }
 
     # Validate that database IDs are configured
     missing_db_ids = [key for key, value in database_ids.items() if not value]
     if missing_db_ids:
-        raise ValueError(f"Missing database ID environment variables: {missing_db_ids}. "
-                        f"Please set NOTION_*_DB_ID environment variables in .env file.")
+        raise ValueError(
+            f"Missing database ID environment variables: {missing_db_ids}. "
+            f"Please set NOTION_*_DB_ID environment variables in .env file."
+        )
 
     success_count = 0
 
     # 1. Enhance Accounts Database first (others depend on it)
-    if enhance_accounts_database(database_ids['accounts']):
+    if enhance_accounts_database(database_ids["accounts"]):
         success_count += 1
 
     # 2. Enhance Contacts Database (depends on Accounts)
-    if enhance_contacts_database(database_ids['contacts'], database_ids['accounts']):
+    if enhance_contacts_database(database_ids["contacts"], database_ids["accounts"]):
         success_count += 1
 
     # 3. Enhance Trigger Events Database (depends on Accounts)
-    if enhance_trigger_events_database(database_ids['trigger_events'], database_ids['accounts']):
+    if enhance_trigger_events_database(database_ids["trigger_events"], database_ids["accounts"]):
         success_count += 1
 
     # 4. Enhance Strategic Partnerships Database (depends on Accounts)
-    if enhance_partnerships_database(database_ids['partnerships'], database_ids['accounts']):
+    if enhance_partnerships_database(database_ids["partnerships"], database_ids["accounts"]):
         success_count += 1
 
     # Save enhanced database configuration
@@ -496,7 +505,7 @@ DATABASE_URLS = {{
 }}
 """
 
-    with open('enhanced_existing_database_config.py', 'w') as f:
+    with open("enhanced_existing_database_config.py", "w") as f:
         f.write(config_content)
 
     print(f"\n🎉 ENHANCEMENT COMPLETE!")
@@ -504,7 +513,9 @@ DATABASE_URLS = {{
     print(f"✅ Enhanced {success_count}/4 databases successfully")
     print(f"📊 Accounts: https://www.notion.so/{database_ids['accounts'].replace('-', '')}")
     print(f"👤 Contacts: https://www.notion.so/{database_ids['contacts'].replace('-', '')}")
-    print(f"⚡ Trigger Events: https://www.notion.so/{database_ids['trigger_events'].replace('-', '')}")
+    print(
+        f"⚡ Trigger Events: https://www.notion.so/{database_ids['trigger_events'].replace('-', '')}"
+    )
     print(f"🤝 Partnerships: https://www.notion.so/{database_ids['partnerships'].replace('-', '')}")
 
     print(f"\n✨ ENHANCED FEATURES:")
@@ -515,6 +526,7 @@ DATABASE_URLS = {{
 
     print(f"\n🔧 Database configuration saved to: enhanced_existing_database_config.py")
     print(f"🚀 Ready to populate with Genesis Cloud intelligence!")
+
 
 if __name__ == "__main__":
     main()

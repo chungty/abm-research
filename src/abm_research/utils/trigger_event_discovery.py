@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class DiscoveredTriggerEvent:
     """A trigger event discovered via Brave Search"""
+
     # Core fields
     event_type: str  # expansion, hiring, funding, partnership, ai_workload, leadership, incident
     description: str
@@ -51,60 +52,124 @@ class TriggerEventDiscovery:
     # Event type configurations with search keywords
     EVENT_TYPES = {
         "expansion": {
-            "keywords": ["expansion", "new data center", "new facility", "construction",
-                        "capacity increase", "new location", "buildout"],
+            "keywords": [
+                "expansion",
+                "new data center",
+                "new facility",
+                "construction",
+                "capacity increase",
+                "new location",
+                "buildout",
+            ],
             "weight": 1.5,  # High ICP relevance
-            "source_priority": ["News Article", "Press Release", "Company Website"]
+            "source_priority": ["News Article", "Press Release", "Company Website"],
         },
         "hiring": {
-            "keywords": ["hiring", "job opening", "recruiting", "new positions",
-                        "team expansion", "careers", "looking for"],
+            "keywords": [
+                "hiring",
+                "job opening",
+                "recruiting",
+                "new positions",
+                "team expansion",
+                "careers",
+                "looking for",
+            ],
             "weight": 1.2,
-            "source_priority": ["Job Posting", "LinkedIn", "Company Website"]
+            "source_priority": ["Job Posting", "LinkedIn", "Company Website"],
         },
         "funding": {
-            "keywords": ["funding", "series", "raised", "investment", "valuation",
-                        "venture capital", "IPO", "financing"],
+            "keywords": [
+                "funding",
+                "series",
+                "raised",
+                "investment",
+                "valuation",
+                "venture capital",
+                "IPO",
+                "financing",
+            ],
             "weight": 1.4,
-            "source_priority": ["News Article", "Press Release"]
+            "source_priority": ["News Article", "Press Release"],
         },
         "partnership": {
-            "keywords": ["partnership", "collaboration", "alliance", "joint venture",
-                        "strategic partner", "integration", "ecosystem"],
+            "keywords": [
+                "partnership",
+                "collaboration",
+                "alliance",
+                "joint venture",
+                "strategic partner",
+                "integration",
+                "ecosystem",
+            ],
             "weight": 1.3,
-            "source_priority": ["Press Release", "News Article"]
+            "source_priority": ["Press Release", "News Article"],
         },
         "ai_workload": {
-            "keywords": ["AI infrastructure", "GPU", "machine learning", "deep learning",
-                        "artificial intelligence", "ML workloads", "AI compute"],
+            "keywords": [
+                "AI infrastructure",
+                "GPU",
+                "machine learning",
+                "deep learning",
+                "artificial intelligence",
+                "ML workloads",
+                "AI compute",
+            ],
             "weight": 1.8,  # Very high ICP relevance
-            "source_priority": ["News Article", "Press Release", "Company Website"]
+            "source_priority": ["News Article", "Press Release", "Company Website"],
         },
         "leadership": {
-            "keywords": ["appointed", "new CEO", "new CTO", "joins", "leadership",
-                        "executive", "promoted", "board"],
+            "keywords": [
+                "appointed",
+                "new CEO",
+                "new CTO",
+                "joins",
+                "leadership",
+                "executive",
+                "promoted",
+                "board",
+            ],
             "weight": 1.1,
-            "source_priority": ["Press Release", "News Article", "LinkedIn"]
+            "source_priority": ["Press Release", "News Article", "LinkedIn"],
         },
         "incident": {
-            "keywords": ["outage", "downtime", "incident", "failure", "disruption",
-                        "issue", "problem", "blackout"],
+            "keywords": [
+                "outage",
+                "downtime",
+                "incident",
+                "failure",
+                "disruption",
+                "issue",
+                "problem",
+                "blackout",
+            ],
             "weight": 1.6,  # High urgency signals
-            "source_priority": ["News Article", "Social Media"]
+            "source_priority": ["News Article", "Social Media"],
         },
         "dc_power_project": {
             # DC Rectifier ICP - Companies investing in DC power infrastructure
-            "keywords": ["DC power", "rectifier", "48V", "380V", "48VDC", "380VDC",
-                        "power conversion", "AC-to-DC", "DC infrastructure",
-                        "rectifier upgrade", "DC deployment", "DC distribution",
-                        "busbar", "power shelf"],
+            "keywords": [
+                "DC power",
+                "rectifier",
+                "48V",
+                "380V",
+                "48VDC",
+                "380VDC",
+                "power conversion",
+                "AC-to-DC",
+                "DC infrastructure",
+                "rectifier upgrade",
+                "DC deployment",
+                "DC distribution",
+                "busbar",
+                "power shelf",
+            ],
             "weight": 1.8,  # High relevance - power infrastructure target ICP
-            "source_priority": ["Press Release", "News Article", "Company Website"]
-        }
+            "source_priority": ["Press Release", "News Article", "Company Website"],
+        },
     }
 
     def __init__(self):
-        self.brave_api_key = os.getenv('BRAVE_API_KEY')
+        self.brave_api_key = os.getenv("BRAVE_API_KEY")
         if not self.brave_api_key:
             logger.warning("BRAVE_API_KEY not set - trigger event discovery disabled")
 
@@ -119,7 +184,7 @@ class TriggerEventDiscovery:
         company_name: str,
         company_domain: Optional[str] = None,
         event_types: Optional[List[str]] = None,
-        lookback_days: int = 90
+        lookback_days: int = 90,
     ) -> List[DiscoveredTriggerEvent]:
         """
         Discover trigger events for a company using Brave Search.
@@ -152,7 +217,7 @@ class TriggerEventDiscovery:
                 company_name=company_name,
                 company_domain=company_domain,
                 event_type=event_type,
-                lookback_days=lookback_days
+                lookback_days=lookback_days,
             )
             all_events.extend(events)
 
@@ -161,20 +226,14 @@ class TriggerEventDiscovery:
 
         # Sort by relevance * confidence
         sorted_events = sorted(
-            unique_events,
-            key=lambda e: e.relevance_score * e.confidence_score,
-            reverse=True
+            unique_events, key=lambda e: e.relevance_score * e.confidence_score, reverse=True
         )
 
         logger.info(f"Discovered {len(sorted_events)} unique trigger events")
         return sorted_events[:20]  # Return top 20 events
 
     def _search_event_type(
-        self,
-        company_name: str,
-        company_domain: Optional[str],
-        event_type: str,
-        lookback_days: int
+        self, company_name: str, company_domain: Optional[str], event_type: str, lookback_days: int
     ) -> List[DiscoveredTriggerEvent]:
         """Search for a specific event type"""
         events = []
@@ -202,16 +261,9 @@ class TriggerEventDiscovery:
 
             response = requests.get(
                 self.brave_base_url,
-                params={
-                    'q': query,
-                    'count': 10,
-                    'freshness': freshness
-                },
-                headers={
-                    'X-Subscription-Token': self.brave_api_key,
-                    'Accept': 'application/json'
-                },
-                timeout=15
+                params={"q": query, "count": 10, "freshness": freshness},
+                headers={"X-Subscription-Token": self.brave_api_key, "Accept": "application/json"},
+                timeout=15,
             )
 
             if response.status_code != 200:
@@ -221,8 +273,8 @@ class TriggerEventDiscovery:
             data = response.json()
 
             # Check for news results first
-            news_results = data.get('news', {}).get('results', [])
-            web_results = data.get('web', {}).get('results', [])
+            news_results = data.get("news", {}).get("results", [])
+            web_results = data.get("web", {}).get("results", [])
 
             # Process news results (higher confidence)
             for result in news_results:
@@ -244,18 +296,14 @@ class TriggerEventDiscovery:
         return events
 
     def _parse_news_result(
-        self,
-        result: Dict,
-        event_type: str,
-        company_name: str,
-        config: Dict
+        self, result: Dict, event_type: str, company_name: str, config: Dict
     ) -> Optional[DiscoveredTriggerEvent]:
         """Parse a news search result into a trigger event"""
         try:
-            title = result.get('title', '')
-            description = result.get('description', '')
-            url = result.get('url', '')
-            age = result.get('age', '')
+            title = result.get("title", "")
+            description = result.get("description", "")
+            url = result.get("url", "")
+            age = result.get("age", "")
 
             # Skip if no URL
             if not url:
@@ -272,7 +320,9 @@ class TriggerEventDiscovery:
             base_relevance = int(50 * config["weight"])
 
             # Boost if description contains strong keywords
-            keywords_found = sum(1 for kw in config["keywords"] if kw.lower() in description.lower())
+            keywords_found = sum(
+                1 for kw in config["keywords"] if kw.lower() in description.lower()
+            )
             base_relevance += min(30, keywords_found * 10)
 
             # Determine urgency
@@ -289,7 +339,7 @@ class TriggerEventDiscovery:
                 relevance_score=min(100, base_relevance),
                 urgency_level=urgency,
                 detected_date=datetime.now().isoformat(),
-                event_date=self._parse_age_to_date(age)
+                event_date=self._parse_age_to_date(age),
             )
 
         except Exception as e:
@@ -297,17 +347,13 @@ class TriggerEventDiscovery:
             return None
 
     def _parse_web_result(
-        self,
-        result: Dict,
-        event_type: str,
-        company_name: str,
-        config: Dict
+        self, result: Dict, event_type: str, company_name: str, config: Dict
     ) -> Optional[DiscoveredTriggerEvent]:
         """Parse a web search result into a trigger event"""
         try:
-            title = result.get('title', '')
-            description = result.get('description', '')
-            url = result.get('url', '')
+            title = result.get("title", "")
+            description = result.get("description", "")
+            url = result.get("url", "")
 
             # Skip if no URL
             if not url:
@@ -325,7 +371,9 @@ class TriggerEventDiscovery:
 
             # Calculate relevance
             base_relevance = int(45 * config["weight"])
-            keywords_found = sum(1 for kw in config["keywords"] if kw.lower() in description.lower())
+            keywords_found = sum(
+                1 for kw in config["keywords"] if kw.lower() in description.lower()
+            )
             base_relevance += min(25, keywords_found * 8)
 
             # Determine urgency
@@ -341,7 +389,7 @@ class TriggerEventDiscovery:
                 relevance_score=min(100, base_relevance),
                 urgency_level=urgency,
                 detected_date=datetime.now().isoformat(),
-                event_date=None
+                event_date=None,
             )
 
         except Exception as e:
@@ -349,15 +397,11 @@ class TriggerEventDiscovery:
             return None
 
     def _create_description(
-        self,
-        title: str,
-        snippet: str,
-        company_name: str,
-        event_type: str
+        self, title: str, snippet: str, company_name: str, event_type: str
     ) -> str:
         """Create a clean event description"""
         # Clean up title
-        title = re.sub(r'\s+', ' ', title).strip()
+        title = re.sub(r"\s+", " ", title).strip()
 
         # If title mentions company, use it directly
         if company_name.lower() in title.lower():
@@ -381,12 +425,7 @@ class TriggerEventDiscovery:
         else:
             return "Company Website"
 
-    def _calculate_urgency(
-        self,
-        event_type: str,
-        age: Optional[str],
-        confidence: int
-    ) -> str:
+    def _calculate_urgency(self, event_type: str, age: Optional[str], confidence: int) -> str:
         """Calculate urgency level"""
         # Base urgency by event type
         high_urgency_types = {"incident", "funding", "expansion"}
@@ -429,18 +468,18 @@ class TriggerEventDiscovery:
                 return (today - timedelta(days=1)).date().isoformat()
             elif "day" in age_lower:
                 # Try to extract number
-                match = re.search(r'(\d+)', age_lower)
+                match = re.search(r"(\d+)", age_lower)
                 if match:
                     days = int(match.group(1))
                     return (today - timedelta(days=days)).date().isoformat()
             elif "week" in age_lower:
-                match = re.search(r'(\d+)', age_lower)
+                match = re.search(r"(\d+)", age_lower)
                 if match:
                     weeks = int(match.group(1))
                     return (today - timedelta(weeks=weeks)).date().isoformat()
                 return (today - timedelta(weeks=1)).date().isoformat()
             elif "month" in age_lower:
-                match = re.search(r'(\d+)', age_lower)
+                match = re.search(r"(\d+)", age_lower)
                 if match:
                     months = int(match.group(1))
                     return (today - timedelta(days=months * 30)).date().isoformat()
@@ -452,8 +491,7 @@ class TriggerEventDiscovery:
         return None
 
     def _deduplicate_events(
-        self,
-        events: List[DiscoveredTriggerEvent]
+        self, events: List[DiscoveredTriggerEvent]
     ) -> List[DiscoveredTriggerEvent]:
         """Remove duplicate events based on URL"""
         seen_urls = set()
@@ -474,46 +512,28 @@ class TriggerEventDiscovery:
         self.last_request_time = time.time()
 
     def to_notion_properties(
-        self,
-        event: DiscoveredTriggerEvent,
-        account_page_id: Optional[str] = None
+        self, event: DiscoveredTriggerEvent, account_page_id: Optional[str] = None
     ) -> Dict:
         """
         Convert a discovered event to Notion properties format.
         Ready to be saved to the Trigger Events database.
         """
         properties = {
-            "Event Description": {
-                "title": [{"text": {"content": event.description}}]
-            },
-            "Event Type": {
-                "select": {"name": event.event_type.replace("_", " ").title()}
-            },
-            "Confidence": {
-                "select": {"name": self._score_to_level(event.confidence_score)}
-            },
-            "Source URL": {
-                "url": event.source_url
-            },
-            "Detected Date": {
-                "date": {"start": event.detected_date[:10]}  # Just the date part
-            },
-            "Urgency Level": {
-                "select": {"name": event.urgency_level}
-            }
+            "Event Description": {"title": [{"text": {"content": event.description}}]},
+            "Event Type": {"select": {"name": event.event_type.replace("_", " ").title()}},
+            "Confidence": {"select": {"name": self._score_to_level(event.confidence_score)}},
+            "Source URL": {"url": event.source_url},
+            "Detected Date": {"date": {"start": event.detected_date[:10]}},  # Just the date part
+            "Urgency Level": {"select": {"name": event.urgency_level}},
         }
 
         # Add event date if available
         if event.event_date:
-            properties["Occurred Date"] = {
-                "date": {"start": event.event_date}
-            }
+            properties["Occurred Date"] = {"date": {"start": event.event_date}}
 
         # Add account relation if provided
         if account_page_id:
-            properties["Account"] = {
-                "relation": [{"id": account_page_id}]
-            }
+            properties["Account"] = {"relation": [{"id": account_page_id}]}
 
         return properties
 

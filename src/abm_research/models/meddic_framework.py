@@ -8,6 +8,7 @@ from enum import Enum
 
 class MEDDICRole(Enum):
     """MEDDIC framework roles for strategic sales process"""
+
     METRICS_OWNER = "Metrics Owner"
     ECONOMIC_BUYER = "Economic Buyer"
     DECISION_MAKER = "Decision Maker"
@@ -20,6 +21,7 @@ class MEDDICRole(Enum):
 
 class ContactSource(Enum):
     """How the contact was discovered"""
+
     APOLLO_SEARCH = "Apollo API Search"
     LINKEDIN_DISCOVERY = "LinkedIn Discovery"
     COMPANY_WEBSITE = "Company Website"
@@ -32,6 +34,7 @@ class ContactSource(Enum):
 @dataclass
 class ContactSourceAttribution:
     """Tracks how and where a contact was discovered"""
+
     source_type: ContactSource
     source_url: Optional[str] = None
     discovery_method: str = ""  # Specific search terms, referral path, etc.
@@ -70,7 +73,7 @@ class MEDDICProfile:
             MEDDICRole.IDENTIFY_PAIN: "Deep discovery on current challenges. Position Verdigris as solution to their specific pain points.",
             MEDDICRole.CHAMPION: "Enable them to sell internally. Provide proof points, case studies, and champion enablement materials.",
             MEDDICRole.INFLUENCER: "Build relationship and credibility. Share technical insights and thought leadership content.",
-            MEDDICRole.USER: "Focus on ease of use, day-to-day benefits, and how Verdigris improves their work experience."
+            MEDDICRole.USER: "Focus on ease of use, day-to-day benefits, and how Verdigris improves their work experience.",
         }
         return approaches.get(self.primary_role, "Relationship building and discovery")
 
@@ -82,30 +85,52 @@ class MEDDICAnalyzer:
         # Title patterns for MEDDIC role classification
         self.role_patterns = {
             MEDDICRole.METRICS_OWNER: [
-                'analyst', 'performance', 'metrics', 'kpi', 'reporting', 'business intelligence'
+                "analyst",
+                "performance",
+                "metrics",
+                "kpi",
+                "reporting",
+                "business intelligence",
             ],
             MEDDICRole.ECONOMIC_BUYER: [
-                'vp', 'vice president', 'svp', 'chief', 'president', 'head of'
+                "vp",
+                "vice president",
+                "svp",
+                "chief",
+                "president",
+                "head of",
             ],
             MEDDICRole.DECISION_MAKER: [
-                'ceo', 'cto', 'cfo', 'coo', 'president', 'founder', 'owner'
+                "ceo",
+                "cto",
+                "cfo",
+                "coo",
+                "president",
+                "founder",
+                "owner",
             ],
             MEDDICRole.DECISION_CRITERIA: [
-                'director of', 'head of', 'lead', 'principal', 'architect', 'consultant'
+                "director of",
+                "head of",
+                "lead",
+                "principal",
+                "architect",
+                "consultant",
             ],
             MEDDICRole.IDENTIFY_PAIN: [
-                'operations', 'engineering', 'infrastructure', 'facilities', 'maintenance'
+                "operations",
+                "engineering",
+                "infrastructure",
+                "facilities",
+                "maintenance",
             ],
-            MEDDICRole.CHAMPION: [
-                'manager', 'senior manager', 'team lead', 'supervisor'
-            ],
-            MEDDICRole.USER: [
-                'technician', 'specialist', 'coordinator', 'operator', 'engineer'
-            ]
+            MEDDICRole.CHAMPION: ["manager", "senior manager", "team lead", "supervisor"],
+            MEDDICRole.USER: ["technician", "specialist", "coordinator", "operator", "engineer"],
         }
 
-    def analyze_contact_meddic(self, title: str, bio: str = None,
-                              company_role: str = None) -> MEDDICProfile:
+    def analyze_contact_meddic(
+        self, title: str, bio: str = None, company_role: str = None
+    ) -> MEDDICProfile:
         """Analyze contact for MEDDIC framework classification"""
 
         title_lower = title.lower()
@@ -128,7 +153,7 @@ class MEDDICAnalyzer:
             champion_potential=self._assess_champion_potential(title_lower, primary_role),
             engagement_strategy=self._get_engagement_strategy(primary_role),
             key_value_props=self._get_key_value_props(primary_role),
-            potential_objections=self._get_potential_objections(primary_role)
+            potential_objections=self._get_potential_objections(primary_role),
         )
 
         return profile
@@ -142,26 +167,27 @@ class MEDDICAnalyzer:
                 return role
 
         # Default classification based on seniority
-        if any(term in title_lower for term in ['vp', 'vice president', 'svp']):
+        if any(term in title_lower for term in ["vp", "vice president", "svp"]):
             return MEDDICRole.ECONOMIC_BUYER
-        elif any(term in title_lower for term in ['director', 'head']):
+        elif any(term in title_lower for term in ["director", "head"]):
             return MEDDICRole.DECISION_CRITERIA
-        elif any(term in title_lower for term in ['manager', 'lead']):
+        elif any(term in title_lower for term in ["manager", "lead"]):
             return MEDDICRole.CHAMPION
         else:
             return MEDDICRole.USER
 
-    def _classify_secondary_roles(self, title_lower: str, bio_lower: str,
-                                primary_role: MEDDICRole) -> List[MEDDICRole]:
+    def _classify_secondary_roles(
+        self, title_lower: str, bio_lower: str, primary_role: MEDDICRole
+    ) -> List[MEDDICRole]:
         """Identify secondary MEDDIC roles"""
         secondary = []
 
         # Cross-functional roles
-        if 'operations' in title_lower or 'operations' in bio_lower:
+        if "operations" in title_lower or "operations" in bio_lower:
             if primary_role != MEDDICRole.IDENTIFY_PAIN:
                 secondary.append(MEDDICRole.IDENTIFY_PAIN)
 
-        if any(term in bio_lower for term in ['budget', 'cost', 'roi', 'procurement']):
+        if any(term in bio_lower for term in ["budget", "cost", "roi", "procurement"]):
             if primary_role not in [MEDDICRole.ECONOMIC_BUYER, MEDDICRole.METRICS_OWNER]:
                 secondary.append(MEDDICRole.METRICS_OWNER)
 
@@ -170,17 +196,34 @@ class MEDDICAnalyzer:
     def _has_metrics_access(self, title_lower: str, bio_lower: str) -> bool:
         """Determine if contact likely has access to metrics"""
         metrics_indicators = [
-            'director', 'vp', 'head', 'manager', 'analyst', 'performance',
-            'reporting', 'metrics', 'kpi', 'dashboard'
+            "director",
+            "vp",
+            "head",
+            "manager",
+            "analyst",
+            "performance",
+            "reporting",
+            "metrics",
+            "kpi",
+            "dashboard",
         ]
-        return any(indicator in title_lower or indicator in bio_lower
-                  for indicator in metrics_indicators)
+        return any(
+            indicator in title_lower or indicator in bio_lower for indicator in metrics_indicators
+        )
 
     def _has_economic_authority(self, title_lower: str) -> bool:
         """Determine if contact has budget authority"""
         authority_indicators = [
-            'vp', 'vice president', 'svp', 'chief', 'ceo', 'cto', 'cfo',
-            'president', 'head of', 'director of'
+            "vp",
+            "vice president",
+            "svp",
+            "chief",
+            "ceo",
+            "cto",
+            "cfo",
+            "president",
+            "head of",
+            "director of",
         ]
         return any(indicator in title_lower for indicator in authority_indicators)
 
@@ -194,17 +237,17 @@ class MEDDICAnalyzer:
             MEDDICRole.CHAMPION: 50,
             MEDDICRole.IDENTIFY_PAIN: 45,
             MEDDICRole.INFLUENCER: 35,
-            MEDDICRole.USER: 25
+            MEDDICRole.USER: 25,
         }
 
         base_score = base_scores.get(primary_role, 30)
 
         # Boost for senior titles
-        if any(term in title_lower for term in ['vp', 'vice president', 'svp', 'chief']):
+        if any(term in title_lower for term in ["vp", "vice president", "svp", "chief"]):
             base_score += 15
-        elif 'director' in title_lower:
+        elif "director" in title_lower:
             base_score += 10
-        elif 'senior' in title_lower:
+        elif "senior" in title_lower:
             base_score += 5
 
         return min(100, base_score)
@@ -212,12 +255,12 @@ class MEDDICAnalyzer:
     def _identify_pain_ownership(self, title_lower: str, bio_lower: str) -> List[str]:
         """Identify pain points this contact likely owns"""
         pain_mapping = {
-            'operations': ['Uptime pressure', 'Operational efficiency', 'Cost optimization'],
-            'infrastructure': ['Capacity planning', 'Infrastructure reliability', 'Scalability'],
-            'facilities': ['Energy efficiency', 'Power management', 'Cooling optimization'],
-            'engineering': ['Technical performance', 'System reliability', 'Innovation'],
-            'sustainability': ['ESG reporting', 'Energy efficiency', 'Carbon footprint'],
-            'finance': ['Cost control', 'Budget optimization', 'ROI measurement']
+            "operations": ["Uptime pressure", "Operational efficiency", "Cost optimization"],
+            "infrastructure": ["Capacity planning", "Infrastructure reliability", "Scalability"],
+            "facilities": ["Energy efficiency", "Power management", "Cooling optimization"],
+            "engineering": ["Technical performance", "System reliability", "Innovation"],
+            "sustainability": ["ESG reporting", "Energy efficiency", "Carbon footprint"],
+            "finance": ["Cost control", "Budget optimization", "ROI measurement"],
         }
 
         owned_pains = []
@@ -239,7 +282,7 @@ class MEDDICAnalyzer:
             MEDDICRole.METRICS_OWNER: 45,
             MEDDICRole.INFLUENCER: 40,
             MEDDICRole.ECONOMIC_BUYER: 30,  # Usually too senior to champion
-            MEDDICRole.DECISION_MAKER: 25   # Usually too senior to champion
+            MEDDICRole.DECISION_MAKER: 25,  # Usually too senior to champion
         }
 
         return champion_scores.get(primary_role, 40)
@@ -254,34 +297,78 @@ class MEDDICAnalyzer:
             MEDDICRole.IDENTIFY_PAIN: "Discovery-focused conversations on current challenges",
             MEDDICRole.CHAMPION: "Enable with proof points and internal selling materials",
             MEDDICRole.INFLUENCER: "Thought leadership and technical credibility building",
-            MEDDICRole.USER: "Focus on day-to-day benefits and ease of use"
+            MEDDICRole.USER: "Focus on day-to-day benefits and ease of use",
         }
         return strategies.get(primary_role, "Relationship building and needs discovery")
 
     def _get_key_value_props(self, primary_role: MEDDICRole) -> List[str]:
         """Get key value propositions for the role"""
         value_props = {
-            MEDDICRole.METRICS_OWNER: ["Real-time visibility", "Accurate reporting", "Predictive insights"],
-            MEDDICRole.ECONOMIC_BUYER: ["Cost reduction", "Risk mitigation", "Operational efficiency"],
-            MEDDICRole.DECISION_MAKER: ["Competitive advantage", "Strategic differentiation", "Innovation leadership"],
-            MEDDICRole.DECISION_CRITERIA: ["Technical superiority", "Integration capabilities", "Scalability"],
+            MEDDICRole.METRICS_OWNER: [
+                "Real-time visibility",
+                "Accurate reporting",
+                "Predictive insights",
+            ],
+            MEDDICRole.ECONOMIC_BUYER: [
+                "Cost reduction",
+                "Risk mitigation",
+                "Operational efficiency",
+            ],
+            MEDDICRole.DECISION_MAKER: [
+                "Competitive advantage",
+                "Strategic differentiation",
+                "Innovation leadership",
+            ],
+            MEDDICRole.DECISION_CRITERIA: [
+                "Technical superiority",
+                "Integration capabilities",
+                "Scalability",
+            ],
             MEDDICRole.IDENTIFY_PAIN: ["Problem solving", "Pain relief", "Process improvement"],
-            MEDDICRole.CHAMPION: ["Career advancement", "Problem solving recognition", "Innovation credit"],
-            MEDDICRole.INFLUENCER: ["Technical excellence", "Industry recognition", "Thought leadership"],
-            MEDDICRole.USER: ["Ease of use", "Time savings", "Better work experience"]
+            MEDDICRole.CHAMPION: [
+                "Career advancement",
+                "Problem solving recognition",
+                "Innovation credit",
+            ],
+            MEDDICRole.INFLUENCER: [
+                "Technical excellence",
+                "Industry recognition",
+                "Thought leadership",
+            ],
+            MEDDICRole.USER: ["Ease of use", "Time savings", "Better work experience"],
         }
         return value_props.get(primary_role, ["Value demonstration", "Relationship building"])
 
     def _get_potential_objections(self, primary_role: MEDDICRole) -> List[str]:
         """Get potential objections for the role"""
         objections = {
-            MEDDICRole.METRICS_OWNER: ["ROI timeframe", "Data accuracy concerns", "Integration complexity"],
-            MEDDICRole.ECONOMIC_BUYER: ["Budget constraints", "Competitive solutions", "Implementation risk"],
+            MEDDICRole.METRICS_OWNER: [
+                "ROI timeframe",
+                "Data accuracy concerns",
+                "Integration complexity",
+            ],
+            MEDDICRole.ECONOMIC_BUYER: [
+                "Budget constraints",
+                "Competitive solutions",
+                "Implementation risk",
+            ],
             MEDDICRole.DECISION_MAKER: ["Strategic fit", "Vendor stability", "Market timing"],
-            MEDDICRole.DECISION_CRITERIA: ["Technical requirements", "Integration challenges", "Support quality"],
-            MEDDICRole.IDENTIFY_PAIN: ["Solution fit", "Implementation disruption", "Training requirements"],
+            MEDDICRole.DECISION_CRITERIA: [
+                "Technical requirements",
+                "Integration challenges",
+                "Support quality",
+            ],
+            MEDDICRole.IDENTIFY_PAIN: [
+                "Solution fit",
+                "Implementation disruption",
+                "Training requirements",
+            ],
             MEDDICRole.CHAMPION: ["Internal politics", "Change resistance", "Resource constraints"],
-            MEDDICRole.INFLUENCER: ["Technical concerns", "Competitive preference", "Status quo bias"],
-            MEDDICRole.USER: ["Usability concerns", "Training time", "Workflow disruption"]
+            MEDDICRole.INFLUENCER: [
+                "Technical concerns",
+                "Competitive preference",
+                "Status quo bias",
+            ],
+            MEDDICRole.USER: ["Usability concerns", "Training time", "Workflow disruption"],
         }
         return objections.get(primary_role, ["General skepticism", "Status quo preference"])

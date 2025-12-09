@@ -22,6 +22,7 @@ from abm_research.core.abm_system import ComprehensiveABMSystem
 
 logger = logging.getLogger(__name__)
 
+
 class TestModeABMSystem(ComprehensiveABMSystem):
     """
     ABM System with optional test mode that prevents production database writes
@@ -56,16 +57,16 @@ class TestModeABMSystem(ComprehensiveABMSystem):
             logger.info("🧪 TEST MODE: Simulating Notion database saves (no actual writes)")
 
             # Simulate realistic save results based on research data
-            account = research_results.get('account', {})
-            contacts = research_results.get('contacts', [])
-            trigger_events = research_results.get('trigger_events', [])
-            partnerships = research_results.get('partnerships', [])
+            account = research_results.get("account", {})
+            contacts = research_results.get("contacts", [])
+            trigger_events = research_results.get("trigger_events", [])
+            partnerships = research_results.get("partnerships", [])
 
             simulated_results = {
-                'account_saved': bool(account.get('name')),  # True if account has name
-                'contacts_saved': len(contacts),              # Number of contacts processed
-                'events_saved': len(trigger_events),          # Number of events processed
-                'partnerships_saved': len(partnerships)       # Number of partnerships processed
+                "account_saved": bool(account.get("name")),  # True if account has name
+                "contacts_saved": len(contacts),  # Number of contacts processed
+                "events_saved": len(trigger_events),  # Number of events processed
+                "partnerships_saved": len(partnerships),  # Number of partnerships processed
             }
 
             logger.info("🧪 Simulated save results:")
@@ -80,7 +81,9 @@ class TestModeABMSystem(ComprehensiveABMSystem):
             logger.info("🚀 PRODUCTION MODE: Saving to Notion databases")
             return super().save_research_to_notion(research_results)
 
-    def conduct_complete_account_research(self, company_name: str, company_domain: str) -> Dict[str, Any]:
+    def conduct_complete_account_research(
+        self, company_name: str, company_domain: str
+    ) -> Dict[str, Any]:
         """
         Override complete research to ensure test mode is applied consistently
 
@@ -101,8 +104,8 @@ class TestModeABMSystem(ComprehensiveABMSystem):
 
         if self.test_mode:
             # Ensure test mode messaging is clear in results
-            results['test_mode'] = True
-            results['database_writes_prevented'] = True
+            results["test_mode"] = True
+            results["database_writes_prevented"] = True
 
         return results
 
@@ -115,18 +118,21 @@ class TestModeABMSystem(ComprehensiveABMSystem):
         """
         return self.save_research_to_notion(research_results)
 
+
 # Convenience functions for easy usage
 def create_production_abm() -> ComprehensiveABMSystem:
     """Create ABM system for production use (with database writes)"""
     return TestModeABMSystem(test_mode=False)
 
+
 def create_test_abm() -> TestModeABMSystem:
     """Create ABM system for testing use (no database writes)"""
     return TestModeABMSystem(test_mode=True)
 
+
 # Example usage
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
 
     print("🧪 Test Mode ABM System Demo")
     print("=" * 40)

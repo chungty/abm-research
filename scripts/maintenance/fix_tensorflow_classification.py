@@ -8,12 +8,14 @@ with correct classification as a Strategic Partner account.
 
 import os
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.integrations.notion_client import NotionClient
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+
 
 def fix_tensorflow_classification():
     """Move TensorFlow from wrong partnerships DB to correct accounts DB"""
@@ -27,8 +29,8 @@ def fix_tensorflow_classification():
     notion_client = NotionClient()
 
     # Step 1: Find TensorFlow in wrong database
-    tensorflow_wrong_db = 'fa1467c0-ad15-4b09-bb03-cc715f9b8577'
-    page_id = '2b27f5fe-e5e2-816c-8298-e823f1d23f70'
+    tensorflow_wrong_db = "fa1467c0-ad15-4b09-bb03-cc715f9b8577"
+    page_id = "2b27f5fe-e5e2-816c-8298-e823f1d23f70"
 
     print("📋 STEP 1: Retrieve TensorFlow from Wrong Database")
     print(f"Wrong DB ID: {tensorflow_wrong_db}")
@@ -36,24 +38,21 @@ def fix_tensorflow_classification():
 
     try:
         # Get the wrong TensorFlow record
-        response = notion_client._make_request(
-            'GET',
-            f"https://api.notion.com/v1/pages/{page_id}"
-        )
+        response = notion_client._make_request("GET", f"https://api.notion.com/v1/pages/{page_id}")
 
         if response.status_code == 200:
             page_data = response.json()
-            props = page_data.get('properties', {})
+            props = page_data.get("properties", {})
 
             # Extract the original data
-            name_prop = props.get('Name', {}).get('title', [{}])
-            original_name = name_prop[0].get('text', {}).get('content', '') if name_prop else ''
+            name_prop = props.get("Name", {}).get("title", [{}])
+            original_name = name_prop[0].get("text", {}).get("content", "") if name_prop else ""
 
-            context_prop = props.get('Context', {}).get('rich_text', [{}])
-            reasoning = context_prop[0].get('text', {}).get('content', '') if context_prop else ''
+            context_prop = props.get("Context", {}).get("rich_text", [{}])
+            reasoning = context_prop[0].get("text", {}).get("content", "") if context_prop else ""
 
-            confidence_prop = props.get('Confidence', {}).get('select', {})
-            confidence_name = confidence_prop.get('name', '') if confidence_prop else ''
+            confidence_prop = props.get("Confidence", {}).get("select", {})
+            confidence_name = confidence_prop.get("name", "") if confidence_prop else ""
 
             print(f"✅ Found TensorFlow record: '{original_name}'")
             print(f"   Original context: {reasoning[:100]}...")
@@ -73,23 +72,25 @@ def fix_tensorflow_classification():
     # Extract company name (remove "Partnership" suffix)
     company_name = "TensorFlow"
     if "Partnership" in original_name:
-        company_name = original_name.replace(" Optimization Partnership", "").replace(" Partnership", "")
+        company_name = original_name.replace(" Optimization Partnership", "").replace(
+            " Partnership", ""
+        )
 
     print(f"✅ Company name: {company_name}")
 
     account_data = {
-        'name': company_name,
-        'domain': 'tensorflow.org',
-        'business_model': 'AI/ML Platform',
-        'industry': 'Technology',
-        'employee_count': 1000,  # Estimate for Google's TensorFlow team
-        'icp_fit_score': 45,  # Strategic partner, not direct customer
-        'research_status': 'Classified',
-
+        "name": company_name,
+        "domain": "tensorflow.org",
+        "business_model": "AI/ML Platform",
+        "industry": "Technology",
+        "employee_count": 1000,  # Estimate for Google's TensorFlow team
+        "icp_fit_score": 45,  # Strategic partner, not direct customer
+        "research_status": "Classified",
         # Classification fields (this is the key fix!)
-        'partnership_classification': 'Strategic Partner',
-        'classification_confidence': 85,
-        'classification_reasoning': reasoning or 'AI/ML platform provider serving companies that need power monitoring'
+        "partnership_classification": "Strategic Partner",
+        "classification_confidence": 85,
+        "classification_reasoning": reasoning
+        or "AI/ML platform provider serving companies that need power monitoring",
     }
 
     try:
@@ -104,13 +105,15 @@ def fix_tensorflow_classification():
             update_properties = {
                 "Partnership Classification": {"select": {"name": "Strategic Partner"}},
                 "Classification Confidence": {"number": 85},
-                "Classification Reasoning": {"rich_text": [{"text": {"content": account_data['classification_reasoning']}}]}
+                "Classification Reasoning": {
+                    "rich_text": [{"text": {"content": account_data["classification_reasoning"]}}]
+                },
             }
 
             update_response = notion_client._make_request(
-                'PATCH',
+                "PATCH",
                 f"https://api.notion.com/v1/pages/{existing_account_id}",
-                json={"properties": update_properties}
+                json={"properties": update_properties},
             )
 
             if update_response.status_code == 200:
@@ -139,9 +142,7 @@ def fix_tensorflow_classification():
 
     try:
         archive_response = notion_client._make_request(
-            'PATCH',
-            f"https://api.notion.com/v1/pages/{page_id}",
-            json={"archived": True}
+            "PATCH", f"https://api.notion.com/v1/pages/{page_id}", json={"archived": True}
         )
 
         if archive_response.status_code == 200:
@@ -160,19 +161,24 @@ def fix_tensorflow_classification():
     try:
         # Check new account exists
         verify_response = notion_client._make_request(
-            'GET',
-            f"https://api.notion.com/v1/pages/{new_account_id}"
+            "GET", f"https://api.notion.com/v1/pages/{new_account_id}"
         )
 
         if verify_response.status_code == 200:
             verify_data = verify_response.json()
-            verify_props = verify_data.get('properties', {})
+            verify_props = verify_data.get("properties", {})
 
-            company_name_field = verify_props.get('Company Name', {}).get('title', [{}])
-            verified_name = company_name_field[0].get('text', {}).get('content', '') if company_name_field else ''
+            company_name_field = verify_props.get("Company Name", {}).get("title", [{}])
+            verified_name = (
+                company_name_field[0].get("text", {}).get("content", "")
+                if company_name_field
+                else ""
+            )
 
-            classification_field = verify_props.get('Partnership Classification', {}).get('select', {})
-            classification = classification_field.get('name', '') if classification_field else ''
+            classification_field = verify_props.get("Partnership Classification", {}).get(
+                "select", {}
+            )
+            classification = classification_field.get("name", "") if classification_field else ""
 
             print(f"✅ Verification successful:")
             print(f"   Company Name: {verified_name}")
@@ -188,6 +194,7 @@ def fix_tensorflow_classification():
     except Exception as e:
         print(f"❌ Verification error: {e}")
         return False
+
 
 def check_tensorflow_status():
     """Check current status of TensorFlow in databases"""
@@ -211,17 +218,14 @@ def check_tensorflow_status():
     # Check wrong database (if accessible)
     print("\n📋 Checking Wrong Database:")
     try:
-        wrong_db = 'fa1467c0-ad15-4b09-bb03-cc715f9b8577'
-        page_id = '2b27f5fe-e5e2-816c-8298-e823f1d23f70'
+        wrong_db = "fa1467c0-ad15-4b09-bb03-cc715f9b8577"
+        page_id = "2b27f5fe-e5e2-816c-8298-e823f1d23f70"
 
-        response = notion_client._make_request(
-            'GET',
-            f"https://api.notion.com/v1/pages/{page_id}"
-        )
+        response = notion_client._make_request("GET", f"https://api.notion.com/v1/pages/{page_id}")
 
         if response.status_code == 200:
             page_data = response.json()
-            if page_data.get('archived', False):
+            if page_data.get("archived", False):
                 print("✅ Wrong record is archived (good!)")
             else:
                 print("⚠️  Wrong record still exists and is active")
@@ -231,6 +235,7 @@ def check_tensorflow_status():
     except Exception as e:
         print(f"✅ Wrong database not accessible: {e}")
         print("   (This is expected after fixing configuration)")
+
 
 if __name__ == "__main__":
     print("🚀 Starting TensorFlow Classification Fix")

@@ -6,37 +6,39 @@ Updates NotionClient to use the correct field names that actually exist in the d
 """
 
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 # Get the actual field mappings from database schema
 CORRECT_FIELD_MAPPINGS = {
-    'accounts': {
+    "accounts": {
         # Code expects → Actual field name
-        'Company Name': 'Name',  # title field
-        'Industry': 'Business Model',  # select field
-        'Research Status': 'Account Research Status',  # select field
+        "Company Name": "Name",  # title field
+        "Industry": "Business Model",  # select field
+        "Research Status": "Account Research Status",  # select field
         # Enhanced intelligence fields don't exist yet - we'll add them as rich_text
     },
-    'contacts': {
+    "contacts": {
         # Code expects → Actual field name
-        'Company': 'Account',  # This should be a relation, not rich_text
-        'Lead Score': 'Final Lead Score',  # This is a formula field, can't write to it
+        "Company": "Account",  # This should be a relation, not rich_text
+        "Lead Score": "Final Lead Score",  # This is a formula field, can't write to it
         # Will need to use ICP Fit Score instead
     },
-    'trigger_events': {
-        'Event Description': 'Name',  # title field
-        'Company': 'Account',  # This should be a relation, not rich_text
+    "trigger_events": {
+        "Event Description": "Name",  # title field
+        "Company": "Account",  # This should be a relation, not rich_text
     },
-    'partnerships': {
+    "partnerships": {
         # This database uses different field names
-        'Partner Name': 'Name',  # title field
-        'Partnership Type': 'Category',  # select field
-        'Context': 'Relationship Evidence',  # rich_text field
-        'Relevance Score': 'Priority Score',  # number field
-        'Source URL': 'Evidence URL',  # url field
-        'Discovered Date': 'Detected Date',  # date field
-    }
+        "Partner Name": "Name",  # title field
+        "Partnership Type": "Category",  # select field
+        "Context": "Relationship Evidence",  # rich_text field
+        "Relevance Score": "Priority Score",  # number field
+        "Source URL": "Evidence URL",  # url field
+        "Discovered Date": "Detected Date",  # date field
+    },
 }
+
 
 def create_field_mapping_fix():
     """Create the fixes needed for NotionClient field mappings"""
@@ -88,6 +90,7 @@ def create_field_mapping_fix():
     print("   4. Update _create_partnership() field names")
     print("   5. Add enhanced intelligence fields to accounts database")
     print("   6. Test with Groq to verify fixes")
+
 
 if __name__ == "__main__":
     create_field_mapping_fix()

@@ -7,12 +7,14 @@ Quick test to verify Notion integration permissions are working after sharing da
 
 import os
 import sys
-sys.path.append('/Users/chungty/Projects/abm-research/src')
+
+sys.path.append("/Users/chungty/Projects/abm-research/src")
 
 from abm_research.integrations.notion_client import NotionClient
 import logging
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+
 
 def test_permissions_fix():
     """Test that database permissions are now working"""
@@ -36,10 +38,10 @@ def test_permissions_fix():
         try:
             # Try to query database
             url = f"https://api.notion.com/v1/databases/{db_id}/query"
-            response = notion_client._make_request('POST', url, json={'page_size': 1})
+            response = notion_client._make_request("POST", url, json={"page_size": 1})
 
             if response.status_code == 200:
-                results = response.json().get('results', [])
+                results = response.json().get("results", [])
                 print(f"   ✅ Permission working: Can access {len(results)} items")
             else:
                 print(f"   ❌ Permission failed: {response.status_code}")
@@ -68,6 +70,7 @@ def test_permissions_fix():
         print("2. Click 'Share' → Search 'Account Based Marketing and Sales'")
         print("3. Grant 'Full access' (not just 'View only')")
         print("4. Run this test again")
+
 
 if __name__ == "__main__":
     test_permissions_fix()

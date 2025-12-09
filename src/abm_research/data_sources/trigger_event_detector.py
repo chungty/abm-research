@@ -23,48 +23,85 @@ class TriggerEventDetector:
         # Event detection keywords by category
         self.event_keywords = {
             EventType.EXPANSION: [
-                'expansion', 'new data center', 'new facility', 'construction',
-                'acquired', 'acquisition', 'opening', 'buildout'
+                "expansion",
+                "new data center",
+                "new facility",
+                "construction",
+                "acquired",
+                "acquisition",
+                "opening",
+                "buildout",
             ],
             EventType.INHERITED_INFRASTRUCTURE: [
-                'merger', 'acquisition', 'inherited', 'legacy system',
-                'integration', 'consolidation'
+                "merger",
+                "acquisition",
+                "inherited",
+                "legacy system",
+                "integration",
+                "consolidation",
             ],
             EventType.LEADERSHIP_CHANGE: [
-                'new', 'appointed', 'hired', 'joins', 'cto', 'vp',
-                'director', 'chief', 'head of'
+                "new",
+                "appointed",
+                "hired",
+                "joins",
+                "cto",
+                "vp",
+                "director",
+                "chief",
+                "head of",
             ],
             EventType.AI_WORKLOAD: [
-                'ai', 'artificial intelligence', 'machine learning', 'ml',
-                'gpu', 'nvidia', 'hpc', 'high performance computing'
+                "ai",
+                "artificial intelligence",
+                "machine learning",
+                "ml",
+                "gpu",
+                "nvidia",
+                "hpc",
+                "high performance computing",
             ],
             EventType.ENERGY_PRESSURE: [
-                'energy cost', 'power cost', 'efficiency', 'pue',
-                'sustainability', 'carbon', 'renewable'
+                "energy cost",
+                "power cost",
+                "efficiency",
+                "pue",
+                "sustainability",
+                "carbon",
+                "renewable",
             ],
             EventType.DOWNTIME_INCIDENT: [
-                'outage', 'downtime', 'incident', 'failure', 'disruption',
-                'offline', 'maintenance'
+                "outage",
+                "downtime",
+                "incident",
+                "failure",
+                "disruption",
+                "offline",
+                "maintenance",
             ],
             EventType.SUSTAINABILITY: [
-                'sustainability', 'green', 'carbon neutral', 'renewable',
-                'esg', 'environment', 'climate'
-            ]
+                "sustainability",
+                "green",
+                "carbon neutral",
+                "renewable",
+                "esg",
+                "environment",
+                "climate",
+            ],
         }
 
         # News sources by confidence level
         self.news_sources = {
-            'high_confidence': [
-                'sec.gov', 'investors.', 'newsroom', 'press-release'
+            "high_confidence": ["sec.gov", "investors.", "newsroom", "press-release"],
+            "medium_confidence": [
+                "datacenterdynamics.com",
+                "datacenterknowledge.com",
+                "bloomberg.com",
+                "reuters.com",
+                "wsj.com",
+                "missioncriticalmagazine.com",
             ],
-            'medium_confidence': [
-                'datacenterdynamics.com', 'datacenterknowledge.com',
-                'bloomberg.com', 'reuters.com', 'wsj.com',
-                'missioncriticalmagazine.com'
-            ],
-            'low_confidence': [
-                'twitter.com', 'linkedin.com/posts', 'reddit.com'
-            ]
+            "low_confidence": ["twitter.com", "linkedin.com/posts", "reddit.com"],
         }
 
     async def scan_company_website(self, domain: str, since_date: date) -> List[TriggerEvent]:
@@ -83,7 +120,7 @@ class TriggerEventDetector:
 
             for article in articles:
                 # Skip old articles
-                if article.get('date') and article['date'] < since_date:
+                if article.get("date") and article["date"] < since_date:
                     continue
 
                 # Analyze article for trigger events
@@ -109,7 +146,9 @@ class TriggerEventDetector:
 
         return events
 
-    async def scan_linkedin_company(self, linkedin_url: str, since_date: date) -> List[TriggerEvent]:
+    async def scan_linkedin_company(
+        self, linkedin_url: str, since_date: date
+    ) -> List[TriggerEvent]:
         """Scan LinkedIn company page for announcements"""
         logger.info(f"Scanning LinkedIn company page: {linkedin_url}")
 
@@ -133,13 +172,14 @@ class TriggerEventDetector:
         events = []
 
         # Look for specific role types that indicate trigger events
-        leadership_roles = [
-            'VP', 'Vice President', 'Director', 'Head of', 'Chief'
-        ]
+        leadership_roles = ["VP", "Vice President", "Director", "Head of", "Chief"]
 
         operations_roles = [
-            'Data Center Operations', 'Infrastructure', 'Facilities',
-            'Site Operations', 'Critical Systems'
+            "Data Center Operations",
+            "Infrastructure",
+            "Facilities",
+            "Site Operations",
+            "Critical Systems",
         ]
 
         try:
@@ -152,13 +192,14 @@ class TriggerEventDetector:
 
         return events
 
-    def _analyze_article_for_events(self, article: Dict[str, Any], domain: str,
-                                   source_confidence: int) -> List[TriggerEvent]:
+    def _analyze_article_for_events(
+        self, article: Dict[str, Any], domain: str, source_confidence: int
+    ) -> List[TriggerEvent]:
         """Analyze article content for trigger events"""
         events = []
 
-        title = article.get('title', '')
-        content = article.get('content', '')
+        title = article.get("title", "")
+        content = article.get("content", "")
         full_text = f"{title} {content}".lower()
 
         # Check each event type
@@ -169,7 +210,7 @@ class TriggerEventDetector:
                     event_type=event_type,
                     article=article,
                     domain=domain,
-                    source_confidence=source_confidence
+                    source_confidence=source_confidence,
                 )
                 if event:
                     events.append(event)
@@ -183,14 +224,15 @@ class TriggerEventDetector:
                 return True
         return False
 
-    def _create_trigger_event(self, event_type: EventType, article: Dict[str, Any],
-                            domain: str, source_confidence: int) -> Optional[TriggerEvent]:
+    def _create_trigger_event(
+        self, event_type: EventType, article: Dict[str, Any], domain: str, source_confidence: int
+    ) -> Optional[TriggerEvent]:
         """Create trigger event from article"""
         try:
-            title = article.get('title', '')
-            content = article.get('content', '')
-            url = article.get('url', '')
-            event_date = article.get('date')
+            title = article.get("title", "")
+            content = article.get("content", "")
+            url = article.get("url", "")
+            event_date = article.get("date")
 
             # Generate description
             description = self._generate_event_description(event_type, title, content)
@@ -208,7 +250,7 @@ class TriggerEventDetector:
                 confidence_score=source_confidence,
                 relevance_score=relevance_score,
                 source_url=url,
-                event_date=event_date or date.today()
+                event_date=event_date or date.today(),
             )
 
             return event
@@ -224,7 +266,7 @@ class TriggerEventDetector:
 
         # Extract first meaningful sentence from content
         if content:
-            sentences = content.split('.')
+            sentences = content.split(".")
             for sentence in sentences:
                 sentence = sentence.strip()
                 if len(sentence) > 20:  # Skip short fragments
@@ -244,21 +286,33 @@ class TriggerEventDetector:
             EventType.EXPANSION: 70,
             EventType.LEADERSHIP_CHANGE: 65,
             EventType.SUSTAINABILITY: 60,
-            EventType.INHERITED_INFRASTRUCTURE: 55
+            EventType.INHERITED_INFRASTRUCTURE: 55,
         }
 
         base_score = base_scores.get(event_type, 50)
 
         # High relevance keywords (boost score)
         high_relevance_terms = [
-            'power', 'energy', 'capacity', 'uptime', 'ai infrastructure',
-            'gpu', 'data center operations', 'electrical', 'cooling'
+            "power",
+            "energy",
+            "capacity",
+            "uptime",
+            "ai infrastructure",
+            "gpu",
+            "data center operations",
+            "electrical",
+            "cooling",
         ]
 
         # Medium relevance keywords
         medium_relevance_terms = [
-            'infrastructure', 'facility', 'expansion', 'merger',
-            'acquisition', 'sustainability', 'cost reduction'
+            "infrastructure",
+            "facility",
+            "expansion",
+            "merger",
+            "acquisition",
+            "sustainability",
+            "cost reduction",
         ]
 
         # Count keyword matches
@@ -286,17 +340,17 @@ class TriggerEventDetector:
         url_lower = url.lower()
 
         # Check high confidence sources
-        for domain in self.news_sources['high_confidence']:
+        for domain in self.news_sources["high_confidence"]:
             if domain in url_lower:
                 return 95
 
         # Check medium confidence sources
-        for domain in self.news_sources['medium_confidence']:
+        for domain in self.news_sources["medium_confidence"]:
             if domain in url_lower:
                 return 70
 
         # Check low confidence sources
-        for domain in self.news_sources['low_confidence']:
+        for domain in self.news_sources["low_confidence"]:
             if domain in url_lower:
                 return 40
 
@@ -307,10 +361,10 @@ class TriggerEventDetector:
         """Generate summary of detected trigger events"""
         if not events:
             return {
-                'total_events': 0,
-                'high_priority_events': 0,
-                'event_types': {},
-                'confidence_distribution': {}
+                "total_events": 0,
+                "high_priority_events": 0,
+                "event_types": {},
+                "confidence_distribution": {},
             }
 
         # Count by event type
@@ -321,16 +375,18 @@ class TriggerEventDetector:
 
         # Count by confidence
         confidence_distribution = {
-            'High': len([e for e in events if e.confidence_level == ConfidenceLevel.HIGH]),
-            'Medium': len([e for e in events if e.confidence_level == ConfidenceLevel.MEDIUM]),
-            'Low': len([e for e in events if e.confidence_level == ConfidenceLevel.LOW])
+            "High": len([e for e in events if e.confidence_level == ConfidenceLevel.HIGH]),
+            "Medium": len([e for e in events if e.confidence_level == ConfidenceLevel.MEDIUM]),
+            "Low": len([e for e in events if e.confidence_level == ConfidenceLevel.LOW]),
         }
 
         return {
-            'total_events': len(events),
-            'high_priority_events': len([e for e in events if e.is_high_priority()]),
-            'event_types': event_types,
-            'confidence_distribution': confidence_distribution,
-            'average_relevance': sum(e.relevance_score for e in events) / len(events),
-            'most_relevant_event': max(events, key=lambda e: e.relevance_score).description if events else None
+            "total_events": len(events),
+            "high_priority_events": len([e for e in events if e.is_high_priority()]),
+            "event_types": event_types,
+            "confidence_distribution": confidence_distribution,
+            "average_relevance": sum(e.relevance_score for e in events) / len(events),
+            "most_relevant_event": max(events, key=lambda e: e.relevance_score).description
+            if events
+            else None,
         }
