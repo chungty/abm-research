@@ -371,7 +371,15 @@ class AccountScorer:
 
         for category, config in self.INFRASTRUCTURE_KEYWORDS.items():
             detected = [kw for kw in config["keywords"] if kw.lower() in text_lower]
-            points = config["max_points"] if detected else 0
+            # Partial scoring: award points proportional to keywords detected
+            # Detecting 1+ keyword gets at least 50% of max points (min threshold for relevance)
+            # More keywords detected = higher score up to max
+            if detected:
+                match_ratio = len(detected) / len(config["keywords"])
+                # At least 50% for any match, scales up to 100% based on coverage
+                points = int(config["max_points"] * (0.5 + 0.5 * min(match_ratio * 3, 1.0)))
+            else:
+                points = 0
             total_points += points
             max_possible += config["max_points"]
 
@@ -380,6 +388,7 @@ class AccountScorer:
                 "points": points,
                 "max_points": config["max_points"],
                 "description": config["description"],
+                "confidence": f"{int((len(detected) / len(config['keywords'])) * 100)}%" if detected else "0%",
             }
 
         # Calculate normalized score (0-100)

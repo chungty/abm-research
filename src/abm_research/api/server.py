@@ -237,20 +237,19 @@ def transform_notion_account(
             "growth_stage": growth_stage,
         }
 
-        # PRIMARY SCORE: Use ICP Fit Score from Notion (single source of truth)
-        # This score is calculated during enrichment and stored in Notion
-        total_score = icp_fit_score
-
-        # DERIVED DISPLAY: Calculate infrastructure breakdown for visual detail
-        # This is derived from Physical Infrastructure field for dashboard display only
+        # Calculate component scores from account data
+        # This ensures total always matches sum of weighted components
         if account_scorer:
             score_obj = account_scorer.calculate_account_score(account_data)
             infra_score = score_obj.infrastructure_fit.score
             infra_breakdown = score_obj.infrastructure_fit.to_dict()
-            # Use scorer-calculated business/buying scores for breakdown display
             business_score = score_obj.business_fit.score
             buying_score = score_obj.buying_signals.score
+            # Calculate total from components: Infrastructure × 35% + Business Fit × 35% + Buying Signals × 30%
+            total_score = int(infra_score * 0.35 + business_score * 0.35 + buying_score * 0.30)
         else:
+            # Fallback to Notion's ICP Fit Score if scorer unavailable
+            total_score = icp_fit_score
             infra_score = 0
             business_score = 0
             buying_score = 0
@@ -266,9 +265,9 @@ def transform_notion_account(
         else:
             priority_level = "Low"
 
-        # Full breakdown for dashboard (informational, not the primary score)
+        # Full breakdown for dashboard
         score_breakdown = {
-            "total_score": total_score,  # From Notion ICP Fit Score
+            "total_score": total_score,
             "infrastructure_fit": {
                 "score": infra_score,
                 "weight": "35%",
@@ -283,7 +282,7 @@ def transform_notion_account(
                 "weight": "30%",
             },
             "priority_level": priority_level,
-            "note": "Total score from Notion ICP Fit Score (source of truth)",
+            "formula": "Total = (Infrastructure × 35%) + (Business Fit × 35%) + (Buying Signals × 30%)",
         }
 
         return {
@@ -1379,7 +1378,7 @@ def create_account():
         # Build Notion properties
         properties = {
             "Name": {"title": [{"text": {"content": name}}]},
-            "Domain": {"url": f"https://{domain}" if not domain.startswith("http") else domain},
+            "Domain": {"rich_text": [{"text": {"content": domain}}]},
         }
 
         # Optional fields
@@ -4355,7 +4354,10 @@ def enrich_account_fields(account_id: str):
             [f"- {r['title']}: {r['description']}" for r in all_results[:15]]
         )
 
-        extraction_prompt = f"""Analyze these search results about {account_name} and extract infrastructure information.
+        # Build source URLs for reference
+        source_urls = list(set([r.get("url", "") for r in all_results[:10] if r.get("url")]))
+
+        extraction_prompt = f"""Analyze these search results about {account_name} and extract company information.
 
 SEARCH RESULTS:
 {search_context}
@@ -4363,14 +4365,13 @@ SEARCH RESULTS:
 Based on these results, provide a JSON response with:
 1. physical_infrastructure: A detailed description of their datacenter/cloud infrastructure (GPUs, servers, power systems, cooling). Include specific hardware models if mentioned (NVIDIA H100, A100, etc.)
 2. industry: The primary industry classification (e.g., "Cloud GPU Provider", "AI Infrastructure", "Data Center Services", "Colocation Provider")
-3. icp_fit_score: A score from 0-100 indicating how well they match ICP criteria:
-   - GPU/AI infrastructure: +30 points
-   - Datacenter operations: +25 points
-   - Power/cooling focus: +25 points
-   - High-growth indicators: +20 points
+3. employee_count_estimate: Estimated number of employees (number only, e.g. 500). If unknown, use 0.
+4. headquarters_location: Company headquarters city/state/country (e.g., "San Francisco, CA, USA")
+5. confidence: Your confidence level in the assessment (high/medium/low)
+6. key_findings: Array of specific facts found with source attribution
 
 Respond ONLY with valid JSON:
-{{"physical_infrastructure": "...", "industry": "...", "icp_fit_score": 75, "reasoning": "..."}}
+{{"physical_infrastructure": "...", "industry": "...", "employee_count_estimate": 500, "headquarters_location": "San Francisco, CA, USA", "confidence": "medium", "key_findings": ["NVIDIA H100 GPUs (from company website)", "~500 employees (from LinkedIn)"], "reasoning": "..."}}
 """
 
         try:
@@ -4399,22 +4400,66 @@ Respond ONLY with valid JSON:
                 "reasoning": "Default score - AI extraction failed",
             }
 
-        # Step 3: Update Notion with enriched data
+        # Step 3: Extract all enrichment data from AI response
         physical_infra = extracted.get("physical_infrastructure", "")[:2000]
-        icp_score = min(100, max(0, extracted.get("icp_fit_score", 60)))
-        industry = extracted.get("industry", "Technology")  # For API response (not saved to Notion)
+        industry = extracted.get("industry", "Technology")
+        headquarters = extracted.get("headquarters_location", "")
+
+        # Extract employee count - use AI estimate if Notion doesn't have it
+        employee_estimate = extracted.get("employee_count_estimate", 0)
+        if isinstance(employee_estimate, str):
+            try:
+                employee_estimate = int(employee_estimate.replace(",", ""))
+            except (ValueError, TypeError):
+                employee_estimate = 0
+        existing_employee_count = props.get("Employee Count", {}).get("number", 0) or 0
+        employee_count = existing_employee_count if existing_employee_count > 0 else employee_estimate
+
+        # Calculate ICP score from components (Infrastructure × 35% + Business Fit × 35% + Buying Signals × 30%)
+        # This ensures Notion's ICP Fit Score matches the component breakdown shown in UI
+        account_data_for_scoring = {
+            "name": account_name,
+            "domain": props.get("Domain", {}).get("rich_text", [{}])[0].get("text", {}).get("content", ""),
+            "Physical Infrastructure": physical_infra,
+            "business_model": props.get("Business Model", {}).get("rich_text", [{}])[0].get("text", {}).get("content", ""),
+            "employee_count": employee_count,
+            "industry": industry,
+            "data_center_locations": [headquarters] if headquarters else [],
+        }
+
+        # Use account_scorer to calculate component scores
+        if account_scorer:
+            score_obj = account_scorer.calculate_account_score(account_data_for_scoring)
+            infra_score = score_obj.infrastructure_fit.score
+            business_score = score_obj.business_fit.score
+            buying_score = score_obj.buying_signals.score
+            # Calculate total from weighted components
+            icp_score = int(infra_score * 0.35 + business_score * 0.35 + buying_score * 0.30)
+            logger.info(f"📊 Calculated ICP: {icp_score} = ({infra_score}×35% + {business_score}×35% + {buying_score}×30%)")
+        else:
+            # Fallback to AI-extracted score if scorer unavailable
+            icp_score = min(100, max(0, extracted.get("icp_fit_score", 60)))
 
         try:
             notion = get_notion_client()
 
             # Build update properties
-            # Note: "Industry" field does NOT exist in Notion schema
-            # Available fields: Physical Infrastructure, ICP Fit Score, Business Model
             update_properties = {
                 "Physical Infrastructure": {"rich_text": [{"text": {"content": physical_infra}}]},
                 "ICP Fit Score": {"number": icp_score},
                 "Last Updated": {"date": {"start": datetime.now().isoformat()}},
             }
+
+            # Add employee count if we have an estimate and Notion doesn't have it
+            if employee_estimate > 0 and existing_employee_count == 0:
+                update_properties["Employee Count"] = {"number": employee_estimate}
+
+            # Add headquarters to Business Model if available (for geography display)
+            if headquarters:
+                current_biz_model = props.get("Business Model", {}).get("rich_text", [{}])[0].get("text", {}).get("content", "")
+                if headquarters.lower() not in current_biz_model.lower():
+                    new_biz_model = f"{current_biz_model}\n\nHeadquarters: {headquarters}".strip()
+                    update_properties["Business Model"] = {"rich_text": [{"text": {"content": new_biz_model[:2000]}}]}
 
             # Update via Notion API
             url = f"https://api.notion.com/v1/pages/{notion_id}"
@@ -4444,11 +4489,19 @@ Respond ONLY with valid JSON:
                     "physical_infrastructure": physical_infra,
                     "industry": industry,
                     "icp_fit_score": icp_score,
+                    "confidence": extracted.get("confidence", "medium"),
+                    "key_findings": extracted.get("key_findings", []),
                     "reasoning": extracted.get("reasoning", ""),
+                    "source_urls": source_urls[:5],  # Top 5 sources for reference
                 },
                 "search_results_analyzed": len(all_results),
                 "duration_seconds": round(duration, 2),
                 "notion_updated": True,
+                "data_provenance": {
+                    "method": "ai_inference",
+                    "model": "gpt-4o-mini",
+                    "sources_count": len(source_urls),
+                },
             }
         )
 

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { Account, PriorityLevel, SortField, SortDirection } from '../types';
 import { AccountCard } from './AccountCard';
+import { useDebounce } from '../hooks/useDebounce';
 
 interface Props {
   accounts: Account[];
@@ -23,17 +24,19 @@ export function AccountList({
   const [searchQuery, setSearchQuery] = useState('');
   const [showGpuOnly, setShowGpuOnly] = useState(false);
 
+  // Debounce search for smoother filtering (200ms delay)
+  const debouncedSearch = useDebounce(searchQuery, 200);
+
   const sortedAccounts = useMemo(() => {
     let filtered = [...accounts];
 
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+    // Search filter (using debounced value for performance)
+    if (debouncedSearch) {
+      const query = debouncedSearch.toLowerCase();
       filtered = filtered.filter(
         a =>
           a.name.toLowerCase().includes(query) ||
-          a.domain.toLowerCase().includes(query) ||
-          a.business_model?.toLowerCase().includes(query)
+          a.domain.toLowerCase().includes(query)
       );
     }
 
@@ -86,7 +89,7 @@ export function AccountList({
     });
 
     return filtered;
-  }, [accounts, sortField, sortDirection, filterPriority, searchQuery, showGpuOnly]);
+  }, [accounts, sortField, sortDirection, filterPriority, debouncedSearch, showGpuOnly]);
 
   const handleSort = (field: SortField) => {
     if (field === sortField) {
