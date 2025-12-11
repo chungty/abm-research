@@ -8,6 +8,7 @@ import { ResearchButton } from './ResearchButton';
 import { VendorDiscoveryButton } from './VendorDiscoveryButton';
 import { AccountFieldEnrichmentButton } from './AccountFieldEnrichmentButton';
 import { TriggerEventsSection } from './TriggerEventsSection';
+import { PartnerPaths } from './PartnerPaths';
 import { api } from '../api/client';
 
 interface Props {
@@ -366,7 +367,13 @@ export function AccountDetail({ account, contacts, triggerEvents = [], onClose, 
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════
-            SECTION 6: BUYING SIGNALS (Scoring Context)
+            SECTION 6: PARTNER PATHS
+            Purpose: Show which partners can help reach this account
+            ═══════════════════════════════════════════════════════════════════ */}
+        <PartnerPaths accountId={account.id} accountName={account.name} />
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            SECTION 7: BUYING SIGNALS (Scoring Context)
             Purpose: Shows how trigger events contribute to buying signal score
             ═══════════════════════════════════════════════════════════════════ */}
         {account.account_score_breakdown?.buying_signals && (

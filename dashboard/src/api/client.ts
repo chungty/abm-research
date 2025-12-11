@@ -285,3 +285,25 @@ export function usePartnerRankings() {
     refetch: fetchData
   };
 }
+
+// Hook to get partners that can reach a specific account
+export function usePartnersForAccount(accountId: string | null) {
+  const { rankings, loading, error } = usePartnerRankings();
+
+  const partnersForAccount = rankings
+    .filter(partner =>
+      partner.matched_accounts?.some(acc => acc.id === accountId)
+    )
+    .map(partner => ({
+      ...partner,
+      // Get the specific match reasons for this account
+      matchInfo: partner.matched_accounts?.find(acc => acc.id === accountId)
+    }))
+    .sort((a, b) => b.partner_score - a.partner_score);
+
+  return {
+    partners: partnersForAccount,
+    loading,
+    error
+  };
+}
