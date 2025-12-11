@@ -7,6 +7,73 @@ interface Props {
   selected?: boolean;
 }
 
+// Account urgency status based on buying signals
+export type AccountStatus = 'hot' | 'warming' | 'quiet';
+
+export interface AccountStatusInfo {
+  status: AccountStatus;
+  label: string;
+  reason: string | null;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+}
+
+export function getAccountStatus(account: Account): AccountStatusInfo {
+  const signalScore = account.buying_signals_score || 0;
+
+  // Extract a reason from the buying signals breakdown if available
+  const buyingSignals = account.account_score_breakdown?.buying_signals?.breakdown;
+  let reason: string | null = null;
+
+  if (buyingSignals) {
+    // Check for high-value triggers first
+    const triggers = buyingSignals.trigger_events?.high_value_triggers;
+    if (triggers && triggers.length > 0) {
+      reason = triggers[0];
+    }
+    // Then check expansion signals
+    else if (buyingSignals.expansion_signals?.detected?.length > 0) {
+      reason = buyingSignals.expansion_signals.detected[0];
+    }
+    // Then hiring signals
+    else if (buyingSignals.hiring_signals?.detected?.length > 0) {
+      reason = buyingSignals.hiring_signals.detected[0];
+    }
+  }
+
+  if (signalScore >= 50) {
+    return {
+      status: 'hot',
+      label: 'Hot',
+      reason,
+      color: 'var(--color-priority-very-high)',
+      bgColor: 'var(--color-priority-very-high-bg)',
+      borderColor: 'var(--color-priority-very-high-border)'
+    };
+  }
+
+  if (signalScore >= 20) {
+    return {
+      status: 'warming',
+      label: 'Warming',
+      reason,
+      color: 'var(--color-priority-medium)',
+      bgColor: 'var(--color-priority-medium-bg)',
+      borderColor: 'var(--color-priority-medium-border)'
+    };
+  }
+
+  return {
+    status: 'quiet',
+    label: 'Quiet',
+    reason: null,
+    color: 'var(--color-text-muted)',
+    bgColor: 'var(--color-bg-elevated)',
+    borderColor: 'var(--color-border-subtle)'
+  };
+}
+
 export function AccountCard({ account, onClick, selected = false }: Props) {
   const infraBreakdown = account.infrastructure_breakdown?.breakdown;
 
@@ -18,6 +85,9 @@ export function AccountCard({ account, onClick, selected = false }: Props) {
     : [];
 
   const hasGpu = infraBreakdown?.gpu_infrastructure?.detected?.length > 0;
+
+  // Compute account urgency status
+  const statusInfo = getAccountStatus(account);
 
   return (
     <div
@@ -78,6 +148,46 @@ export function AccountCard({ account, onClick, selected = false }: Props) {
         </div>
       )}
 
+      {/* Status + Metrics Row */}
+      <div
+        className="flex items-center gap-2 mb-3"
+      >
+        {/* Status Badge */}
+        <div
+          className="flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium"
+          style={{
+            backgroundColor: statusInfo.bgColor,
+            color: statusInfo.color,
+            border: `1px solid ${statusInfo.borderColor}`
+          }}
+        >
+          <StatusDot status={statusInfo.status} />
+          {statusInfo.label}
+        </div>
+
+        {/* Quick metrics */}
+        <span
+          className="text-xs"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
+          {account.contacts_count || 0} contacts
+        </span>
+      </div>
+
+      {/* Status Reason - only show if there's a meaningful reason */}
+      {statusInfo.reason && (
+        <div
+          className="text-xs mb-3 px-2 py-1.5 rounded"
+          style={{
+            backgroundColor: statusInfo.bgColor,
+            color: statusInfo.color,
+            borderLeft: `2px solid ${statusInfo.color}`
+          }}
+        >
+          {statusInfo.reason}
+        </div>
+      )}
+
       {/* Footer */}
       <div
         className="flex items-center justify-between text-xs pt-2"
@@ -88,7 +198,6 @@ export function AccountCard({ account, onClick, selected = false }: Props) {
       >
         <div className="flex items-center gap-3">
           <span className="font-data">{account.employee_count?.toLocaleString() || '—'} employees</span>
-          <span className="font-data">{account.contacts_count || 0} contacts</span>
         </div>
         <span
           className="px-1.5 py-0.5 rounded text-xs"
@@ -101,6 +210,21 @@ export function AccountCard({ account, onClick, selected = false }: Props) {
         </span>
       </div>
     </div>
+  );
+}
+
+function StatusDot({ status }: { status: AccountStatus }) {
+  return (
+    <span
+      className="w-2 h-2 rounded-full"
+      style={{
+        backgroundColor: status === 'hot'
+          ? 'var(--color-priority-very-high)'
+          : status === 'warming'
+            ? 'var(--color-priority-medium)'
+            : 'var(--color-text-muted)'
+      }}
+    />
   );
 }
 

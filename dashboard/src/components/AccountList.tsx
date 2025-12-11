@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import type { Account, PriorityLevel, SortField, SortDirection } from '../types';
-import { AccountCard } from './AccountCard';
+import { AccountCard, getAccountStatus, type AccountStatus } from './AccountCard';
 import { useDebounce } from '../hooks/useDebounce';
 
 interface Props {
@@ -21,11 +21,22 @@ export function AccountList({
   const [sortField, setSortField] = useState<SortField>('account_score');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [filterPriority, setFilterPriority] = useState<PriorityLevel[]>([]);
+  const [filterStatus, setFilterStatus] = useState<AccountStatus | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showGpuOnly, setShowGpuOnly] = useState(false);
 
   // Debounce search for smoother filtering (200ms delay)
   const debouncedSearch = useDebounce(searchQuery, 200);
+
+  // Compute status counts for all accounts
+  const statusCounts = useMemo(() => {
+    const counts = { hot: 0, warming: 0, quiet: 0 };
+    accounts.forEach(account => {
+      const status = getAccountStatus(account).status;
+      counts[status]++;
+    });
+    return counts;
+  }, [accounts]);
 
   const sortedAccounts = useMemo(() => {
     let filtered = [...accounts];
@@ -50,6 +61,11 @@ export function AccountList({
       filtered = filtered.filter(
         a => a.infrastructure_breakdown?.breakdown?.gpu_infrastructure?.detected?.length > 0
       );
+    }
+
+    // Status filter
+    if (filterStatus) {
+      filtered = filtered.filter(a => getAccountStatus(a).status === filterStatus);
     }
 
     // Sort
@@ -89,7 +105,7 @@ export function AccountList({
     });
 
     return filtered;
-  }, [accounts, sortField, sortDirection, filterPriority, debouncedSearch, showGpuOnly]);
+  }, [accounts, sortField, sortDirection, filterPriority, debouncedSearch, showGpuOnly, filterStatus]);
 
   const handleSort = (field: SortField) => {
     if (field === sortField) {
@@ -197,6 +213,40 @@ export function AccountList({
           onChange={e => setSearchQuery(e.target.value)}
           className="input-field"
         />
+
+        {/* Status Quick Filters */}
+        <div className="flex items-center gap-2">
+          <StatusFilterButton
+            label="Hot"
+            count={statusCounts.hot}
+            active={filterStatus === 'hot'}
+            onClick={() => setFilterStatus(filterStatus === 'hot' ? null : 'hot')}
+            status="hot"
+          />
+          <StatusFilterButton
+            label="Warming"
+            count={statusCounts.warming}
+            active={filterStatus === 'warming'}
+            onClick={() => setFilterStatus(filterStatus === 'warming' ? null : 'warming')}
+            status="warming"
+          />
+          <StatusFilterButton
+            label="Quiet"
+            count={statusCounts.quiet}
+            active={filterStatus === 'quiet'}
+            onClick={() => setFilterStatus(filterStatus === 'quiet' ? null : 'quiet')}
+            status="quiet"
+          />
+          {filterStatus && (
+            <button
+              onClick={() => setFilterStatus(null)}
+              className="text-xs px-2 py-1 rounded transition-colors"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
 
         {/* Sort & Filter */}
         <div className="flex flex-wrap items-center gap-2">
@@ -339,6 +389,71 @@ function FilterChip({
       }}
     >
       {label}
+    </button>
+  );
+}
+
+function StatusFilterButton({
+  label,
+  count,
+  active,
+  onClick,
+  status
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+  status: AccountStatus;
+}) {
+  const getStatusColors = (s: AccountStatus, isActive: boolean) => {
+    if (s === 'hot') {
+      return isActive
+        ? { color: '#fff', bg: 'var(--color-priority-very-high)', border: 'var(--color-priority-very-high)' }
+        : { color: 'var(--color-priority-very-high)', bg: 'var(--color-priority-very-high-bg)', border: 'var(--color-priority-very-high-border)' };
+    }
+    if (s === 'warming') {
+      return isActive
+        ? { color: '#fff', bg: 'var(--color-priority-medium)', border: 'var(--color-priority-medium)' }
+        : { color: 'var(--color-priority-medium)', bg: 'var(--color-priority-medium-bg)', border: 'var(--color-priority-medium-border)' };
+    }
+    return isActive
+      ? { color: '#fff', bg: 'var(--color-text-muted)', border: 'var(--color-text-muted)' }
+      : { color: 'var(--color-text-muted)', bg: 'var(--color-bg-elevated)', border: 'var(--color-border-subtle)' };
+  };
+
+  const colors = getStatusColors(status, active);
+
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all"
+      style={{
+        backgroundColor: colors.bg,
+        color: colors.color,
+        border: `1px solid ${colors.border}`
+      }}
+    >
+      <span
+        className="w-2 h-2 rounded-full"
+        style={{
+          backgroundColor: status === 'hot'
+            ? active ? '#fff' : 'var(--color-priority-very-high)'
+            : status === 'warming'
+              ? active ? '#fff' : 'var(--color-priority-medium)'
+              : active ? '#fff' : 'var(--color-text-muted)'
+        }}
+      />
+      {label}
+      <span
+        className="px-1 py-0.5 rounded text-xs"
+        style={{
+          backgroundColor: active ? 'rgba(255,255,255,0.2)' : 'var(--color-bg-card)',
+          color: active ? '#fff' : 'var(--color-text-muted)'
+        }}
+      >
+        {count}
+      </span>
     </button>
   );
 }

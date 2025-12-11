@@ -5,7 +5,7 @@ import { FocusTrap, ErrorBanner } from './shared';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onAccountCreated: (accountId: string, domain: string) => void;
+  onAccountCreated: (accountId: string, domain: string, viewAccount?: boolean) => void;
 }
 
 type FormStatus = 'idle' | 'creating' | 'researching' | 'success' | 'error';
@@ -26,6 +26,8 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [autoResearch, setAutoResearch] = useState(true);
   const [progress, setProgress] = useState<string>('');
+  const [createdAccountId, setCreatedAccountId] = useState<string | null>(null);
+  const [createdAccountName, setCreatedAccountName] = useState<string>('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -68,16 +70,8 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
 
       setStatus('success');
       setProgress('');
-
-      // Notify parent with the new account ID
-      onAccountCreated(result.id, result.domain);
-
-      // Reset form and close after brief success display
-      setTimeout(() => {
-        setFormData(initialFormData);
-        setStatus('idle');
-        onClose();
-      }, 1500);
+      setCreatedAccountId(result.id);
+      setCreatedAccountName(formData.name);
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');
@@ -91,7 +85,28 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
     setFormData(initialFormData);
     setStatus('idle');
     setError(null);
+    setCreatedAccountId(null);
+    setCreatedAccountName('');
     onClose();
+  };
+
+  const handleViewAccount = () => {
+    if (createdAccountId) {
+      onAccountCreated(createdAccountId, formData.domain, true);
+    }
+    handleClose();
+  };
+
+  const handleAddAnother = () => {
+    // Notify parent about the created account (without viewing)
+    if (createdAccountId) {
+      onAccountCreated(createdAccountId, formData.domain, false);
+    }
+    // Reset form for new entry
+    setFormData(initialFormData);
+    setStatus('idle');
+    setCreatedAccountId(null);
+    setCreatedAccountName('');
   };
 
   if (!isOpen) return null;
@@ -260,16 +275,16 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
             </div>
           )}
 
-          {/* Success Message */}
+          {/* Success State - Show action buttons */}
           {status === 'success' && (
             <div
-              className="p-3 rounded-lg animate-fade-in"
+              className="p-4 rounded-lg animate-fade-in"
               style={{
                 backgroundColor: 'var(--color-priority-high-bg)',
                 border: '1px solid var(--color-priority-high-border)',
               }}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-3">
                 <svg
                   className="w-5 h-5"
                   style={{ color: 'var(--color-priority-high)' }}
@@ -288,13 +303,58 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
                   className="text-sm font-medium"
                   style={{ color: 'var(--color-priority-high)' }}
                 >
-                  Account created successfully!
+                  {createdAccountName} created successfully!
                 </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleViewAccount}
+                  className="flex-1 px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--color-accent-primary) 0%, #2563eb 100%)',
+                    color: 'white',
+                    boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+                  }}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  View Account
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddAnother}
+                  className="px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2"
+                  style={{
+                    backgroundColor: 'var(--color-bg-card)',
+                    color: 'var(--color-text-secondary)',
+                    border: '1px solid var(--color-border-default)',
+                  }}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Another
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="px-4 py-2 rounded-lg font-medium text-sm transition-all"
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: 'var(--color-text-muted)',
+                  }}
+                >
+                  Close
+                </button>
               </div>
             </div>
           )}
 
-          {/* Actions */}
+          {/* Actions - Only show when not in success state */}
+          {status !== 'success' && (
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
@@ -343,6 +403,7 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
               )}
             </button>
           </div>
+          )}
         </form>
         </div>
       </FocusTrap>

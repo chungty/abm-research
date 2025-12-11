@@ -19,18 +19,21 @@ function App() {
   const [showChangelog, setShowChangelog] = useState(false);
 
   // Handle new account creation
-  const handleAccountCreated = async (accountId: string) => {
+  const handleAccountCreated = async (accountId: string, _domain: string, viewAccount = true) => {
     // Refresh the accounts list to include the new account
     await refetchAccounts();
 
-    // Find and select the newly created account
-    // Small delay to ensure the refetch has completed
-    setTimeout(() => {
-      const newAccount = accounts.find(a => a.id === accountId);
-      if (newAccount) {
-        setSelectedAccount(newAccount);
-      }
-    }, 500);
+    // Only navigate to the account if requested (e.g., user clicked "View Account")
+    if (viewAccount) {
+      // Find and select the newly created account
+      // Small delay to ensure the refetch has completed
+      setTimeout(() => {
+        const newAccount = accounts.find(a => a.id === accountId);
+        if (newAccount) {
+          setSelectedAccount(newAccount);
+        }
+      }, 500);
+    }
   };
 
   return (
