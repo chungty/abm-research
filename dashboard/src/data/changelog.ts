@@ -16,9 +16,40 @@ export interface ChangelogEntry {
   }[];
 }
 
-export const CURRENT_VERSION = 'v0.11.0';
+export const CURRENT_VERSION = 'v0.12.0';
 
 export const changelog: ChangelogEntry[] = [
+  {
+    version: 'v0.12.0',
+    date: '2025-12-11',
+    title: 'Account Urgency & BD Workflow Improvements',
+    highlights: [
+      'Hot/Warming/Quiet account status for BD prioritization',
+      'Partnership UX redesign with BD-focused defaults',
+      'Partner Paths on Account Detail page'
+    ],
+    features: [
+      {
+        category: 'ui',
+        items: [
+          'Account status badges showing urgency (Hot ≥50, Warming 20-50, Quiet <20)',
+          'Status reason from trigger events displayed on AccountCard',
+          'Clickable status filter buttons with counts in list header',
+          'Improved Add Account flow with View/Add Another/Close actions',
+          'Partnership page: summary stats, smart defaults, grouped by type',
+          'Partner Paths section on Account Detail showing intro routes'
+        ]
+      },
+      {
+        category: 'intelligence',
+        items: [
+          'getAccountStatus() computes urgency from buying_signals_score',
+          'Extracts reason from trigger events, expansion signals, hiring signals',
+          'usePartnersForAccount hook filters partners for specific accounts'
+        ]
+      }
+    ]
+  },
   {
     version: 'v0.11.0',
     date: '2025-12-08',
