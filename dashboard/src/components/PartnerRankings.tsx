@@ -2,61 +2,78 @@ import { useState, useMemo } from 'react';
 import { usePartnerRankings } from '../api/client';
 import type { RankedPartner, PartnerMatchedAccount, ScoringMethodology } from '../types';
 
-type ViewMode = 'cards' | 'compact';
+type ViewMode = 'focused' | 'all';
 
 export function PartnerRankings() {
-  const { rankings, total, totalAccounts, methodology, loading, error } = usePartnerRankings();
+  const { rankings, total, methodology, loading, error } = usePartnerRankings();
   const [expandedPartner, setExpandedPartner] = useState<string | null>(null);
   const [showMethodology, setShowMethodology] = useState(false);
 
-  // Filter state
+  // Simplified filter state - default to showing actionable partners
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
-  const [hasReachableOnly, setHasReachableOnly] = useState(false);
-  const [selectedAccount, setSelectedAccount] = useState<string>('');
-  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [viewMode, setViewMode] = useState<ViewMode>('focused'); // Default: only partners with accounts
 
-  // Extract unique partner types and accounts from rankings
-  const { partnerTypes, allAccounts } = useMemo(() => {
+  // Extract unique partner types
+  const partnerTypes = useMemo(() => {
     const types = new Set<string>();
-    const accounts = new Map<string, string>(); // id -> name
-
     rankings.forEach(partner => {
       if (partner.partnership_type) {
         types.add(partner.partnership_type);
       }
-      partner.matched_accounts?.forEach(acc => {
-        accounts.set(acc.id, acc.name);
-      });
     });
+    return Array.from(types).sort();
+  }, [rankings]);
+
+  // Compute summary stats
+  const stats = useMemo(() => {
+    const withAccounts = rankings.filter(p => p.account_coverage > 0);
+    const withoutAccounts = rankings.filter(p => p.account_coverage === 0);
+    const totalAccountsReached = new Set(
+      withAccounts.flatMap(p => p.matched_accounts?.map(a => a.id) || [])
+    ).size;
 
     return {
-      partnerTypes: Array.from(types).sort(),
-      allAccounts: Array.from(accounts.entries()).sort((a, b) => a[1].localeCompare(b[1]))
+      partnersWithAccounts: withAccounts.length,
+      partnersWithoutAccounts: withoutAccounts.length,
+      uniqueAccountsReached: totalAccountsReached,
+      topPartner: withAccounts[0] || null,
     };
   }, [rankings]);
 
-  // Filter rankings based on selections
+  // Filter rankings based on view mode and type selection
   const filteredRankings = useMemo(() => {
     return rankings.filter(partner => {
+      // View mode filter
+      if (viewMode === 'focused' && partner.account_coverage === 0) {
+        return false;
+      }
+
       // Type filter
       if (selectedTypes.size > 0 && !selectedTypes.has(partner.partnership_type || '')) {
         return false;
       }
 
-      // Reachable accounts filter
-      if (hasReachableOnly && partner.account_coverage === 0) {
-        return false;
-      }
-
-      // Specific account filter
-      if (selectedAccount) {
-        const hasAccount = partner.matched_accounts?.some(acc => acc.id === selectedAccount);
-        if (!hasAccount) return false;
-      }
-
       return true;
     });
-  }, [rankings, selectedTypes, hasReachableOnly, selectedAccount]);
+  }, [rankings, selectedTypes, viewMode]);
+
+  // Group by type for better organization
+  const groupedRankings = useMemo(() => {
+    const groups = new Map<string, RankedPartner[]>();
+    filteredRankings.forEach(partner => {
+      const type = partner.partnership_type || 'Other';
+      if (!groups.has(type)) {
+        groups.set(type, []);
+      }
+      groups.get(type)!.push(partner);
+    });
+    // Sort groups by total account coverage
+    return Array.from(groups.entries()).sort((a, b) => {
+      const aTotal = a[1].reduce((sum, p) => sum + p.account_coverage, 0);
+      const bTotal = b[1].reduce((sum, p) => sum + p.account_coverage, 0);
+      return bTotal - aTotal;
+    });
+  }, [filteredRankings]);
 
   const toggleType = (type: string) => {
     const newTypes = new Set(selectedTypes);
@@ -70,11 +87,9 @@ export function PartnerRankings() {
 
   const clearFilters = () => {
     setSelectedTypes(new Set());
-    setHasReachableOnly(false);
-    setSelectedAccount('');
   };
 
-  const hasActiveFilters = selectedTypes.size > 0 || hasReachableOnly || selectedAccount;
+  const hasActiveFilters = selectedTypes.size > 0;
 
   if (loading) {
     return (
@@ -109,79 +124,145 @@ export function PartnerRankings() {
             style={{ color: 'var(--color-text-primary)' }}
           >
             <TrophyIcon />
-            Partner Rankings
-            <span
-              className="text-sm font-normal font-data"
-              style={{ color: 'var(--color-text-tertiary)' }}
-            >
-              ({filteredRankings.length}{hasActiveFilters ? ` of ${total}` : ''} partners)
-            </span>
+            Partner Paths to Accounts
           </h2>
           <p
             className="text-sm mt-1"
             style={{ color: 'var(--color-text-muted)' }}
           >
-            Strategic partners ranked by potential to unlock ICP accounts ({totalAccounts} accounts analyzed)
+            Which partnerships unlock your target accounts?
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {/* View Toggle */}
-          <div
-            className="flex rounded-lg overflow-hidden"
-            style={{ border: '1px solid var(--color-border-default)' }}
-          >
-            <button
-              onClick={() => setViewMode('cards')}
-              className="px-2 py-1.5 text-xs transition-colors"
-              style={{
-                backgroundColor: viewMode === 'cards' ? 'var(--color-accent-primary-muted)' : 'var(--color-bg-card)',
-                color: viewMode === 'cards' ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)'
-              }}
-              title="Card View"
-            >
-              <CardsIcon />
-            </button>
-            <button
-              onClick={() => setViewMode('compact')}
-              className="px-2 py-1.5 text-xs transition-colors"
-              style={{
-                backgroundColor: viewMode === 'compact' ? 'var(--color-accent-primary-muted)' : 'var(--color-bg-card)',
-                color: viewMode === 'compact' ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)',
-                borderLeft: '1px solid var(--color-border-default)'
-              }}
-              title="Compact Table View"
-            >
-              <TableIcon />
-            </button>
-          </div>
-          <button
-            onClick={() => setShowMethodology(!showMethodology)}
-            className="text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5"
-            style={{
-              backgroundColor: showMethodology ? 'var(--color-accent-primary-muted)' : 'var(--color-bg-card)',
-              color: showMethodology ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)',
-              border: `1px solid ${showMethodology ? 'var(--color-accent-primary)' : 'var(--color-border-default)'}`
-            }}
-          >
-            <InfoIcon />
-            Scoring
-          </button>
-        </div>
+        <button
+          onClick={() => setShowMethodology(!showMethodology)}
+          className="text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5"
+          style={{
+            backgroundColor: showMethodology ? 'var(--color-accent-primary-muted)' : 'var(--color-bg-card)',
+            color: showMethodology ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)',
+            border: `1px solid ${showMethodology ? 'var(--color-accent-primary)' : 'var(--color-border-default)'}`
+          }}
+        >
+          <InfoIcon />
+          Scoring
+        </button>
       </div>
 
-      {/* Filters */}
+      {/* Summary Stats - The key insight at a glance */}
       <div
-        className="p-3 rounded-lg space-y-3"
+        className="p-4 rounded-lg"
         style={{
           backgroundColor: 'var(--color-bg-card)',
           border: '1px solid var(--color-border-default)'
         }}
       >
-        {/* Filter Row 1: Type chips + Reachable toggle */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium" style={{ color: 'var(--color-text-tertiary)' }}>
-            Type:
-          </span>
+        <div className="grid grid-cols-4 gap-4">
+          <div className="text-center">
+            <div
+              className="text-3xl font-heading"
+              style={{ color: 'var(--color-priority-very-high)' }}
+            >
+              {stats.partnersWithAccounts}
+            </div>
+            <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              Partners with paths
+            </div>
+          </div>
+          <div className="text-center">
+            <div
+              className="text-3xl font-heading"
+              style={{ color: 'var(--color-accent-primary)' }}
+            >
+              {stats.uniqueAccountsReached}
+            </div>
+            <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              Accounts reachable
+            </div>
+          </div>
+          <div className="text-center">
+            <div
+              className="text-3xl font-heading"
+              style={{ color: 'var(--color-text-tertiary)' }}
+            >
+              {stats.partnersWithoutAccounts}
+            </div>
+            <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              No account match
+            </div>
+          </div>
+          <div className="text-center">
+            <div
+              className="text-3xl font-heading"
+              style={{ color: 'var(--color-text-secondary)' }}
+            >
+              {total}
+            </div>
+            <div className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              Total partnerships
+            </div>
+          </div>
+        </div>
+
+        {/* Quick insight */}
+        {stats.topPartner && (
+          <div
+            className="mt-3 pt-3 text-sm"
+            style={{
+              borderTop: '1px solid var(--color-border-subtle)',
+              color: 'var(--color-text-secondary)'
+            }}
+          >
+            <span style={{ color: 'var(--color-text-muted)' }}>Top path:</span>{' '}
+            <span style={{ color: 'var(--color-text-primary)', fontWeight: 500 }}>
+              {stats.topPartner.partner_name}
+            </span>
+            {' '}unlocks{' '}
+            <span style={{ color: 'var(--color-priority-very-high)', fontWeight: 500 }}>
+              {stats.topPartner.account_coverage} accounts
+            </span>
+            {stats.topPartner.matched_accounts && stats.topPartner.matched_accounts.length > 0 && (
+              <span style={{ color: 'var(--color-text-muted)' }}>
+                {' '}({stats.topPartner.matched_accounts.slice(0, 3).map(a => a.name).join(', ')}
+                {stats.topPartner.matched_accounts.length > 3 && '...'})
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* View Toggle + Type Filters */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Focused/All toggle */}
+          <div
+            className="flex rounded-lg overflow-hidden"
+            style={{ border: '1px solid var(--color-border-default)' }}
+          >
+            <button
+              onClick={() => setViewMode('focused')}
+              className="px-3 py-1.5 text-xs transition-colors"
+              style={{
+                backgroundColor: viewMode === 'focused' ? 'var(--color-priority-very-high)' : 'var(--color-bg-card)',
+                color: viewMode === 'focused' ? '#fff' : 'var(--color-text-tertiary)'
+              }}
+            >
+              With Accounts ({stats.partnersWithAccounts})
+            </button>
+            <button
+              onClick={() => setViewMode('all')}
+              className="px-3 py-1.5 text-xs transition-colors"
+              style={{
+                backgroundColor: viewMode === 'all' ? 'var(--color-accent-primary-muted)' : 'var(--color-bg-card)',
+                color: viewMode === 'all' ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)',
+                borderLeft: '1px solid var(--color-border-default)'
+              }}
+            >
+              All ({total})
+            </button>
+          </div>
+
+          <div className="w-px h-4" style={{ backgroundColor: 'var(--color-border-default)' }} />
+
+          {/* Type filters */}
           {partnerTypes.map(type => (
             <button
               key={type}
@@ -196,67 +277,21 @@ export function PartnerRankings() {
               {type}
             </button>
           ))}
+        </div>
 
-          <div className="w-px h-4 mx-2" style={{ backgroundColor: 'var(--color-border-default)' }} />
-
-          {/* Reachable Accounts Toggle */}
+        {hasActiveFilters && (
           <button
-            onClick={() => setHasReachableOnly(!hasReachableOnly)}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full transition-all"
+            onClick={clearFilters}
+            className="text-xs px-2 py-1 rounded transition-colors flex items-center gap-1"
             style={{
-              backgroundColor: hasReachableOnly ? 'var(--color-priority-very-high)' : 'var(--color-bg-elevated)',
-              color: hasReachableOnly ? '#fff' : 'var(--color-text-secondary)',
-              border: `1px solid ${hasReachableOnly ? 'var(--color-priority-very-high)' : 'var(--color-border-subtle)'}`
+              color: 'var(--color-text-muted)',
+              backgroundColor: 'var(--color-bg-elevated)'
             }}
           >
-            <CheckIcon active={hasReachableOnly} />
-            Has Reachable Accounts
+            <ClearIcon />
+            Clear
           </button>
-        </div>
-
-        {/* Filter Row 2: Account dropdown + Clear */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium" style={{ color: 'var(--color-text-tertiary)' }}>
-              Account:
-            </span>
-            <select
-              value={selectedAccount}
-              onChange={(e) => setSelectedAccount(e.target.value)}
-              className="text-xs px-2 py-1 rounded-lg"
-              style={{
-                backgroundColor: 'var(--color-bg-elevated)',
-                color: 'var(--color-text-secondary)',
-                border: '1px solid var(--color-border-subtle)'
-              }}
-            >
-              <option value="">All accounts</option>
-              {allAccounts.map(([id, name]) => (
-                <option key={id} value={id}>{name}</option>
-              ))}
-            </select>
-          </div>
-
-          {hasActiveFilters && (
-            <button
-              onClick={clearFilters}
-              className="text-xs px-2 py-1 rounded transition-colors flex items-center gap-1"
-              style={{
-                color: 'var(--color-text-muted)',
-                backgroundColor: 'var(--color-bg-elevated)'
-              }}
-            >
-              <ClearIcon />
-              Clear filters
-            </button>
-          )}
-
-          {hasActiveFilters && (
-            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              Showing {filteredRankings.length} of {total} partners
-            </span>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Methodology Panel */}
@@ -274,31 +309,50 @@ export function PartnerRankings() {
         >
           <p>No partners match your filters</p>
           <button
-            onClick={clearFilters}
+            onClick={() => setViewMode('all')}
             className="mt-2 text-xs underline"
             style={{ color: 'var(--color-accent-primary)' }}
           >
-            Clear all filters
+            Show all partners
           </button>
         </div>
-      ) : viewMode === 'compact' ? (
-        <CompactPartnerTable
-          partners={filteredRankings}
-          expandedPartner={expandedPartner}
-          onToggle={(id) => setExpandedPartner(expandedPartner === id ? null : id)}
-        />
       ) : (
-        <div className="space-y-3">
-          {filteredRankings.map((partner, index) => (
-            <PartnerRankCard
-              key={partner.partner_id}
-              partner={partner}
-              rank={index + 1}
-              expanded={expandedPartner === partner.partner_id}
-              onToggle={() => setExpandedPartner(
-                expandedPartner === partner.partner_id ? null : partner.partner_id
-              )}
-            />
+        <div className="space-y-4">
+          {groupedRankings.map(([type, partners]) => (
+            <div key={type}>
+              {/* Group Header */}
+              <div
+                className="flex items-center gap-2 mb-2 px-1"
+              >
+                <span
+                  className="text-xs font-medium uppercase tracking-wider"
+                  style={{ color: 'var(--color-text-tertiary)' }}
+                >
+                  {type}
+                </span>
+                <span
+                  className="text-xs px-1.5 py-0.5 rounded"
+                  style={{
+                    backgroundColor: 'var(--color-bg-elevated)',
+                    color: 'var(--color-text-muted)'
+                  }}
+                >
+                  {partners.length}
+                </span>
+                <div
+                  className="flex-1 h-px"
+                  style={{ backgroundColor: 'var(--color-border-subtle)' }}
+                />
+              </div>
+
+              {/* Compact Table for this group */}
+              <CompactPartnerTable
+                partners={partners}
+                expandedPartner={expandedPartner}
+                onToggle={(id) => setExpandedPartner(expandedPartner === id ? null : id)}
+                showRank={false}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -310,11 +364,13 @@ export function PartnerRankings() {
 function CompactPartnerTable({
   partners,
   expandedPartner,
-  onToggle
+  onToggle,
+  showRank = true
 }: {
   partners: RankedPartner[];
   expandedPartner: string | null;
   onToggle: (id: string) => void;
+  showRank?: boolean;
 }) {
   return (
     <div
@@ -326,16 +382,15 @@ function CompactPartnerTable({
     >
       {/* Table Header */}
       <div
-        className="grid grid-cols-[auto_1fr_120px_80px_80px_60px] gap-3 px-4 py-2 text-xs font-medium"
+        className={`grid ${showRank ? 'grid-cols-[auto_1fr_80px_100px_40px]' : 'grid-cols-[1fr_80px_100px_40px]'} gap-3 px-4 py-2 text-xs font-medium`}
         style={{
           backgroundColor: 'var(--color-bg-elevated)',
           color: 'var(--color-text-tertiary)',
           borderBottom: '1px solid var(--color-border-default)'
         }}
       >
-        <div>#</div>
+        {showRank && <div>#</div>}
         <div>Partner</div>
-        <div>Type</div>
         <div className="text-right">Score</div>
         <div className="text-right">Accounts</div>
         <div></div>
@@ -349,6 +404,7 @@ function CompactPartnerTable({
           rank={index + 1}
           expanded={expandedPartner === partner.partner_id}
           onToggle={() => onToggle(partner.partner_id)}
+          showRank={showRank}
         />
       ))}
     </div>
@@ -359,14 +415,17 @@ function CompactPartnerRow({
   partner,
   rank,
   expanded,
-  onToggle
+  onToggle,
+  showRank = true
 }: {
   partner: RankedPartner;
   rank: number;
   expanded: boolean;
   onToggle: () => void;
+  showRank?: boolean;
 }) {
   const scoreColor = getScoreColor(partner.partner_score);
+  const hasAccounts = partner.account_coverage > 0;
 
   return (
     <div
@@ -376,39 +435,39 @@ function CompactPartnerRow({
     >
       <button
         onClick={onToggle}
-        className="w-full grid grid-cols-[auto_1fr_120px_80px_80px_60px] gap-3 px-4 py-3 text-left hover:bg-opacity-50 transition-colors items-center"
+        className={`w-full grid ${showRank ? 'grid-cols-[auto_1fr_80px_100px_40px]' : 'grid-cols-[1fr_80px_100px_40px]'} gap-3 px-4 py-3 text-left hover:bg-opacity-50 transition-colors items-center`}
         style={{
           backgroundColor: expanded ? 'var(--color-accent-primary-muted)' : 'transparent'
         }}
       >
-        <div
-          className="w-7 h-7 rounded flex items-center justify-center text-xs font-medium"
-          style={{
-            backgroundColor: rank <= 3 ? `${scoreColor}15` : 'var(--color-bg-elevated)',
-            color: rank <= 3 ? scoreColor : 'var(--color-text-muted)'
-          }}
-        >
-          {rank}
-        </div>
-        <div>
+        {showRank && (
+          <div
+            className="w-7 h-7 rounded flex items-center justify-center text-xs font-medium"
+            style={{
+              backgroundColor: rank <= 3 ? `${scoreColor}15` : 'var(--color-bg-elevated)',
+              color: rank <= 3 ? scoreColor : 'var(--color-text-muted)'
+            }}
+          >
+            {rank}
+          </div>
+        )}
+        <div className="min-w-0">
           <div
             className="font-medium text-sm truncate"
             style={{ color: 'var(--color-text-primary)' }}
           >
             {partner.partner_name}
           </div>
-        </div>
-        <div>
-          <span
-            className="text-xs px-2 py-0.5 rounded-full truncate inline-block max-w-full"
-            style={{
-              backgroundColor: 'var(--color-bg-elevated)',
-              color: 'var(--color-text-tertiary)',
-              border: '1px solid var(--color-border-subtle)'
-            }}
-          >
-            {partner.partnership_type || 'Unknown'}
-          </span>
+          {/* Show matched accounts inline for quick scanning */}
+          {hasAccounts && partner.matched_accounts && (
+            <div
+              className="text-xs truncate mt-0.5"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              → {partner.matched_accounts.slice(0, 3).map(a => a.name).join(', ')}
+              {partner.matched_accounts.length > 3 && ` +${partner.matched_accounts.length - 3}`}
+            </div>
+          )}
         </div>
         <div
           className="text-right font-heading text-lg tabular-nums"
@@ -417,7 +476,7 @@ function CompactPartnerRow({
           {partner.partner_score.toFixed(1)}
         </div>
         <div className="text-right">
-          {partner.account_coverage > 0 ? (
+          {hasAccounts ? (
             <span
               className="text-xs px-2 py-0.5 rounded-full font-medium"
               style={{
@@ -425,14 +484,14 @@ function CompactPartnerRow({
                 color: '#fff'
               }}
             >
-              {partner.account_coverage}
+              {partner.account_coverage} account{partner.account_coverage !== 1 ? 's' : ''}
             </span>
           ) : (
             <span
               className="text-xs"
               style={{ color: 'var(--color-text-muted)' }}
             >
-              0
+              —
             </span>
           )}
         </div>
@@ -556,232 +615,6 @@ function MethodologyPanel({ methodology }: { methodology: ScoringMethodology }) 
             </div>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-function PartnerRankCard({
-  partner,
-  rank,
-  expanded,
-  onToggle
-}: {
-  partner: RankedPartner;
-  rank: number;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  const scoreColor = getScoreColor(partner.partner_score);
-  const breakdown = partner.score_breakdown;
-
-  return (
-    <div
-      className="rounded-lg overflow-hidden transition-all"
-      style={{
-        backgroundColor: 'var(--color-bg-card)',
-        border: `1px solid ${expanded ? 'var(--color-accent-primary)' : 'var(--color-border-default)'}`
-      }}
-    >
-      {/* Main Card */}
-      <button
-        className="w-full p-4 cursor-pointer hover:bg-opacity-50 transition-colors text-left"
-        onClick={onToggle}
-        aria-expanded={expanded}
-        aria-label={`${partner.partner_name} - Score ${partner.partner_score.toFixed(1)}. Click to ${expanded ? 'collapse' : 'expand'} details.`}
-        style={{
-          backgroundColor: expanded ? 'var(--color-accent-primary-muted)' : 'transparent'
-        }}
-      >
-        <div className="flex items-start gap-4">
-          {/* Rank Badge */}
-          <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center font-heading text-lg flex-shrink-0"
-            style={{
-              backgroundColor: rank <= 3 ? `${scoreColor}15` : 'var(--color-bg-elevated)',
-              color: rank <= 3 ? scoreColor : 'var(--color-text-muted)',
-              border: `1px solid ${rank <= 3 ? `${scoreColor}30` : 'var(--color-border-subtle)'}`
-            }}
-          >
-            #{rank}
-          </div>
-
-          {/* Partner Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3
-                  className="font-medium"
-                  style={{ color: 'var(--color-text-primary)' }}
-                >
-                  {partner.partner_name}
-                </h3>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span
-                    className="text-xs px-2 py-0.5 rounded-full"
-                    style={{
-                      backgroundColor: 'var(--color-bg-elevated)',
-                      color: 'var(--color-text-tertiary)',
-                      border: '1px solid var(--color-border-subtle)'
-                    }}
-                  >
-                    {partner.partnership_type || 'Unknown Type'}
-                  </span>
-                  {partner.account_coverage > 0 && (
-                    <span
-                      className="text-xs"
-                      style={{ color: 'var(--color-text-muted)' }}
-                    >
-                      {partner.account_coverage} reachable accounts
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Score */}
-              <div className="text-right flex-shrink-0">
-                <div
-                  className="text-2xl font-heading tabular-nums"
-                  style={{ color: scoreColor }}
-                >
-                  {partner.partner_score.toFixed(1)}
-                </div>
-                <div
-                  className="text-xs"
-                  style={{ color: 'var(--color-text-muted)' }}
-                >
-                  Partner Score
-                </div>
-              </div>
-            </div>
-
-            {/* Score Breakdown Bar */}
-            <div className="mt-3">
-              <ScoreBreakdownBar breakdown={breakdown} />
-            </div>
-          </div>
-
-          {/* Expand Arrow */}
-          <div
-            className="w-6 h-6 flex items-center justify-center flex-shrink-0 transition-transform"
-            style={{
-              color: 'var(--color-text-muted)',
-              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)'
-            }}
-            aria-hidden="true"
-          >
-            <ChevronDownIcon />
-          </div>
-        </div>
-      </button>
-
-      {/* Expanded Content */}
-      {expanded && (
-        <div
-          className="px-4 pb-4 pt-2 animate-fade-in"
-          style={{ borderTop: '1px solid var(--color-border-subtle)' }}
-        >
-          {/* Score Detail Grid */}
-          <div className="grid grid-cols-4 gap-3 mb-4">
-            <ScoreDimensionCard
-              label="Account Reach"
-              score={breakdown.account_reach.score}
-              contribution={breakdown.account_reach.contribution}
-              details={`${breakdown.account_reach.matched_count} matched (${(breakdown.account_reach.icp_account_ratio * 100).toFixed(0)}% of ICP)`}
-              color="var(--color-priority-very-high)"
-            />
-            <ScoreDimensionCard
-              label="ICP Alignment"
-              score={breakdown.icp_alignment.score}
-              contribution={breakdown.icp_alignment.contribution}
-              details={breakdown.icp_alignment.tech_category || 'No category'}
-              color="var(--color-priority-high)"
-            />
-            <ScoreDimensionCard
-              label="Entry Point"
-              score={breakdown.entry_point_quality.score}
-              contribution={breakdown.entry_point_quality.contribution}
-              details={breakdown.entry_point_quality.effectiveness_tier || 'Unknown'}
-              color="var(--color-priority-medium)"
-            />
-            <ScoreDimensionCard
-              label="Trust Evidence"
-              score={breakdown.trust_evidence.score}
-              contribution={breakdown.trust_evidence.contribution}
-              details={`${breakdown.trust_evidence.signals_detected?.length || 0} signals`}
-              color="var(--color-infra-power)"
-            />
-          </div>
-
-          {/* Matched Accounts */}
-          {partner.matched_accounts && partner.matched_accounts.length > 0 && (
-            <MatchedAccountsList accounts={partner.matched_accounts} />
-          )}
-
-          {/* Partnership Context */}
-          {partner.partnership_data?.context && (
-            <div
-              className="mt-3 p-3 rounded-lg"
-              style={{
-                backgroundColor: 'var(--color-bg-elevated)',
-                border: '1px solid var(--color-border-subtle)'
-              }}
-            >
-              <div
-                className="text-xs font-medium mb-1"
-                style={{ color: 'var(--color-text-tertiary)' }}
-              >
-                Partnership Context
-              </div>
-              <p
-                className="text-sm"
-                style={{ color: 'var(--color-text-secondary)' }}
-              >
-                {partner.partnership_data.context}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ScoreBreakdownBar({ breakdown }: { breakdown: RankedPartner['score_breakdown'] }) {
-  const segments = [
-    { value: breakdown.account_reach.contribution, color: 'var(--color-priority-very-high)', label: 'Reach' },
-    { value: breakdown.icp_alignment.contribution, color: 'var(--color-priority-high)', label: 'ICP' },
-    { value: breakdown.entry_point_quality.contribution, color: 'var(--color-priority-medium)', label: 'Entry' },
-    { value: breakdown.trust_evidence.contribution, color: 'var(--color-infra-power)', label: 'Trust' },
-  ];
-
-  const total = segments.reduce((sum, s) => sum + s.value, 0) || 1;
-
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-2 rounded-full overflow-hidden flex" style={{ backgroundColor: 'var(--color-bg-elevated)' }}>
-        {segments.map((segment, i) => (
-          <div
-            key={i}
-            className="h-full transition-all"
-            style={{
-              width: `${(segment.value / total) * 100}%`,
-              backgroundColor: segment.color,
-              opacity: segment.value > 0 ? 1 : 0.3
-            }}
-            title={`${segment.label}: ${segment.value.toFixed(1)}`}
-          />
-        ))}
-      </div>
-      <div className="flex gap-1.5">
-        {segments.map((segment, i) => (
-          <div
-            key={i}
-            className="w-2 h-2 rounded-full"
-            style={{ backgroundColor: segment.color, opacity: segment.value > 0 ? 1 : 0.3 }}
-            title={segment.label}
-          />
-        ))}
       </div>
     </div>
   );
@@ -1040,34 +873,6 @@ function ChevronDownIcon() {
   return (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-    </svg>
-  );
-}
-
-function CardsIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-    </svg>
-  );
-}
-
-function TableIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" />
-    </svg>
-  );
-}
-
-function CheckIcon({ active }: { active: boolean }) {
-  return (
-    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      {active ? (
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-      ) : (
-        <rect x="4" y="4" width="16" height="16" rx="2" strokeLinecap="round" strokeLinejoin="round" />
-      )}
     </svg>
   );
 }
