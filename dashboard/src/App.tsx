@@ -159,31 +159,16 @@ function App() {
               style={{ backgroundColor: 'var(--color-bg-base)' }}
             >
               {selectedAccount ? (
-                detailLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div
-                      className="animate-spin rounded-full h-8 w-8 border-2"
-                      style={{
-                        borderColor: 'var(--color-border-default)',
-                        borderTopColor: 'var(--color-accent-primary)'
-                      }}
-                    />
-                  </div>
-                ) : accountDetail ? (
-                  <AccountDetail
-                    account={accountDetail.account}
-                    contacts={accountDetail.contacts}
-                    triggerEvents={accountDetail.trigger_events}
-                    onClose={() => setSelectedAccount(null)}
-                    onRefresh={() => { refetchDetail(); refetchAccounts(); }}
-                  />
-                ) : (
-                  <AccountDetail
-                    account={selectedAccount}
-                    contacts={[]}
-                    onClose={() => setSelectedAccount(null)}
-                  />
-                )
+                // Always render AccountDetail with selectedAccount immediately
+                // This shows the header right away; the component handles loading state internally
+                <AccountDetail
+                  account={accountDetail?.account || selectedAccount}
+                  contacts={accountDetail?.contacts || []}
+                  triggerEvents={accountDetail?.trigger_events || []}
+                  onClose={() => setSelectedAccount(null)}
+                  onRefresh={() => { refetchDetail(); refetchAccounts(); }}
+                  isLoading={detailLoading}
+                />
               ) : (
                 <EmptyState />
               )}

@@ -818,10 +818,16 @@ class NotionClient:
                     }
                     continue
 
-                # Check for existing contact
-                existing_id = self._find_existing_contact(contact.get("linkedin_url", ""))
+                # Check for existing contact using multiple identifiers
+                existing_id = self._find_existing_contact(
+                    linkedin_url=contact.get("linkedin_url", ""),
+                    email=contact.get("email", ""),
+                    name=contact.get("name", ""),
+                    account_name=account_name,
+                )
 
                 if existing_id:
+                    logger.info(f"📝 Updating existing contact: {contact_name}")
                     page_id = self._update_contact(existing_id, contact)
                 else:
                     page_id = self._create_contact(contact, account_name)
@@ -1093,26 +1099,61 @@ class NotionClient:
         logger.info(f"✅ Retrieved {len(results)} partnerships from Notion")
         return results
 
-    def _find_existing_contact(self, linkedin_url: str) -> Optional[str]:
+    def _find_existing_contact(
+        self, linkedin_url: str = "", email: str = "", name: str = "", account_name: str = ""
+    ) -> Optional[str]:
         """
-        Find existing contact by LinkedIn URL.
+        Find existing contact by LinkedIn URL, email, or name+account combination.
 
-        Returns None for empty linkedin_url (not an error).
-        Raises for actual failures.
+        Checks in order of reliability:
+        1. LinkedIn URL (most unique)
+        2. Email address
+        3. Name + Account (fallback for contacts without email/linkedin)
+
+        Returns None if no identifier provided or no match found.
+        Raises for actual API failures.
         """
-        if not linkedin_url:
-            return None
-
         # Use property accessor to ensure config - raises if not configured
         db_id = self.contacts_db
 
-        query = {"filter": {"property": "LinkedIn URL", "url": {"equals": linkedin_url}}}
+        # Try LinkedIn URL first (most reliable identifier)
+        if linkedin_url:
+            query = {"filter": {"property": "LinkedIn URL", "url": {"equals": linkedin_url}}}
+            url = f"https://api.notion.com/v1/databases/{db_id}/query"
+            response = self._make_request("POST", url, json=query, operation="find_existing_contact")
+            results = self._extract_results(response, "find_existing_contact")
+            if results:
+                logger.debug(f"Found existing contact by LinkedIn URL: {linkedin_url}")
+                return results[0]["id"]
 
-        url = f"https://api.notion.com/v1/databases/{db_id}/query"
-        response = self._make_request("POST", url, json=query, operation="find_existing_contact")
+        # Try email next
+        if email and not any(p in email.lower() for p in ["unknown", "not_unlocked", "no_email"]):
+            query = {"filter": {"property": "Email", "email": {"equals": email}}}
+            url = f"https://api.notion.com/v1/databases/{db_id}/query"
+            response = self._make_request("POST", url, json=query, operation="find_existing_contact")
+            results = self._extract_results(response, "find_existing_contact")
+            if results:
+                logger.debug(f"Found existing contact by email: {email}")
+                return results[0]["id"]
 
-        results = self._extract_results(response, "find_existing_contact")
-        return results[0]["id"] if results else None
+        # Fallback: Try name + account combination
+        if name and account_name:
+            query = {
+                "filter": {
+                    "and": [
+                        {"property": "Name", "title": {"equals": name}},
+                        {"property": "Company", "rich_text": {"contains": account_name}},
+                    ]
+                }
+            }
+            url = f"https://api.notion.com/v1/databases/{db_id}/query"
+            response = self._make_request("POST", url, json=query, operation="find_existing_contact")
+            results = self._extract_results(response, "find_existing_contact")
+            if results:
+                logger.debug(f"Found existing contact by name+account: {name} @ {account_name}")
+                return results[0]["id"]
+
+        return None
 
     # ═══════════════════════════════════════════════════════════════════════════════════
     # CREATE OPERATIONS

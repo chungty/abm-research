@@ -16,15 +16,21 @@ interface Props {
   triggerEvents?: TriggerEvent[];
   onClose?: () => void;
   onRefresh?: () => void;
+  isLoading?: boolean;
 }
 
-export function AccountDetail({ account, contacts, triggerEvents = [], onClose, onRefresh }: Props) {
+export function AccountDetail({ account, contacts, triggerEvents = [], onClose, onRefresh, isLoading = false }: Props) {
   const hasGpu = account.infrastructure_breakdown?.breakdown?.gpu_infrastructure?.detected?.length > 0;
   const [isRefreshingEvents, setIsRefreshingEvents] = useState(false);
   const [discoveredEvents, setDiscoveredEvents] = useState<TriggerEvent[]>([]);
+  const [showAccountActions, setShowAccountActions] = useState(true);
 
   // Combine existing events with newly discovered ones
   const allEvents = [...triggerEvents, ...discoveredEvents];
+
+  // Check if account needs enrichment (missing key data)
+  const needsEnrichment = !account.employee_count || account.employee_count === 0 ||
+    account.business_model === 'Unknown' || !account.business_model;
 
   const handleRefreshEvents = async () => {
     setIsRefreshingEvents(true);
@@ -115,7 +121,129 @@ export function AccountDetail({ account, contacts, triggerEvents = [], onClose, 
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-5 space-y-6 animate-fade-in">
-        {/* Score Overview */}
+        {/* Loading State - Show skeleton while fetching detailed data */}
+        {isLoading && (
+          <div className="space-y-4 animate-pulse">
+            {/* Score cards skeleton */}
+            <div className="grid grid-cols-4 gap-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-24 rounded-lg"
+                  style={{ backgroundColor: 'var(--color-bg-card)' }}
+                />
+              ))}
+            </div>
+            {/* Content skeleton */}
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-32 rounded-lg"
+                style={{ backgroundColor: 'var(--color-bg-card)' }}
+              />
+            ))}
+            <div className="flex items-center justify-center pt-4">
+              <span
+                className="text-sm"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                Loading account details...
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Actual content - only show when not loading */}
+        {!isLoading && (
+          <>
+        {/* ═══════════════════════════════════════════════════════════════════
+            SECTION 1: ACCOUNT ACTIONS
+            Purpose: Account-level enrichment and research tools
+            ═══════════════════════════════════════════════════════════════════ */}
+        <div className="space-y-3">
+          <button
+            onClick={() => setShowAccountActions(!showAccountActions)}
+            className="flex items-center gap-2 w-full text-left group"
+          >
+            <span
+              className="section-header uppercase tracking-wider"
+              style={{ color: 'var(--color-text-tertiary)', fontSize: '11px', fontWeight: 600 }}
+            >
+              Account Actions
+            </span>
+            <span
+              className="text-xs transition-colors"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              — Enrich account data and run research
+            </span>
+            <svg
+              className={`w-4 h-4 ml-auto transition-transform ${showAccountActions ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showAccountActions && (
+            <div className="space-y-3 animate-fade-in">
+              {/* Enrichment hint when data is missing */}
+              {needsEnrichment && (
+                <div
+                  className="p-3 rounded-lg flex items-start gap-3"
+                  style={{
+                    backgroundColor: 'var(--color-priority-medium-bg)',
+                    border: '1px solid var(--color-priority-medium-border)'
+                  }}
+                >
+                  <svg
+                    className="w-5 h-5 flex-shrink-0 mt-0.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    style={{ color: 'var(--color-priority-medium)' }}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p
+                      className="text-sm font-medium"
+                      style={{ color: 'var(--color-priority-medium)' }}
+                    >
+                      Account data incomplete
+                    </p>
+                    <p
+                      className="text-xs mt-0.5"
+                      style={{ color: 'var(--color-text-secondary)' }}
+                    >
+                      Run "Account Field Enrichment" to populate company size, industry, and infrastructure data.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Account Field Enrichment */}
+              <AccountFieldEnrichmentButton
+                account={account}
+                onEnrichmentComplete={onRefresh}
+              />
+
+              {/* Deep Research */}
+              <ResearchButton
+                account={account}
+                onResearchComplete={onRefresh}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            SECTION 2: SCORE OVERVIEW
+            Purpose: Quick view of account scoring components
+            ═══════════════════════════════════════════════════════════════════ */}
         <div className="grid grid-cols-4 gap-3">
           <ScoreCard
             label="Account Score"
@@ -140,24 +268,39 @@ export function AccountDetail({ account, contacts, triggerEvents = [], onClose, 
           />
         </div>
 
-        {/* Infrastructure Breakdown */}
+        {/* ═══════════════════════════════════════════════════════════════════
+            SECTION 3: INFRASTRUCTURE BREAKDOWN
+            Purpose: Detailed infrastructure scoring (expandable)
+            ═══════════════════════════════════════════════════════════════════ */}
         {account.infrastructure_breakdown && (
           <InfrastructureBreakdown breakdown={account.infrastructure_breakdown} />
         )}
 
-        {/* Business Fit Details */}
+        {/* ═══════════════════════════════════════════════════════════════════
+            SECTION 4: BUSINESS FIT
+            Purpose: Company profile and fit assessment
+            ═══════════════════════════════════════════════════════════════════ */}
         <div className="card-surface p-4">
-          <h3
-            className="text-base font-heading mb-4"
-            style={{ color: 'var(--color-text-primary)' }}
-          >
-            Business Fit
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3
+              className="text-base font-heading"
+              style={{ color: 'var(--color-text-primary)' }}
+            >
+              Business Fit
+            </h3>
+            <span
+              className="text-xs"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              Company profile and ICP alignment
+            </span>
+          </div>
           <div className="grid grid-cols-3 gap-3">
             <BusinessFitItem
               label="Industry"
               value={account.business_model || 'Unknown'}
               score={account.account_score_breakdown?.business_fit?.breakdown?.industry_fit?.score}
+              needsData={!account.business_model || account.business_model === 'Unknown'}
             />
             <BusinessFitItem
               label="Company Size"
@@ -165,6 +308,7 @@ export function AccountDetail({ account, contacts, triggerEvents = [], onClose, 
                 ? `${account.employee_count.toLocaleString()} employees`
                 : 'Unknown'}
               score={account.account_score_breakdown?.business_fit?.breakdown?.company_size_fit?.score}
+              needsData={!account.employee_count || account.employee_count === 0}
             />
             <BusinessFitItem
               label="Geography"
@@ -174,51 +318,26 @@ export function AccountDetail({ account, contacts, triggerEvents = [], onClose, 
           </div>
         </div>
 
-        {/* Buying Signals */}
-        {account.account_score_breakdown?.buying_signals && (
-          <div className="card-surface p-4">
-            <h3
-              className="text-base font-heading mb-4"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
-              Buying Signals
-            </h3>
-            <div className="space-y-4">
-              <SignalSection
-                label="Trigger Events"
-                items={account.account_score_breakdown.buying_signals.breakdown?.trigger_events?.high_value_triggers || []}
-                score={account.account_score_breakdown.buying_signals.breakdown?.trigger_events?.score}
-              />
-              <SignalSection
-                label="Expansion Signals"
-                items={account.account_score_breakdown.buying_signals.breakdown?.expansion_signals?.detected || []}
-                score={account.account_score_breakdown.buying_signals.breakdown?.expansion_signals?.score}
-              />
-              <SignalSection
-                label="Hiring Signals"
-                items={account.account_score_breakdown.buying_signals.breakdown?.hiring_signals?.detected || []}
-                score={account.account_score_breakdown.buying_signals.breakdown?.hiring_signals?.score}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Trigger Events - Always visible */}
-        <TriggerEventsSection
-          events={allEvents}
-          onRefresh={handleRefreshEvents}
-          isRefreshing={isRefreshingEvents}
-        />
-
-        {/* Partnership Classification */}
+        {/* ═══════════════════════════════════════════════════════════════════
+            SECTION 5: PARTNERSHIP APPROACH (if applicable)
+            Purpose: How to engage based on partner relationship type
+            ═══════════════════════════════════════════════════════════════════ */}
         {account.partnership_classification && (
           <div className="card-surface p-4">
-            <h3
-              className="text-base font-heading mb-3"
-              style={{ color: 'var(--color-text-primary)' }}
-            >
-              Partnership Classification
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3
+                className="text-base font-heading"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                Partnership Approach
+              </h3>
+              <span
+                className="text-xs"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                How to engage based on partner type
+              </span>
+            </div>
             <div className="flex items-center gap-3">
               <span
                 className="px-3 py-1 rounded-full font-medium text-sm"
@@ -237,36 +356,106 @@ export function AccountDetail({ account, contacts, triggerEvents = [], onClose, 
                 {account.classification_confidence?.toFixed(0)}% confidence
               </span>
             </div>
+            <p
+              className="text-xs mt-3"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              This classification suggests the most effective engagement strategy for this account based on their partner ecosystem role.
+            </p>
           </div>
         )}
 
-        {/* Account Field Enrichment - Populate Industry, Infrastructure, ICP Score */}
-        <AccountFieldEnrichmentButton
-          account={account}
-          onEnrichmentComplete={onRefresh}
+        {/* ═══════════════════════════════════════════════════════════════════
+            SECTION 6: BUYING SIGNALS (Scoring Context)
+            Purpose: Shows how trigger events contribute to buying signal score
+            ═══════════════════════════════════════════════════════════════════ */}
+        {account.account_score_breakdown?.buying_signals && (
+          <div className="card-surface p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3
+                className="text-base font-heading"
+                style={{ color: 'var(--color-text-primary)' }}
+              >
+                Buying Signal Scoring
+              </h3>
+              <span
+                className="text-xs"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                How triggers contribute to the 30% buying signals score
+              </span>
+            </div>
+            <div className="space-y-4">
+              <SignalSection
+                label="High-Value Triggers"
+                items={account.account_score_breakdown.buying_signals.breakdown?.trigger_events?.high_value_triggers || []}
+                score={account.account_score_breakdown.buying_signals.breakdown?.trigger_events?.score}
+              />
+              <SignalSection
+                label="Expansion Signals"
+                items={account.account_score_breakdown.buying_signals.breakdown?.expansion_signals?.detected || []}
+                score={account.account_score_breakdown.buying_signals.breakdown?.expansion_signals?.score}
+              />
+              <SignalSection
+                label="Hiring Signals"
+                items={account.account_score_breakdown.buying_signals.breakdown?.hiring_signals?.detected || []}
+                score={account.account_score_breakdown.buying_signals.breakdown?.hiring_signals?.score}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            SECTION 7: TRIGGER EVENTS (Detailed Intelligence)
+            Purpose: Actionable event details with sources and dates
+            ═══════════════════════════════════════════════════════════════════ */}
+        <TriggerEventsSection
+          events={allEvents}
+          onRefresh={handleRefreshEvents}
+          isRefreshing={isRefreshingEvents}
         />
 
-        {/* Deep Research - Run full 5-phase ABM pipeline */}
-        <ResearchButton
-          account={account}
-          onResearchComplete={onRefresh}
-        />
+        {/* ═══════════════════════════════════════════════════════════════════
+            SECTION 8: CONTACT INTELLIGENCE
+            Purpose: Contact discovery, enrichment, and MEDDIC scoring
+            ═══════════════════════════════════════════════════════════════════ */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span
+              className="section-header uppercase tracking-wider"
+              style={{ color: 'var(--color-text-tertiary)', fontSize: '11px', fontWeight: 600 }}
+            >
+              Contact Intelligence
+            </span>
+            <span
+              className="text-xs"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              — Discover and score contacts for outreach
+            </span>
+          </div>
 
-        {/* Contact Intelligence & Enrichment */}
-        <EnrichmentButton
-          account={account}
-          contactsCount={contacts.length}
-          onEnrichmentComplete={onRefresh}
-        />
+          {/* Contact Discovery & MEDDIC Scoring */}
+          <EnrichmentButton
+            account={account}
+            contactsCount={contacts.length}
+            onEnrichmentComplete={onRefresh}
+          />
 
-        {/* Vendor Discovery - AI-powered vendor relationship discovery */}
-        <VendorDiscoveryButton
-          account={account}
-          onDiscoveryComplete={onRefresh}
-        />
+          {/* Vendor Discovery */}
+          <VendorDiscoveryButton
+            account={account}
+            onDiscoveryComplete={onRefresh}
+          />
+        </div>
 
-        {/* Contacts */}
+        {/* ═══════════════════════════════════════════════════════════════════
+            SECTION 9: CONTACTS LIST
+            Purpose: Display discovered contacts grouped by MEDDIC role tier
+            ═══════════════════════════════════════════════════════════════════ */}
         <ContactList contacts={contacts} account={account} title={`Contacts at ${account.name}`} />
+          </>
+        )}
       </div>
     </div>
   );
@@ -326,20 +515,42 @@ function BusinessFitItem({
   label,
   value,
   score,
+  needsData = false,
 }: {
   label: string;
   value: string;
   score?: number;
+  needsData?: boolean;
 }) {
   return (
     <div
-      className="p-3 rounded-md"
-      style={{ backgroundColor: 'var(--color-bg-elevated)' }}
+      className="p-3 rounded-md relative"
+      style={{
+        backgroundColor: 'var(--color-bg-elevated)',
+        border: needsData ? '1px dashed var(--color-priority-medium-border)' : 'none'
+      }}
     >
+      {needsData && (
+        <div
+          className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center"
+          style={{
+            backgroundColor: 'var(--color-priority-medium-bg)',
+            border: '1px solid var(--color-priority-medium-border)'
+          }}
+          title="Run Account Field Enrichment to populate this data"
+        >
+          <span
+            className="text-xs font-bold"
+            style={{ color: 'var(--color-priority-medium)' }}
+          >
+            ?
+          </span>
+        </div>
+      )}
       <div className="score-label mb-1">{label}</div>
       <div
         className="font-medium text-sm"
-        style={{ color: 'var(--color-text-primary)' }}
+        style={{ color: needsData ? 'var(--color-text-muted)' : 'var(--color-text-primary)' }}
       >
         {value}
       </div>

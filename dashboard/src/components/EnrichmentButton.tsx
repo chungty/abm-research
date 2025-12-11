@@ -137,27 +137,36 @@ export function EnrichmentButton({ account, contactsCount, onEnrichmentComplete 
           )}
 
           {hasContacts && (
-            <button
-              onClick={handleRescore}
-              disabled={status === 'loading'}
-              className="px-4 py-2 rounded-lg font-medium text-sm transition-all"
-              style={{
-                backgroundColor: 'transparent',
-                color: 'var(--color-accent-primary)',
-                border: '1px solid var(--color-accent-primary)',
-                opacity: status === 'loading' ? 0.7 : 1,
-                cursor: status === 'loading' ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {status === 'loading' ? (
-                <span className="flex items-center gap-2">
-                  <LoadingSpinner />
-                  Rescoring...
-                </span>
-              ) : (
-                'Rescore MEDDIC'
-              )}
-            </button>
+            <div className="flex flex-col items-end gap-1">
+              <button
+                onClick={handleRescore}
+                disabled={status === 'loading'}
+                className="px-4 py-2 rounded-lg font-medium text-sm transition-all"
+                style={{
+                  backgroundColor: 'transparent',
+                  color: 'var(--color-accent-primary)',
+                  border: '1px solid var(--color-accent-primary)',
+                  opacity: status === 'loading' ? 0.7 : 1,
+                  cursor: status === 'loading' ? 'not-allowed' : 'pointer'
+                }}
+                title="Recalculate role fit, champion potential, and engagement scores for all contacts"
+              >
+                {status === 'loading' ? (
+                  <span className="flex items-center gap-2">
+                    <LoadingSpinner />
+                    Rescoring...
+                  </span>
+                ) : (
+                  'Rescore MEDDIC'
+                )}
+              </button>
+              <span
+                className="text-xs"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                Updates role fit & champion scores
+              </span>
+            </div>
           )}
         </div>
       </div>

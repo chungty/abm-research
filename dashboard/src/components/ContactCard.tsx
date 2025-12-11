@@ -59,7 +59,11 @@ export function ContactCard({ contact, account, expanded = false, onToggleExpand
 
   // Determine current email (revealed or from contact)
   const currentEmail = revealedEmail || contact.email;
-  const hasValidEmail = currentEmail && currentEmail.trim() !== '' && !currentEmail.includes('@unknown');
+  // Check for invalid email patterns: empty, @unknown, email_not_unlocked, etc.
+  const invalidEmailPatterns = ['@unknown', 'email_not_unlocked', 'not_unlocked', 'unknown@', 'no_email'];
+  const hasValidEmail = currentEmail &&
+    currentEmail.trim() !== '' &&
+    !invalidEmailPatterns.some(pattern => currentEmail.toLowerCase().includes(pattern));
   const canRevealEmail = !hasValidEmail && contact.lead_score >= LEAD_SCORE_THRESHOLD;
 
   const handleRevealEmail = async () => {

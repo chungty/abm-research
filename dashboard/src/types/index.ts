@@ -167,6 +167,7 @@ export interface AccountDetailResponse {
 
 export interface TriggerEvent {
   id: string;
+  headline?: string;  // Short summary for display (may be auto-generated from description)
   description: string;
   event_type: string;
   relevance_score: number;
