@@ -1,11 +1,80 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { usePartnerRankings } from '../api/client';
 import type { RankedPartner, PartnerMatchedAccount, ScoringMethodology } from '../types';
+
+type ViewMode = 'cards' | 'compact';
 
 export function PartnerRankings() {
   const { rankings, total, totalAccounts, methodology, loading, error } = usePartnerRankings();
   const [expandedPartner, setExpandedPartner] = useState<string | null>(null);
   const [showMethodology, setShowMethodology] = useState(false);
+
+  // Filter state
+  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
+  const [hasReachableOnly, setHasReachableOnly] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<string>('');
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+
+  // Extract unique partner types and accounts from rankings
+  const { partnerTypes, allAccounts } = useMemo(() => {
+    const types = new Set<string>();
+    const accounts = new Map<string, string>(); // id -> name
+
+    rankings.forEach(partner => {
+      if (partner.partnership_type) {
+        types.add(partner.partnership_type);
+      }
+      partner.matched_accounts?.forEach(acc => {
+        accounts.set(acc.id, acc.name);
+      });
+    });
+
+    return {
+      partnerTypes: Array.from(types).sort(),
+      allAccounts: Array.from(accounts.entries()).sort((a, b) => a[1].localeCompare(b[1]))
+    };
+  }, [rankings]);
+
+  // Filter rankings based on selections
+  const filteredRankings = useMemo(() => {
+    return rankings.filter(partner => {
+      // Type filter
+      if (selectedTypes.size > 0 && !selectedTypes.has(partner.partnership_type || '')) {
+        return false;
+      }
+
+      // Reachable accounts filter
+      if (hasReachableOnly && partner.account_coverage === 0) {
+        return false;
+      }
+
+      // Specific account filter
+      if (selectedAccount) {
+        const hasAccount = partner.matched_accounts?.some(acc => acc.id === selectedAccount);
+        if (!hasAccount) return false;
+      }
+
+      return true;
+    });
+  }, [rankings, selectedTypes, hasReachableOnly, selectedAccount]);
+
+  const toggleType = (type: string) => {
+    const newTypes = new Set(selectedTypes);
+    if (newTypes.has(type)) {
+      newTypes.delete(type);
+    } else {
+      newTypes.add(type);
+    }
+    setSelectedTypes(newTypes);
+  };
+
+  const clearFilters = () => {
+    setSelectedTypes(new Set());
+    setHasReachableOnly(false);
+    setSelectedAccount('');
+  };
+
+  const hasActiveFilters = selectedTypes.size > 0 || hasReachableOnly || selectedAccount;
 
   if (loading) {
     return (
@@ -45,7 +114,7 @@ export function PartnerRankings() {
               className="text-sm font-normal font-data"
               style={{ color: 'var(--color-text-tertiary)' }}
             >
-              ({total} partners)
+              ({filteredRankings.length}{hasActiveFilters ? ` of ${total}` : ''} partners)
             </span>
           </h2>
           <p
@@ -55,18 +124,139 @@ export function PartnerRankings() {
             Strategic partners ranked by potential to unlock ICP accounts ({totalAccounts} accounts analyzed)
           </p>
         </div>
-        <button
-          onClick={() => setShowMethodology(!showMethodology)}
-          className="text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5"
-          style={{
-            backgroundColor: showMethodology ? 'var(--color-accent-primary-muted)' : 'var(--color-bg-card)',
-            color: showMethodology ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)',
-            border: `1px solid ${showMethodology ? 'var(--color-accent-primary)' : 'var(--color-border-default)'}`
-          }}
-        >
-          <InfoIcon />
-          Scoring
-        </button>
+        <div className="flex items-center gap-2">
+          {/* View Toggle */}
+          <div
+            className="flex rounded-lg overflow-hidden"
+            style={{ border: '1px solid var(--color-border-default)' }}
+          >
+            <button
+              onClick={() => setViewMode('cards')}
+              className="px-2 py-1.5 text-xs transition-colors"
+              style={{
+                backgroundColor: viewMode === 'cards' ? 'var(--color-accent-primary-muted)' : 'var(--color-bg-card)',
+                color: viewMode === 'cards' ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)'
+              }}
+              title="Card View"
+            >
+              <CardsIcon />
+            </button>
+            <button
+              onClick={() => setViewMode('compact')}
+              className="px-2 py-1.5 text-xs transition-colors"
+              style={{
+                backgroundColor: viewMode === 'compact' ? 'var(--color-accent-primary-muted)' : 'var(--color-bg-card)',
+                color: viewMode === 'compact' ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)',
+                borderLeft: '1px solid var(--color-border-default)'
+              }}
+              title="Compact Table View"
+            >
+              <TableIcon />
+            </button>
+          </div>
+          <button
+            onClick={() => setShowMethodology(!showMethodology)}
+            className="text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5"
+            style={{
+              backgroundColor: showMethodology ? 'var(--color-accent-primary-muted)' : 'var(--color-bg-card)',
+              color: showMethodology ? 'var(--color-accent-primary)' : 'var(--color-text-tertiary)',
+              border: `1px solid ${showMethodology ? 'var(--color-accent-primary)' : 'var(--color-border-default)'}`
+            }}
+          >
+            <InfoIcon />
+            Scoring
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div
+        className="p-3 rounded-lg space-y-3"
+        style={{
+          backgroundColor: 'var(--color-bg-card)',
+          border: '1px solid var(--color-border-default)'
+        }}
+      >
+        {/* Filter Row 1: Type chips + Reachable toggle */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-medium" style={{ color: 'var(--color-text-tertiary)' }}>
+            Type:
+          </span>
+          {partnerTypes.map(type => (
+            <button
+              key={type}
+              onClick={() => toggleType(type)}
+              className="px-2.5 py-1 text-xs rounded-full transition-all"
+              style={{
+                backgroundColor: selectedTypes.has(type) ? 'var(--color-accent-primary-muted)' : 'var(--color-bg-elevated)',
+                color: selectedTypes.has(type) ? 'var(--color-accent-primary)' : 'var(--color-text-secondary)',
+                border: `1px solid ${selectedTypes.has(type) ? 'var(--color-accent-primary)' : 'var(--color-border-subtle)'}`
+              }}
+            >
+              {type}
+            </button>
+          ))}
+
+          <div className="w-px h-4 mx-2" style={{ backgroundColor: 'var(--color-border-default)' }} />
+
+          {/* Reachable Accounts Toggle */}
+          <button
+            onClick={() => setHasReachableOnly(!hasReachableOnly)}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full transition-all"
+            style={{
+              backgroundColor: hasReachableOnly ? 'var(--color-priority-very-high)' : 'var(--color-bg-elevated)',
+              color: hasReachableOnly ? '#fff' : 'var(--color-text-secondary)',
+              border: `1px solid ${hasReachableOnly ? 'var(--color-priority-very-high)' : 'var(--color-border-subtle)'}`
+            }}
+          >
+            <CheckIcon active={hasReachableOnly} />
+            Has Reachable Accounts
+          </button>
+        </div>
+
+        {/* Filter Row 2: Account dropdown + Clear */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium" style={{ color: 'var(--color-text-tertiary)' }}>
+              Account:
+            </span>
+            <select
+              value={selectedAccount}
+              onChange={(e) => setSelectedAccount(e.target.value)}
+              className="text-xs px-2 py-1 rounded-lg"
+              style={{
+                backgroundColor: 'var(--color-bg-elevated)',
+                color: 'var(--color-text-secondary)',
+                border: '1px solid var(--color-border-subtle)'
+              }}
+            >
+              <option value="">All accounts</option>
+              {allAccounts.map(([id, name]) => (
+                <option key={id} value={id}>{name}</option>
+              ))}
+            </select>
+          </div>
+
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="text-xs px-2 py-1 rounded transition-colors flex items-center gap-1"
+              style={{
+                color: 'var(--color-text-muted)',
+                backgroundColor: 'var(--color-bg-elevated)'
+              }}
+            >
+              <ClearIcon />
+              Clear filters
+            </button>
+          )}
+
+          {hasActiveFilters && (
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              Showing {filteredRankings.length} of {total} partners
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Methodology Panel */}
@@ -77,9 +267,29 @@ export function PartnerRankings() {
       {/* Rankings List */}
       {rankings.length === 0 ? (
         <EmptyRankings />
+      ) : filteredRankings.length === 0 ? (
+        <div
+          className="text-center py-8"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
+          <p>No partners match your filters</p>
+          <button
+            onClick={clearFilters}
+            className="mt-2 text-xs underline"
+            style={{ color: 'var(--color-accent-primary)' }}
+          >
+            Clear all filters
+          </button>
+        </div>
+      ) : viewMode === 'compact' ? (
+        <CompactPartnerTable
+          partners={filteredRankings}
+          expandedPartner={expandedPartner}
+          onToggle={(id) => setExpandedPartner(expandedPartner === id ? null : id)}
+        />
       ) : (
         <div className="space-y-3">
-          {rankings.map((partner, index) => (
+          {filteredRankings.map((partner, index) => (
             <PartnerRankCard
               key={partner.partner_id}
               partner={partner}
@@ -90,6 +300,195 @@ export function PartnerRankings() {
               )}
             />
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Compact Table View for BD quick scanning
+function CompactPartnerTable({
+  partners,
+  expandedPartner,
+  onToggle
+}: {
+  partners: RankedPartner[];
+  expandedPartner: string | null;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <div
+      className="rounded-lg overflow-hidden"
+      style={{
+        backgroundColor: 'var(--color-bg-card)',
+        border: '1px solid var(--color-border-default)'
+      }}
+    >
+      {/* Table Header */}
+      <div
+        className="grid grid-cols-[auto_1fr_120px_80px_80px_60px] gap-3 px-4 py-2 text-xs font-medium"
+        style={{
+          backgroundColor: 'var(--color-bg-elevated)',
+          color: 'var(--color-text-tertiary)',
+          borderBottom: '1px solid var(--color-border-default)'
+        }}
+      >
+        <div>#</div>
+        <div>Partner</div>
+        <div>Type</div>
+        <div className="text-right">Score</div>
+        <div className="text-right">Accounts</div>
+        <div></div>
+      </div>
+
+      {/* Table Rows */}
+      {partners.map((partner, index) => (
+        <CompactPartnerRow
+          key={partner.partner_id}
+          partner={partner}
+          rank={index + 1}
+          expanded={expandedPartner === partner.partner_id}
+          onToggle={() => onToggle(partner.partner_id)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CompactPartnerRow({
+  partner,
+  rank,
+  expanded,
+  onToggle
+}: {
+  partner: RankedPartner;
+  rank: number;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const scoreColor = getScoreColor(partner.partner_score);
+
+  return (
+    <div
+      style={{
+        borderBottom: '1px solid var(--color-border-subtle)'
+      }}
+    >
+      <button
+        onClick={onToggle}
+        className="w-full grid grid-cols-[auto_1fr_120px_80px_80px_60px] gap-3 px-4 py-3 text-left hover:bg-opacity-50 transition-colors items-center"
+        style={{
+          backgroundColor: expanded ? 'var(--color-accent-primary-muted)' : 'transparent'
+        }}
+      >
+        <div
+          className="w-7 h-7 rounded flex items-center justify-center text-xs font-medium"
+          style={{
+            backgroundColor: rank <= 3 ? `${scoreColor}15` : 'var(--color-bg-elevated)',
+            color: rank <= 3 ? scoreColor : 'var(--color-text-muted)'
+          }}
+        >
+          {rank}
+        </div>
+        <div>
+          <div
+            className="font-medium text-sm truncate"
+            style={{ color: 'var(--color-text-primary)' }}
+          >
+            {partner.partner_name}
+          </div>
+        </div>
+        <div>
+          <span
+            className="text-xs px-2 py-0.5 rounded-full truncate inline-block max-w-full"
+            style={{
+              backgroundColor: 'var(--color-bg-elevated)',
+              color: 'var(--color-text-tertiary)',
+              border: '1px solid var(--color-border-subtle)'
+            }}
+          >
+            {partner.partnership_type || 'Unknown'}
+          </span>
+        </div>
+        <div
+          className="text-right font-heading text-lg tabular-nums"
+          style={{ color: scoreColor }}
+        >
+          {partner.partner_score.toFixed(1)}
+        </div>
+        <div className="text-right">
+          {partner.account_coverage > 0 ? (
+            <span
+              className="text-xs px-2 py-0.5 rounded-full font-medium"
+              style={{
+                backgroundColor: 'var(--color-priority-very-high)',
+                color: '#fff'
+              }}
+            >
+              {partner.account_coverage}
+            </span>
+          ) : (
+            <span
+              className="text-xs"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              0
+            </span>
+          )}
+        </div>
+        <div
+          className="flex justify-end transition-transform"
+          style={{
+            color: 'var(--color-text-muted)',
+            transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)'
+          }}
+        >
+          <ChevronDownIcon />
+        </div>
+      </button>
+
+      {/* Expanded Details */}
+      {expanded && (
+        <div
+          className="px-4 pb-4 pt-2 animate-fade-in"
+          style={{ borderTop: '1px solid var(--color-border-subtle)' }}
+        >
+          {/* Score Detail Grid */}
+          <div className="grid grid-cols-4 gap-3 mb-4">
+            <ScoreDimensionCard
+              label="Account Reach"
+              score={partner.score_breakdown.account_reach.score}
+              contribution={partner.score_breakdown.account_reach.contribution}
+              details={`${partner.score_breakdown.account_reach.matched_count} matched (${(partner.score_breakdown.account_reach.icp_account_ratio * 100).toFixed(0)}% of ICP)`}
+              color="var(--color-priority-very-high)"
+            />
+            <ScoreDimensionCard
+              label="ICP Alignment"
+              score={partner.score_breakdown.icp_alignment.score}
+              contribution={partner.score_breakdown.icp_alignment.contribution}
+              details={partner.score_breakdown.icp_alignment.tech_category || 'No category'}
+              color="var(--color-priority-high)"
+            />
+            <ScoreDimensionCard
+              label="Entry Point"
+              score={partner.score_breakdown.entry_point_quality.score}
+              contribution={partner.score_breakdown.entry_point_quality.contribution}
+              details={partner.score_breakdown.entry_point_quality.effectiveness_tier || 'Unknown'}
+              color="var(--color-priority-medium)"
+            />
+            <ScoreDimensionCard
+              label="Trust Evidence"
+              score={partner.score_breakdown.trust_evidence.score}
+              contribution={partner.score_breakdown.trust_evidence.contribution}
+              details={`${partner.score_breakdown.trust_evidence.signals_detected?.length || 0} signals`}
+              color="var(--color-infra-power)"
+            />
+          </div>
+
+          {/* Matched Accounts */}
+          {partner.matched_accounts && partner.matched_accounts.length > 0 && (
+            <MatchedAccountsList accounts={partner.matched_accounts} />
+          )}
         </div>
       )}
     </div>
@@ -641,6 +1040,42 @@ function ChevronDownIcon() {
   return (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+    </svg>
+  );
+}
+
+function CardsIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+    </svg>
+  );
+}
+
+function TableIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" />
+    </svg>
+  );
+}
+
+function CheckIcon({ active }: { active: boolean }) {
+  return (
+    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      {active ? (
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+      ) : (
+        <rect x="4" y="4" width="16" height="16" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+      )}
+    </svg>
+  );
+}
+
+function ClearIcon() {
+  return (
+    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   );
 }
