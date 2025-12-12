@@ -2044,13 +2044,9 @@ ABM_SYSTEM_AVAILABLE = False
 abm_system = None
 
 try:
-    # Load ABM system dynamically
-    abm_spec = importlib.util.spec_from_file_location(
-        "abm_system", os.path.join(project_root, "src/abm_research/core/abm_system.py")
-    )
-    abm_module = importlib.util.module_from_spec(abm_spec)
-    abm_spec.loader.exec_module(abm_module)
-    ComprehensiveABMSystem = abm_module.ComprehensiveABMSystem
+    # Use proper package import to preserve relative imports within abm_system.py
+    from src.abm_research.core.abm_system import ComprehensiveABMSystem
+
     ABM_SYSTEM_AVAILABLE = True
     logger.info("✅ ABM System available for enrichment")
 except Exception as e:
@@ -2882,23 +2878,8 @@ def classify_account_partnership(account_id: str):
 # Full Account Research Pipeline (WS5 - Phase D)
 # ============================================================================
 
-# Initialize ABM Research System
-ABM_SYSTEM_AVAILABLE = False
-abm_system = None
-
-try:
-    # Load ABM system directly
-    abm_spec = importlib.util.spec_from_file_location(
-        "abm_system", os.path.join(project_root, "src/abm_research/core/abm_system.py")
-    )
-    abm_module = importlib.util.module_from_spec(abm_spec)
-    abm_spec.loader.exec_module(abm_module)
-    ComprehensiveABMSystem = abm_module.ComprehensiveABMSystem
-    ABM_SYSTEM_AVAILABLE = True
-    logger.info("✅ ABM Research System available")
-except Exception as e:
-    ABM_SYSTEM_AVAILABLE = False
-    logger.warning(f"⚠️ ABM Research System not available: {e}")
+# Note: ABM System imports are done earlier in "Enrichment Endpoints" section
+# ComprehensiveABMSystem and ABM_SYSTEM_AVAILABLE are already defined
 
 
 @app.route("/api/accounts/<account_id>/research", methods=["POST"])

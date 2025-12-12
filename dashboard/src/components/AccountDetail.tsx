@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Account, Contact, TriggerEvent } from '../types';
 import { ScoreBadge } from './ScoreBadge';
 import { InfrastructureBreakdown } from './InfrastructureBreakdown';
@@ -25,6 +25,13 @@ export function AccountDetail({ account, contacts, triggerEvents = [], onClose, 
   const [isRefreshingEvents, setIsRefreshingEvents] = useState(false);
   const [discoveredEvents, setDiscoveredEvents] = useState<TriggerEvent[]>([]);
   const [showAccountActions, setShowAccountActions] = useState(true);
+
+  // Reset component state when switching to a different account
+  useEffect(() => {
+    setDiscoveredEvents([]);
+    setIsRefreshingEvents(false);
+    setShowAccountActions(true);
+  }, [account.id]);
 
   // Combine existing events with newly discovered ones
   const allEvents = [...triggerEvents, ...discoveredEvents];

@@ -429,8 +429,11 @@ export function FocusTrap({ children, active = true, onEscape }: FocusTrapProps)
     const firstElement = focusableElements[0];
     const lastElement = focusableElements[focusableElements.length - 1];
 
-    // Focus first element on mount
-    firstElement?.focus();
+    // Focus first input/textarea element on mount (better UX for forms)
+    // Falls back to first focusable element if no inputs exist
+    const firstInputSelector = 'input:not([type="hidden"]):not([disabled]), textarea:not([disabled])';
+    const firstInput = container.querySelector<HTMLElement>(firstInputSelector);
+    (firstInput || firstElement)?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && onEscape) {

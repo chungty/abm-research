@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Contact, Account, RoleTier, ChampionPotentialLevel } from '../types';
 import { ScoreBadge, RoleTierBadge } from './ScoreBadge';
 import { OutreachPanel } from './OutreachPanel';
 import { API_BASE } from '../api/client';
-import { APP_CONFIG, getScoreColor } from './shared';
+import { getScoreColor } from './shared';
 
 interface Props {
   contact: Contact;
@@ -45,14 +45,15 @@ const championColors: Record<ChampionPotentialLevel, string> = {
   Low: 'var(--color-text-tertiary)',
 };
 
-// Use centralized config for threshold
-const LEAD_SCORE_THRESHOLD = APP_CONFIG.LEAD_SCORE_THRESHOLD;
+// Auto-reveal threshold: contacts above this score get emails revealed automatically
+const AUTO_REVEAL_THRESHOLD = 10;
 
 export function ContactCard({ contact, account, expanded = false, onToggleExpand }: Props) {
   const [showOutreach, setShowOutreach] = useState(false);
   const [isRevealing, setIsRevealing] = useState(false);
   const [revealedEmail, setRevealedEmail] = useState<string | null>(null);
   const [revealError, setRevealError] = useState<string | null>(null);
+  const [autoRevealAttempted, setAutoRevealAttempted] = useState(false);
 
   const config = tierConfig[contact.role_tier] || tierConfig.entry_point;
   const isHighChampion = ['Very High', 'High'].includes(contact.champion_potential_level);
@@ -64,7 +65,8 @@ export function ContactCard({ contact, account, expanded = false, onToggleExpand
   const hasValidEmail = currentEmail &&
     currentEmail.trim() !== '' &&
     !invalidEmailPatterns.some(pattern => currentEmail.toLowerCase().includes(pattern));
-  const canRevealEmail = !hasValidEmail && contact.lead_score >= LEAD_SCORE_THRESHOLD;
+  // Anyone can reveal any email - no lead score threshold
+  const canRevealEmail = !hasValidEmail;
 
   const handleRevealEmail = async () => {
     if (isRevealing || !contact.id) return;
@@ -103,6 +105,20 @@ export function ContactCard({ contact, account, expanded = false, onToggleExpand
       setIsRevealing(false);
     }
   };
+
+  // Auto-reveal emails for contacts with lead score > threshold
+  useEffect(() => {
+    if (
+      !autoRevealAttempted &&
+      !hasValidEmail &&
+      !isRevealing &&
+      contact.lead_score > AUTO_REVEAL_THRESHOLD &&
+      contact.id
+    ) {
+      setAutoRevealAttempted(true);
+      handleRevealEmail();
+    }
+  }, [contact.id, contact.lead_score, hasValidEmail, autoRevealAttempted, isRevealing]);
 
   return (
     <>

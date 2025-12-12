@@ -547,5 +547,25 @@ class CompanyEnrichmentService:
         }
 
 
-# Export singleton instance
-company_enrichment_service = CompanyEnrichmentService()
+# Lazy singleton pattern - defer instantiation until first use
+# This ensures .env is loaded before API keys are read
+_company_enrichment_service_instance: Optional[CompanyEnrichmentService] = None
+
+
+def get_company_enrichment_service() -> CompanyEnrichmentService:
+    """Get or create the singleton CompanyEnrichmentService instance."""
+    global _company_enrichment_service_instance
+    if _company_enrichment_service_instance is None:
+        _company_enrichment_service_instance = CompanyEnrichmentService()
+    return _company_enrichment_service_instance
+
+
+# For backwards compatibility, provide a lazy proxy
+class _LazyCompanyEnrichmentService:
+    """Lazy proxy that defers initialization until first attribute access."""
+
+    def __getattr__(self, name):
+        return getattr(get_company_enrichment_service(), name)
+
+
+company_enrichment_service = _LazyCompanyEnrichmentService()

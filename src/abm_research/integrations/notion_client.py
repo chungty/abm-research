@@ -819,7 +819,9 @@ class NotionClient:
                     continue
 
                 # Check for existing contact using multiple identifiers
+                # Apollo Person ID is most reliable, followed by LinkedIn URL
                 existing_id = self._find_existing_contact(
+                    apollo_person_id=contact.get("apollo_person_id", "") or contact.get("id", ""),
                     linkedin_url=contact.get("linkedin_url", ""),
                     email=contact.get("email", ""),
                     name=contact.get("name", ""),
@@ -1100,57 +1102,79 @@ class NotionClient:
         return results
 
     def _find_existing_contact(
-        self, linkedin_url: str = "", email: str = "", name: str = "", account_name: str = ""
+        self,
+        linkedin_url: str = "",
+        email: str = "",
+        name: str = "",
+        account_name: str = "",
+        apollo_person_id: str = "",
     ) -> Optional[str]:
         """
-        Find existing contact by LinkedIn URL, email, or name+account combination.
+        Find existing contact by Apollo Person ID, LinkedIn URL, email, or name.
 
         Checks in order of reliability:
-        1. LinkedIn URL (most unique)
-        2. Email address
-        3. Name + Account (fallback for contacts without email/linkedin)
+        1. Apollo Person ID (globally unique from Apollo)
+        2. LinkedIn URL (most unique)
+        3. Email address
+        4. Name only (fallback - may match across accounts)
 
         Returns None if no identifier provided or no match found.
         Raises for actual API failures.
         """
         # Use property accessor to ensure config - raises if not configured
         db_id = self.contacts_db
+        url = f"https://api.notion.com/v1/databases/{db_id}/query"
 
-        # Try LinkedIn URL first (most reliable identifier)
+        # Try Apollo Person ID first (globally unique)
+        if apollo_person_id:
+            query = {
+                "filter": {
+                    "property": "Apollo Person ID",
+                    "rich_text": {"equals": apollo_person_id},
+                }
+            }
+            response = self._make_request(
+                "POST", url, json=query, operation="find_existing_contact"
+            )
+            results = self._extract_results(response, "find_existing_contact")
+            if results:
+                logger.debug(f"Found existing contact by Apollo Person ID: {apollo_person_id}")
+                return results[0]["id"]
+
+        # Try LinkedIn URL (most reliable after Apollo ID)
         if linkedin_url:
             query = {"filter": {"property": "LinkedIn URL", "url": {"equals": linkedin_url}}}
-            url = f"https://api.notion.com/v1/databases/{db_id}/query"
-            response = self._make_request("POST", url, json=query, operation="find_existing_contact")
+            response = self._make_request(
+                "POST", url, json=query, operation="find_existing_contact"
+            )
             results = self._extract_results(response, "find_existing_contact")
             if results:
                 logger.debug(f"Found existing contact by LinkedIn URL: {linkedin_url}")
                 return results[0]["id"]
 
-        # Try email next
-        if email and not any(p in email.lower() for p in ["unknown", "not_unlocked", "no_email"]):
+        # Try email next (excluding placeholder emails)
+        if email and not any(
+            p in email.lower() for p in ["unknown", "not_unlocked", "no_email", "@domain.com"]
+        ):
             query = {"filter": {"property": "Email", "email": {"equals": email}}}
-            url = f"https://api.notion.com/v1/databases/{db_id}/query"
-            response = self._make_request("POST", url, json=query, operation="find_existing_contact")
+            response = self._make_request(
+                "POST", url, json=query, operation="find_existing_contact"
+            )
             results = self._extract_results(response, "find_existing_contact")
             if results:
                 logger.debug(f"Found existing contact by email: {email}")
                 return results[0]["id"]
 
-        # Fallback: Try name + account combination
-        if name and account_name:
-            query = {
-                "filter": {
-                    "and": [
-                        {"property": "Name", "title": {"equals": name}},
-                        {"property": "Company", "rich_text": {"contains": account_name}},
-                    ]
-                }
-            }
-            url = f"https://api.notion.com/v1/databases/{db_id}/query"
-            response = self._make_request("POST", url, json=query, operation="find_existing_contact")
+        # Fallback: Try name only (this will match duplicates across accounts)
+        # This is intentional - we don't want the same person in multiple account records
+        if name:
+            query = {"filter": {"property": "Name", "title": {"equals": name}}}
+            response = self._make_request(
+                "POST", url, json=query, operation="find_existing_contact"
+            )
             results = self._extract_results(response, "find_existing_contact")
             if results:
-                logger.debug(f"Found existing contact by name+account: {name} @ {account_name}")
+                logger.debug(f"Found existing contact by name: {name}")
                 return results[0]["id"]
 
         return None
