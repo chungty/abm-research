@@ -1242,6 +1242,96 @@ def notion_connectivity_test():
         return jsonify({"success": False, "error": str(e), "type": type(e).__name__}), 500
 
 
+# =============================================================================
+# Feedback Endpoint - Posts to Slack
+# =============================================================================
+
+SLACK_FEEDBACK_CHANNEL_ID = os.environ.get("SLACK_FEEDBACK_CHANNEL_ID", "C07DXFHKK")  # #team-plg
+SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
+
+
+@app.route("/api/feedback", methods=["POST"])
+def submit_feedback():
+    """
+    Submit user feedback to Slack.
+
+    Request body:
+    - feedback: string (required) - The feedback text
+    - category: string (optional) - Category like 'feature', 'bug', 'improvement', 'other'
+
+    Posts to Slack channel with formatted message.
+    """
+    try:
+        data = request.get_json() or {}
+        feedback = data.get("feedback", "").strip()
+        category = data.get("category", "other")
+
+        if not feedback:
+            return jsonify({"success": False, "message": "Feedback cannot be empty"}), 400
+
+        # Format category emoji
+        category_emoji = {
+            "feature": "💡",
+            "bug": "🐛",
+            "improvement": "✨",
+            "other": "💬",
+        }.get(category, "💬")
+
+        category_label = {
+            "feature": "Feature Request",
+            "bug": "Bug Report",
+            "improvement": "Improvement",
+            "other": "General Feedback",
+        }.get(category, "General Feedback")
+
+        # Format message for Slack
+        slack_message = f"{category_emoji} *{category_label}*\n\n{feedback}\n\n_Submitted from Verdigris Signal Intelligence Dashboard_"
+
+        # Check if Slack is configured
+        if not SLACK_BOT_TOKEN:
+            logger.warning("⚠️ SLACK_BOT_TOKEN not configured - feedback logged locally only")
+            logger.info(f"📝 Feedback received ({category}): {feedback[:100]}...")
+            return jsonify({
+                "success": True,
+                "message": "Feedback received (Slack not configured)"
+            })
+
+        # Post to Slack
+        slack_response = requests.post(
+            "https://slack.com/api/chat.postMessage",
+            headers={
+                "Authorization": f"Bearer {SLACK_BOT_TOKEN}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "channel": SLACK_FEEDBACK_CHANNEL_ID,
+                "text": slack_message,
+                "unfurl_links": False,
+                "unfurl_media": False,
+            },
+            timeout=10,
+        )
+
+        slack_data = slack_response.json()
+
+        if slack_data.get("ok"):
+            logger.info(f"✅ Feedback posted to Slack #{SLACK_FEEDBACK_CHANNEL_ID}")
+            return jsonify({"success": True, "message": "Feedback submitted successfully"})
+        else:
+            error = slack_data.get("error", "Unknown Slack error")
+            logger.error(f"❌ Slack API error: {error}")
+            # Still return success - we don't want user to think their feedback was lost
+            logger.info(f"📝 Feedback logged locally ({category}): {feedback[:100]}...")
+            return jsonify({"success": True, "message": "Feedback received"})
+
+    except requests.RequestException as e:
+        logger.error(f"❌ Slack request failed: {e}")
+        return jsonify({"success": True, "message": "Feedback received (Slack temporarily unavailable)"})
+    except Exception as e:
+        logger.error(f"❌ Feedback submission error: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @app.route("/api/accounts", methods=["GET"])
 def get_accounts():
     """
@@ -1357,7 +1447,16 @@ def create_account():
         domain = domain[7:]
     elif domain.startswith("https://"):
         domain = domain[8:]
-    domain = domain.rstrip("/")
+    domain = domain.rstrip("/").lower()
+
+    # Validate domain format
+    if "." not in domain:
+        return jsonify({"error": "Domain must include a TLD (e.g., company.com)"}), 400
+    if " " in domain:
+        return jsonify({"error": "Domain cannot contain spaces"}), 400
+    import re
+    if not re.match(r"^[a-z0-9.-]+$", domain):
+        return jsonify({"error": "Domain contains invalid characters"}), 400
 
     try:
         notion = get_notion_client()

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { api } from '../api/client';
 import { FocusTrap, ErrorBanner } from './shared';
 
@@ -28,15 +28,63 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
   const [progress, setProgress] = useState<string>('');
   const [createdAccountId, setCreatedAccountId] = useState<string | null>(null);
   const [createdAccountName, setCreatedAccountName] = useState<string>('');
+  const [researchFailed, setResearchFailed] = useState(false);
+  const [domainError, setDomainError] = useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  // Domain validation helper
+  const validateDomain = useCallback((domain: string): string | null => {
+    if (!domain) return null; // Empty is handled by required attribute
+    const trimmed = domain.trim().toLowerCase();
+    // Remove protocol if present for validation
+    const cleaned = trimmed.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    // Must contain at least one dot and no spaces
+    if (!cleaned.includes('.')) {
+      return 'Domain must include a TLD (e.g., company.com)';
+    }
+    if (cleaned.includes(' ')) {
+      return 'Domain cannot contain spaces';
+    }
+    // Check for valid domain characters
+    if (!/^[a-z0-9.-]+$/.test(cleaned)) {
+      return 'Domain contains invalid characters';
+    }
+    return null;
+  }, []);
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(initialFormData);
+      setStatus('idle');
+      setError(null);
+      setCreatedAccountId(null);
+      setCreatedAccountName('');
+      setResearchFailed(false);
+      setDomainError(null);
+    }
+  }, [isOpen]);
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
+    // Clear domain error when user edits domain field
+    if (name === 'domain') {
+      setDomainError(null);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setResearchFailed(false);
+
+    // Validate domain before submitting
+    const domainValidationError = validateDomain(formData.domain);
+    if (domainValidationError) {
+      setDomainError(domainValidationError);
+      return;
+    }
+
     setStatus('creating');
     setProgress('Creating account in Notion...');
 
@@ -65,6 +113,7 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
         } catch (researchErr) {
           // Research failure shouldn't block success - account was created
           console.warn('Research pipeline failed:', researchErr);
+          setResearchFailed(true);
         }
       }
 
@@ -80,24 +129,26 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
     }
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (status === 'creating' || status === 'researching') return; // Prevent close during operation
     setFormData(initialFormData);
     setStatus('idle');
     setError(null);
     setCreatedAccountId(null);
     setCreatedAccountName('');
+    setResearchFailed(false);
+    setDomainError(null);
     onClose();
-  };
+  }, [status, onClose]);
 
-  const handleViewAccount = () => {
+  const handleViewAccount = useCallback(() => {
     if (createdAccountId) {
       onAccountCreated(createdAccountId, formData.domain, true);
     }
     handleClose();
-  };
+  }, [createdAccountId, formData.domain, onAccountCreated, handleClose]);
 
-  const handleAddAnother = () => {
+  const handleAddAnother = useCallback(() => {
     // Notify parent about the created account (without viewing)
     if (createdAccountId) {
       onAccountCreated(createdAccountId, formData.domain, false);
@@ -107,7 +158,8 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
     setStatus('idle');
     setCreatedAccountId(null);
     setCreatedAccountName('');
-  };
+    setResearchFailed(false);
+  }, [createdAccountId, formData.domain, onAccountCreated]);
 
   if (!isOpen) return null;
 
@@ -206,7 +258,16 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
                 disabled={isSubmitting}
                 placeholder="acme.com"
                 className="input-field w-full"
+                style={domainError ? { borderColor: 'var(--color-target-hot)' } : undefined}
               />
+              {domainError && (
+                <p
+                  className="text-xs mt-1"
+                  style={{ color: 'var(--color-target-hot)' }}
+                >
+                  {domainError}
+                </p>
+              )}
             </div>
           </div>
 
@@ -284,7 +345,7 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
                 border: '1px solid var(--color-priority-high-border)',
               }}
             >
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-2">
                 <svg
                   className="w-5 h-5"
                   style={{ color: 'var(--color-priority-high)' }}
@@ -306,6 +367,14 @@ export function AddAccountModal({ isOpen, onClose, onAccountCreated }: Props) {
                   {createdAccountName} created successfully!
                 </p>
               </div>
+              {researchFailed && (
+                <p
+                  className="text-xs mb-3 pl-7"
+                  style={{ color: 'var(--color-priority-medium)' }}
+                >
+                  Note: Deep Research couldn't complete. You can run it manually from the account detail view.
+                </p>
+              )}
               <div className="flex gap-2">
                 <button
                   type="button"

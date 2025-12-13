@@ -416,52 +416,69 @@ interface FocusTrapProps {
 
 export function FocusTrap({ children, active = true, onEscape }: FocusTrapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasInitialFocusRef = useRef(false);
+  const onEscapeRef = useRef(onEscape);
+
+  // Keep onEscape ref up to date without triggering effect re-runs
+  useEffect(() => {
+    onEscapeRef.current = onEscape;
+  }, [onEscape]);
 
   useEffect(() => {
-    if (!active) return;
+    if (!active) {
+      hasInitialFocusRef.current = false; // Reset when deactivated
+      return;
+    }
 
     const container = containerRef.current;
     if (!container) return;
 
     // Get all focusable elements
     const focusableSelector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
-    const focusableElements = container.querySelectorAll<HTMLElement>(focusableSelector);
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
 
-    // Focus first input/textarea element on mount (better UX for forms)
-    // Falls back to first focusable element if no inputs exist
-    const firstInputSelector = 'input:not([type="hidden"]):not([disabled]), textarea:not([disabled])';
-    const firstInput = container.querySelector<HTMLElement>(firstInputSelector);
-    (firstInput || firstElement)?.focus();
+    // Only focus first input on initial activation, not on subsequent renders
+    // This prevents focus from jumping when user is typing in other fields
+    if (!hasInitialFocusRef.current) {
+      const focusableElements = container.querySelectorAll<HTMLElement>(focusableSelector);
+      const firstElement = focusableElements[0];
+      const firstInputSelector = 'input:not([type="hidden"]):not([disabled]), textarea:not([disabled])';
+      const firstInput = container.querySelector<HTMLElement>(firstInputSelector);
+      (firstInput || firstElement)?.focus();
+      hasInitialFocusRef.current = true;
+    }
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && onEscape) {
+      if (e.key === 'Escape' && onEscapeRef.current) {
         e.preventDefault();
-        onEscape();
+        onEscapeRef.current();
         return;
       }
 
       if (e.key !== 'Tab') return;
 
+      // Re-query focusable elements in case DOM changed
+      const currentFocusable = container.querySelectorAll<HTMLElement>(focusableSelector);
+      const first = currentFocusable[0];
+      const last = currentFocusable[currentFocusable.length - 1];
+
       if (e.shiftKey) {
         // Shift+Tab: if on first element, go to last
-        if (document.activeElement === firstElement) {
+        if (document.activeElement === first) {
           e.preventDefault();
-          lastElement?.focus();
+          last?.focus();
         }
       } else {
         // Tab: if on last element, go to first
-        if (document.activeElement === lastElement) {
+        if (document.activeElement === last) {
           e.preventDefault();
-          firstElement?.focus();
+          first?.focus();
         }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [active, onEscape]);
+  }, [active]); // Only depend on active, not onEscape
 
   return (
     <div ref={containerRef} role="dialog" aria-modal="true">

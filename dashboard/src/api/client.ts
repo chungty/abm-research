@@ -140,6 +140,17 @@ export const api = {
     return fetchJson<{ status: string; version: string }>('/health');
   },
 
+  // Submit feedback (posts to Slack)
+  async submitFeedback(data: {
+    feedback: string;
+    category: string;
+  }): Promise<{ success: boolean; message: string }> {
+    return fetchJson('/feedback', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   // Partner Rankings (strategic value scoring)
   async getPartnerRankings(): Promise<PartnerRankingsResponse> {
     return fetchJson<PartnerRankingsResponse>('/partner-rankings');
@@ -147,21 +158,23 @@ export const api = {
 };
 
 // React hooks for data fetching
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export function useAccounts() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchAccounts = useCallback(async () => {
+  const fetchAccounts = useCallback(async (): Promise<Account[]> => {
     try {
       setLoading(true);
       const response = await api.getAccounts({ per_page: 100 });
       setAccounts(response.accounts);
       setError(null);
+      return response.accounts; // Return fresh data for immediate use
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch accounts'));
+      return []; // Return empty array on error
     } finally {
       setLoading(false);
     }
@@ -179,25 +192,58 @@ export function useAccountDetail(accountId: string | null) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  // AbortController ref for canceling stale requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const fetchData = useCallback(async () => {
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     if (!accountId) {
       setData(null);
+      setLoading(false);
       return;
     }
+
+    // Create new abort controller for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       setLoading(true);
-      const response = await api.getAccount(accountId);
-      setData(response);
       setError(null);
+      const response = await api.getAccount(accountId);
+
+      // Only update state if this request wasn't aborted
+      if (!controller.signal.aborted) {
+        setData(response);
+        setError(null);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to fetch account'));
+      // Ignore abort errors, only handle real errors
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
+      if (!controller.signal.aborted) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch account'));
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   }, [accountId]);
 
   useEffect(() => {
     fetchData();
+    // Cleanup: abort on unmount or when accountId changes
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchData]);
 
   return { data, loading, error, refetch: fetchData };

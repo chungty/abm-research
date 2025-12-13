@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Account } from '../types';
 import { API_BASE } from '../api/client';
 
@@ -40,11 +40,29 @@ export function VendorDiscoveryButton({ account, onDiscoveryComplete }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<string>('');
 
+  // Ref to track interval for cleanup on unmount
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cleanup interval on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+  }, []);
+
   const handleDiscoverVendors = async () => {
     setStatus('loading');
     setError(null);
     setResult(null);
     setProgress('Searching for vendors...');
+
+    // Clear any existing interval before starting new one
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
 
     try {
       // Simulate progress updates
@@ -57,7 +75,7 @@ export function VendorDiscoveryButton({ account, onDiscoveryComplete }: Props) {
       ];
 
       let stepIndex = 0;
-      const progressInterval = setInterval(() => {
+      progressIntervalRef.current = setInterval(() => {
         if (stepIndex < progressSteps.length) {
           setProgress(progressSteps[stepIndex]);
           stepIndex++;
@@ -73,7 +91,11 @@ export function VendorDiscoveryButton({ account, onDiscoveryComplete }: Props) {
         })
       });
 
-      clearInterval(progressInterval);
+      // Clear interval after fetch completes
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
 
       const data = await response.json();
 
@@ -86,6 +108,11 @@ export function VendorDiscoveryButton({ account, onDiscoveryComplete }: Props) {
       setProgress('');
       onDiscoveryComplete?.();
     } catch (err) {
+      // Clear interval on error as well
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
       setError(err instanceof Error ? err.message : 'Unknown error');
       setStatus('error');
       setProgress('');

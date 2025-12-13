@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import type { Account, PriorityLevel, SortField, SortDirection } from '../types';
 import { AccountCard, getAccountStatus, type AccountStatus } from './AccountCard';
 import { useDebounce } from '../hooks/useDebounce';
+import { useSessionStorage } from '../hooks/useSessionStorage';
 
 interface Props {
   accounts: Account[];
@@ -18,12 +19,14 @@ export function AccountList({
   onAddAccount,
   loading = false,
 }: Props) {
-  const [sortField, setSortField] = useState<SortField>('account_score');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [filterPriority, setFilterPriority] = useState<PriorityLevel[]>([]);
-  const [filterStatus, setFilterStatus] = useState<AccountStatus | null>(null);
+  // Persisted filter state - survives page reloads during session
+  const [sortField, setSortField] = useSessionStorage<SortField>('abm-sort-field', 'account_score');
+  const [sortDirection, setSortDirection] = useSessionStorage<SortDirection>('abm-sort-dir', 'desc');
+  const [filterPriority, setFilterPriority] = useSessionStorage<PriorityLevel[]>('abm-filter-priority', []);
+  const [filterStatus, setFilterStatus] = useSessionStorage<AccountStatus | null>('abm-filter-status', null);
+  const [showGpuOnly, setShowGpuOnly] = useSessionStorage('abm-gpu-only', false);
+  // Search query is not persisted - users expect search to be cleared
   const [searchQuery, setSearchQuery] = useState('');
-  const [showGpuOnly, setShowGpuOnly] = useState(false);
 
   // Debounce search for smoother filtering (200ms delay)
   const debouncedSearch = useDebounce(searchQuery, 200);

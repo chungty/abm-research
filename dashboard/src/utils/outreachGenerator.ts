@@ -114,7 +114,9 @@ export function generateOutreach(context: OutreachContext): GeneratedOutreach {
   const toneConfig = toneModifiers[tone];
 
   const enrichedData = extractEnrichedData(account, contact);
-  const firstName = contact.name.split(' ')[0];
+  // Null-safe name extraction with fallback
+  const contactName = contact.name || 'there';
+  const firstName = contactName.includes(' ') ? contactName.split(' ')[0] : contactName;
 
   const subject = buildSubject(contact, account, enrichedData, variant);
   const opening = buildOpening(firstName, account, roleConfig, toneConfig, enrichedData, variant);
@@ -290,8 +292,9 @@ export function assessDataQuality(context: OutreachContext): DataQuality {
 
 export function generateFollowUpSequence(context: OutreachContext): FollowUpEmail[] {
   const { contact, account } = context;
-  const firstName = contact.name.split(' ')[0];
-  const companyName = account.name;
+  const contactName = contact.name || 'there';
+  const firstName = contactName.includes(' ') ? contactName.split(' ')[0] : contactName;
+  const companyName = account.name || 'your company';
   const enrichedData = extractEnrichedData(account, contact);
 
   return [
@@ -349,7 +352,8 @@ Best,
 
 export function generateLinkedInMessage(context: OutreachContext): string {
   const { contact, account, tone = 'conversational' } = context;
-  const firstName = contact.name.split(' ')[0];
+  const contactName = contact.name || 'there';
+  const firstName = contactName.includes(' ') ? contactName.split(' ')[0] : contactName;
   const enrichedData = extractEnrichedData(account, contact);
   const roleTier = contact.role_tier || 'entry_point';
 
@@ -428,7 +432,8 @@ function buildSubject(
   data: EnrichedData,
   variant: OutreachVariant
 ): string {
-  const firstName = contact.name.split(' ')[0];
+  const contactName = contact.name || 'there';
+  const firstName = contactName.includes(' ') ? contactName.split(' ')[0] : contactName;
 
   // Variant-specific subjects
   if (variant === 'pain_led') {

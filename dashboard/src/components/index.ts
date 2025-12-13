@@ -14,6 +14,7 @@ export { TriggerEventsList } from './TriggerEventsList';
 export { TriggerEventsSection } from './TriggerEventsSection';
 export { AddAccountModal } from './AddAccountModal';
 export { ChangelogModal } from './ChangelogModal';
+export { FeedbackModal } from './FeedbackModal';
 export { Tooltip, InfoTooltip, LabelWithTooltip } from './Tooltip';
 
 // Shared UI components
